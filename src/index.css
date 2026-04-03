@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-border: var(--color-border);
+  --color-text: var(--color-text);
+  --color-muted: var(--color-muted);
+  --color-primary: var(--color-primary);
+  --color-hover: var(--color-hover);
+  --color-overlay: var(--color-overlay);
+
+  --animate-in: in 0.2s ease-out;
+  --animate-out: out 0.15s ease-in;
+}
+
+:root {
+  /* Default Theme: Midnight (Refined) */
+  --color-background: #09090b; /* Zinc 950 */
+  --color-surface: #18181b;    /* Zinc 900 */
+  --color-border: #27272a;     /* Zinc 800 */
+  --color-text: #fafafa;       /* Zinc 50 */
+  --color-muted: #a1a1aa;      /* Zinc 400 */
+  --color-primary: #f43f5e;    /* Rose 500 */
+  --color-hover: rgba(255, 255, 255, 0.04);
+  --color-overlay: rgba(0, 0, 0, 0.7);
+}
+
+/* Typography */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* App-like feel */
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* iOS-like buttons */
+button, a {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+
+/* Range Slider (Custom) */
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: var(--color-text);
+  cursor: pointer;
+  margin-top: -5px;
+  box-shadow: 0 0 0 1px var(--color-background);
+  transition: transform 0.1s;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+input[type=range]:focus {
+  outline: none;
+}
+
+/* Utilities */
+.glass {
+  background: rgba(24, 24, 27, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
