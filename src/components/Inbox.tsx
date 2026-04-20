@@ -1,7 +1,9 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { InboxCollection, InboxItem, JikanResult, InteractionState } from '@/types';
 import { Plus, X, Upload, FolderPlus, Edit, Trash, Check, Search, Box, Layers, ArrowRightLeft, ChevronDown, ChevronUp, Package, Globe, Undo2, ArrowLeft, Info, Image as ImageIcon } from 'lucide-react';
 import { SearchPanel } from '@/components/SearchPanel';
+import { CuteSlime } from '@/components/EmptyStateVector';
 
 interface InboxProps {
   collections: InboxCollection[];
@@ -37,9 +39,10 @@ const InboxItemView: React.FC<{
     isAllView: boolean;
     activeCollectionId: string;
     handleDragStart: (e: React.DragEvent, id: string) => void;
+    handleDragEnd: () => void;
     handleItemClick: (e: React.MouseEvent, itemId: string) => void;
     handleDeleteItem: (item: InboxItem) => void;
-}> = ({ item, isUsed, isSelected, isAllView, activeCollectionId, handleDragStart, handleItemClick, handleDeleteItem }) => {
+}> = ({ item, isUsed, isSelected, isAllView, activeCollectionId, handleDragStart, handleDragEnd, handleItemClick, handleDeleteItem }) => {
     const [isDragging, setIsDragging] = useState(false);
 
     return (
@@ -49,10 +52,13 @@ const InboxItemView: React.FC<{
                 handleDragStart(e, item.id);
                 setTimeout(() => setIsDragging(true), 0);
             }}
-            onDragEnd={() => setIsDragging(false)}
+            onDragEnd={() => {
+                setIsDragging(false);
+                handleDragEnd();
+            }}
             onClick={(e) => handleItemClick(e, item.id)}
             className={`
-            relative group shrink-0 w-28 h-40 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-300 ease-out
+            relative group shrink-0 w-28 h-40 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-200 ease-out
             ${isUsed 
                 ? 'opacity-40 grayscale hover:opacity-60' 
                 : 'hover:ring-2 hover:ring-blue-500 hover:scale-105 shadow-md'}
@@ -78,7 +84,7 @@ const InboxItemView: React.FC<{
             {!isAllView && (
                 <button
                 onClick={(e) => { e.stopPropagation(); handleDeleteItem(item); }}
-                className="absolute top-2 right-2 p-1.5 bg-black/40 text-white rounded-full hover:bg-red-500 transition-all z-10 backdrop-blur-md opacity-0 group-hover:opacity-100 shadow-sm"
+                className="absolute top-2 right-2 p-1.5 bg-black/40 text-white rounded-full hover:bg-red-500 transition-all z-10 backdrop-blur-md opacity-100 md:opacity-0 group-hover:opacity-100 shadow-sm"
                 >
                 <X size={12} strokeWidth={2.5}/>
                 </button>
@@ -140,6 +146,15 @@ export const Inbox: React.FC<InboxProps> = ({
   useEffect(() => {
     setSelectedItemIds(new Set());
   }, [activeCollectionId]);
+
+  useEffect(() => {
+    const handleOpenSearch = () => {
+      setIsExpanded(true);
+      setActiveTab('search');
+    };
+    window.addEventListener('open-inbox-search', handleOpenSearch);
+    return () => window.removeEventListener('open-inbox-search', handleOpenSearch);
+  }, [setIsExpanded, setActiveTab]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     const idsToDrag = selectedItemIds.has(id) ? Array.from(selectedItemIds) : [id];
@@ -275,12 +290,14 @@ export const Inbox: React.FC<InboxProps> = ({
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-3xl px-4">
+    <div 
+      className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-40 px-4 transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] flex justify-center ${isExpanded ? 'w-full max-w-3xl' : 'w-[180px] sm:w-[240px]'}`}
+    >
       <div 
         className={`
-          w-full bg-[#1c1c1e]/90 backdrop-blur-3xl border border-white/10 shadow-2xl rounded-[32px] overflow-hidden
-          transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col
-          ${isExpanded ? 'h-[28rem]' : 'h-14'}
+          w-full bg-[#1c1c1e]/90 backdrop-blur-3xl border border-white/10 shadow-2xl overflow-hidden
+          transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col
+          ${isExpanded ? 'h-[28rem] rounded-[32px]' : 'h-14 rounded-[28px]'}
           ${isDragOver ? 'ring-2 ring-blue-500 ring-inset' : ''}
         `}
         onDragOver={handleDragOver}
@@ -289,12 +306,12 @@ export const Inbox: React.FC<InboxProps> = ({
       >
         {/* Dock Header */}
         <div 
-          className="h-14 flex items-center justify-between px-6 select-none cursor-pointer hover:bg-white/5 transition-colors shrink-0 border-b border-white/10" 
+          className="h-14 flex items-center justify-between px-5 sm:px-6 select-none cursor-pointer hover:bg-white/5 transition-colors shrink-0 border-b border-white/10" 
           onClick={toggleExpand}
         >
           <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-[13px] font-medium tracking-wide text-white/50 uppercase">
-                  <Box size={16} /> Library
+                  <Box size={16} /> <span className={!isExpanded ? 'inline' : 'hidden sm:inline'}>Library</span>
               </div>
               
               {/* Dock Tabs - Only visible when expanded */}
@@ -381,6 +398,7 @@ export const Inbox: React.FC<InboxProps> = ({
                     results={searchResults}
                     onResultsChange={setSearchResults}
                     onDragStart={handleSearchDragStart}
+                    onDragEnd={() => setTimeout(() => setIsExpanded(true), 400)}
                     onAdd={handleSmartAdd}
                     usedImageSrcs={usedImageSrcs}
                   />
@@ -494,13 +512,14 @@ export const Inbox: React.FC<InboxProps> = ({
                                   );
                                 })}
                                 
-                                <button
+                                <motion.button
+                                  whileTap={{ scale: 0.9, rotate: 90 }}
                                   onClick={onAddCollection}
                                   className="px-3 py-1.5 text-white/70 hover:text-blue-400 transition-colors hover:bg-white/10 rounded-lg"
                                   title="Create New Collection"
                                 >
                                   <Plus size={16} />
-                                </button>
+                                </motion.button>
                             </>
                         )}
                     </div>
@@ -508,39 +527,50 @@ export const Inbox: React.FC<InboxProps> = ({
                     {/* Stash Grid */}
                     <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 custom-scrollbar">
                         <div className="flex gap-4 h-full items-center">
-                            {!isAllView && (
-                                <button
-                                  onClick={() => fileInputRef.current?.click()}
-                                  className="shrink-0 w-28 h-40 border border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center text-white/50 hover:text-blue-400 hover:border-blue-400 transition-all group bg-[#2c2c2e]/50 hover:bg-[#3a3a3c]/50"
-                                >
-                                  <Upload size={24} className="group-hover:scale-110 transition-transform mb-3" strokeWidth={1.5}/>
-                                  <span className="text-[11px] font-medium uppercase tracking-widest">Upload</span>
-                                </button>
-                            )}
-
-                            {currentItems.map((item) => {
-                              const isUsed = usedOnBoard.has(item.imageSrc);
-                              const isSelected = selectedItemIds.has(item.id) || (interactionState?.type === 'inbox' && interactionState.itemId === item.id);
-                              
-                              return (
-                                <InboxItemView
-                                  key={item.id}
-                                  item={item}
-                                  isUsed={isUsed}
-                                  isSelected={isSelected}
-                                  isAllView={isAllView}
-                                  activeCollectionId={activeCollectionId}
-                                  handleDragStart={handleDragStart}
-                                  handleItemClick={handleItemClick}
-                                  handleDeleteItem={handleDeleteItem}
-                                />
-                              );
-                            })}
-
-                            {currentItems.length === 0 && (
-                              <div className="flex-1 text-center text-white/40 text-[13px] font-medium select-none flex items-center justify-center h-full border border-dashed border-white/10 rounded-2xl bg-[#2c2c2e]/30">
-                                {isAllView ? 'Your library is empty.' : 'Drag items here or Tap to move'}
+                            {currentItems.length === 0 ? (
+                              <div 
+                                onClick={() => !isAllView && fileInputRef.current?.click()}
+                                className={`flex-1 flex flex-col items-center justify-center text-white/40 text-[13px] font-medium select-none h-full border border-dashed border-white/10 rounded-2xl bg-[#2c2c2e]/30 p-4 transition-colors ${!isAllView ? 'cursor-pointer hover:border-white/20 hover:bg-[#2c2c2e]/50 hover:text-white/60' : ''}`}
+                              >
+                                <CuteSlime className="w-16 h-16 text-white/20 mb-4" />
+                                {isAllView ? 'Your library is empty.' : (
+                                  <div className="flex flex-col items-center">
+                                    <span className="mb-1 leading-tight">Drag items here or move them from the board</span>
+                                    <span className="text-[11px] uppercase tracking-widest text-blue-400/80 mt-2 font-bold group-hover:text-blue-400">Tap to Upload</span>
+                                  </div>
+                                )}
                               </div>
+                            ) : (
+                              <>
+                                {!isAllView && (
+                                    <button
+                                      onClick={() => fileInputRef.current?.click()}
+                                      className="shrink-0 w-28 h-40 border border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center text-white/50 hover:text-blue-400 hover:border-blue-400 transition-all group bg-[#2c2c2e]/50 hover:bg-[#3a3a3c]/50"
+                                    >
+                                      <Upload size={24} className="group-hover:scale-110 transition-transform mb-3" strokeWidth={1.5}/>
+                                      <span className="text-[11px] font-medium uppercase tracking-widest">Upload</span>
+                                    </button>
+                                )}
+                                {currentItems.map((item) => {
+                                  const isUsed = usedOnBoard.has(item.imageSrc);
+                                  const isSelected = selectedItemIds.has(item.id) || (interactionState?.type === 'inbox' && interactionState.itemId === item.id);
+                                  
+                                  return (
+                                    <InboxItemView
+                                      key={item.id}
+                                      item={item}
+                                      isUsed={isUsed}
+                                      isSelected={isSelected}
+                                      isAllView={isAllView}
+                                      activeCollectionId={activeCollectionId}
+                                      handleDragStart={handleDragStart}
+                                      handleDragEnd={() => setTimeout(() => setIsExpanded(true), 400)}
+                                      handleItemClick={handleItemClick}
+                                      handleDeleteItem={handleDeleteItem}
+                                    />
+                                  );
+                                })}
+                              </>
                             )}
                         </div>
                     </div>

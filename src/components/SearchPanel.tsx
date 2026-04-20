@@ -11,6 +11,7 @@ interface SearchPanelProps {
   results: JikanResult[];
   onResultsChange: (results: JikanResult[]) => void;
   onDragStart: (e: React.DragEvent, imageSrc: string) => void;
+  onDragEnd: () => void;
   onAdd: (imageSrc: string) => void;
   usedImageSrcs: Set<string>; // New prop for feedback
 }
@@ -21,8 +22,9 @@ const SearchItem: React.FC<{
   label: string;
   isAdded: boolean;
   onDragStart: (e: React.DragEvent, imgSrc: string) => void;
+  onDragEnd: () => void;
   onAdd: (imgSrc: string) => void;
-}> = ({ item, imgSrc, label, isAdded, onDragStart, onAdd }) => {
+}> = ({ item, imgSrc, label, isAdded, onDragStart, onDragEnd, onAdd }) => {
   const [isDragging, setIsDragging] = useState(false);
 
   return (
@@ -32,7 +34,10 @@ const SearchItem: React.FC<{
         onDragStart(e, imgSrc);
         setTimeout(() => setIsDragging(true), 0);
       }}
-      onDragEnd={() => setIsDragging(false)}
+      onDragEnd={() => {
+        setIsDragging(false);
+        onDragEnd();
+      }}
       className={`
         group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-white/10 bg-[#2c2c2e] cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-500 transition-all shadow-md duration-300 ease-out
         ${isAdded ? 'opacity-80' : ''}
@@ -82,6 +87,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
   results, 
   onResultsChange, 
   onDragStart,
+  onDragEnd,
   onAdd,
   usedImageSrcs
 }) => {
@@ -192,13 +198,14 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                const isAdded = usedImageSrcs.has(imgSrc);
                
                return (
-                 <SearchItem
+                   <SearchItem
                    key={item.mal_id}
                    item={item}
                    imgSrc={imgSrc}
                    label={label}
                    isAdded={isAdded}
                    onDragStart={onDragStart}
+                   onDragEnd={onDragEnd}
                    onAdd={onAdd}
                  />
                );

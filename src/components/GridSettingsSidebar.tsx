@@ -1,13 +1,10 @@
 import React from 'react';
 import { GridConfig, GridStyle, RankMode, ProjectType } from '@/types';
-import { 
-  Maximize2, Grid, Hash, Type, Calendar, 
-  List, LayoutGrid, Trash2, Save, Upload,
-  Settings2, ChevronLeft, ChevronRight, Layers,
-  SquareDashedKanban, Square, Monitor, Check, X
+import {
+  Maximize2, Grid, Hash, Type, Calendar,
+  List, LayoutGrid, Trash2, Save, Upload, Layers,
+  SquareDashedKanban, Square, X, Palette
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 
 interface GridSettingsSidebarProps {
   isOpen: boolean;
@@ -20,10 +17,11 @@ interface GridSettingsSidebarProps {
   showNumbers: boolean;
   showTitle: boolean;
   showDate: boolean;
-  showTiers: boolean; 
+  showTiers: boolean;
   borderless: boolean; // New prop
   gap: number;
   rankBackgroundColor: string;
+  aspectRatio: string;
   onConfigChange: (config: GridConfig) => void;
   onStyleChange: (style: GridStyle) => void;
   onModeChange: (mode: RankMode) => void;
@@ -31,11 +29,27 @@ interface GridSettingsSidebarProps {
   onBorderlessChange: (borderless: boolean) => void; // New handler
   onGapChange: (gap: number) => void;
   onBackgroundColorChange: (color: string) => void;
+  onAspectRatioChange: (aspectRatio: string) => void;
   onExportJson: () => void;
   onImportJson: (file: File) => void;
   onClearAll: () => void;
 }
 
+const SettingButtonGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const childrenArray = React.Children.toArray(children).filter(Boolean);
+    return (
+        <div className="flex flex-col bg-[#2c2c2e] rounded-[20px] mx-4 overflow-hidden relative">
+            {childrenArray.map((child, idx) => (
+                <React.Fragment key={idx}>
+                    {child}
+                    {idx < childrenArray.length - 1 && (
+                        <div className="h-px bg-[#3a3a3c] absolute w-[calc(100%-2.875rem)] right-0" style={{ top: `${(idx + 1) * 45}px` }}></div>
+                    )}
+                </React.Fragment>
+            ))}
+        </div>
+    );
+};
 const GRID_BG_COLORS = ['transparent', '#ffffff', '#0f1115', '#181b21', '#1a202c', '#2d3748', '#000000'];
 
 export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
@@ -53,6 +67,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   borderless,
   gap,
   rankBackgroundColor,
+  aspectRatio,
   onConfigChange,
   onStyleChange,
   onModeChange,
@@ -60,6 +75,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   onBorderlessChange,
   onGapChange,
   onBackgroundColorChange,
+  onAspectRatioChange,
   onExportJson,
   onImportJson,
   onClearAll,
@@ -70,7 +86,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
     const r = Math.max(1, Math.min(50, val));
     onConfigChange({ ...config, rows: r });
   };
-  
+
   const handleColsChange = (val: number) => {
     const c = Math.max(1, Math.min(20, val));
     onConfigChange({ ...config, cols: c });
@@ -78,12 +94,12 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
   return (
     <>
-       <div 
+       <div
         className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
-       <aside 
+       <aside
          className={`
            border-r border-white/10 bg-[#1c1c1e]/90 backdrop-blur-3xl shadow-2xl flex shrink-0 z-40
            fixed top-14 bottom-0 left-0 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
@@ -95,7 +111,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
        >
          <div className="relative w-80 h-full">
             {/* Expanded Content */}
-            <div 
+            <div
                 className={`
                     absolute inset-y-0 left-0 w-80 flex flex-col overflow-y-auto custom-scrollbar overflow-x-hidden
                     transition-opacity duration-300
@@ -116,7 +132,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                             </span>
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={onClose}
                         className="p-2 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors md:hidden"
                         title="Close Settings"
@@ -130,13 +146,13 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                   <div className="flex flex-col gap-2">
                     <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-4">View Mode</span>
                     <div className="flex bg-[#767680]/24 p-1 rounded-xl mx-4">
-                      <button 
+                      <button
                         onClick={() => onModeChange('grid')}
                         className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg transition-colors text-[13px] font-medium ${mode === 'grid' ? 'bg-[#636366] text-white shadow-sm' : 'text-white/70 hover:text-white'}`}
                       >
                         <LayoutGrid size={14} /> Grid
                       </button>
-                      <button 
+                      <button
                         onClick={() => onModeChange('list')}
                         className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg transition-colors text-[13px] font-medium ${mode === 'list' ? 'bg-[#636366] text-white shadow-sm' : 'text-white/70 hover:text-white'}`}
                       >
@@ -157,7 +173,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                         <div className="flex items-center gap-3 px-4 py-3 bg-[#2c2c2e] rounded-[20px] mx-4">
                             <div className="flex-1 flex flex-col gap-1">
                                 <span className="text-[11px] text-white/50 font-medium uppercase">Rows</span>
-                                <input 
+                                <input
                                   type="number" min="1" max="50"
                                   value={config.rows}
                                   onChange={(e) => handleRowsChange(parseInt(e.target.value))}
@@ -167,7 +183,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                             <span className="text-white/50 font-medium">×</span>
                             <div className="flex-1 flex flex-col gap-1">
                                 <span className="text-[11px] text-white/50 font-medium uppercase">Cols</span>
-                                <input 
+                                <input
                                   type="number" min="1" max="20"
                                   value={config.cols}
                                   onChange={(e) => handleColsChange(parseInt(e.target.value))}
@@ -178,7 +194,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                     ) : (
                         <div className="flex flex-col gap-1 px-4 py-3 bg-[#2c2c2e] rounded-[20px] mx-4">
                                 <span className="text-[11px] text-white/50 font-medium uppercase">Items</span>
-                                <input 
+                                <input
                                   type="number" min="1" max="100"
                                   value={config.rows}
                                   onChange={(e) => handleRowsChange(parseInt(e.target.value))}
@@ -192,22 +208,41 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                 )}
 
                 {/* Section: Appearance */}
-                {projectType === 'ranking' && mode === 'grid' && (
+                {(projectType === 'ranking' || projectType === 'tierlist') && (
                     <>
                     <div className="flex flex-col gap-4">
                         <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-4">Appearance</span>
-                        
+
                         <div className="flex flex-col gap-4 px-4 py-4 bg-[#2c2c2e] rounded-[20px] mx-4">
+                            <div className="flex flex-col gap-2">
+                                <span className="text-[11px] font-medium text-white/50 uppercase tracking-wide">Aspect Ratio</span>
+                                <div className="grid grid-cols-5 gap-1 bg-[#1c1c1e] p-1 rounded-lg">
+                                    {(['1:1', '3:4', '4:3', '16:9', '9:16'] as const).map(ratio => (
+                                        <button
+                                            key={ratio}
+                                            onClick={() => onAspectRatioChange(ratio)}
+                                            className={`py-1.5 text-[11px] font-medium rounded-md transition-colors ${aspectRatio === ratio || (!aspectRatio && ratio === '3:4') ? 'bg-[#3a3a3c] text-white shadow-sm' : 'text-white/50 hover:text-white'}`}
+                                        >
+                                            {ratio}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="h-px bg-white/5 mx-2"></div>
+
                             <div className="flex flex-col gap-2">
                                 <div className="flex justify-between text-[13px] font-medium text-white/70 mb-1">
                                     <span>Spacing</span>
                                     <span className="text-white">{gap}px</span>
                                 </div>
-                                <input 
+                                <input
                                     type="range" min="0" max="32" step="2"
                                     value={gap}
                                     onChange={(e) => onGapChange(parseInt(e.target.value))}
-                                    className="w-full h-1.5 bg-black/20 rounded-lg appearance-none cursor-pointer focus:outline-none accent-blue-500"
+                                    className="w-full h-1.5 bg-black/40 rounded-lg appearance-none cursor-pointer focus:outline-none"
+                                    style={{
+                                        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(gap / 32) * 100}%, rgba(0,0,0,0.4) ${(gap / 32) * 100}%, rgba(0,0,0,0.4) 100%)`
+                                    }}
                                 />
                             </div>
 
@@ -220,7 +255,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                                     <button onClick={() => onStyleChange('card')} title="Cards" className={`p-1.5 rounded-lg transition-colors ${style === 'card' ? 'bg-[#636366] text-white shadow-sm' : 'text-white/70 hover:text-white'}`}><Grid size={16} /></button>
                                 </div>
                             </div>
-                            
+
                             {style === 'seamless' && (
                                 <>
                                 <div className="h-px bg-white/10 -mx-4"></div>
@@ -233,6 +268,40 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                                 </div>
                                 </>
                             )}
+
+                            <div className="h-px bg-white/10 -mx-4"></div>
+
+                            <div className="flex flex-col gap-2">
+                                <span className="text-[11px] font-medium text-white/50 uppercase tracking-wide">Background</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {GRID_BG_COLORS.map(color => (
+                                        <button
+                                            key={color}
+                                            onClick={() => onBackgroundColorChange(color)}
+                                            className={`w-6 h-6 rounded-full border-2 transition-all ${rankBackgroundColor === color ? 'border-primary scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]' : 'border-white/20 hover:border-white/50'}`}
+                                            style={{ backgroundColor: color === 'transparent' ? '#000' : color,
+                                                     backgroundImage: color === 'transparent' ? 'repeating-conic-gradient(#333 0% 25%, #222 0% 50%)' : ''
+                                                  }}
+                                            title={color === 'transparent' ? 'Transparent' : color}
+                                        />
+                                    ))}
+                                    <label
+                                        className={`relative w-6 h-6 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center ${
+                                            !GRID_BG_COLORS.includes(rankBackgroundColor) ? 'border-primary scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]' : 'border-white/20 hover:border-white/50'
+                                        }`}
+                                        style={{ backgroundColor: !GRID_BG_COLORS.includes(rankBackgroundColor) ? rankBackgroundColor : '#2c2c2e' }}
+                                        title="Custom Color"
+                                    >
+                                        <Palette size={12} className="text-white mix-blend-difference" />
+                                        <input
+                                            type="color"
+                                            value={!GRID_BG_COLORS.includes(rankBackgroundColor) ? rankBackgroundColor : '#000000'}
+                                            onChange={(e) => onBackgroundColorChange(e.target.value)}
+                                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                                        />
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div className="h-px bg-white/10 mx-4"></div>
@@ -244,21 +313,21 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                   <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-4">Visibility</span>
                   <div className="grid grid-cols-3 gap-2 px-4">
                       {projectType === 'ranking' && mode === 'grid' && (
-                        <button 
-                            onClick={() => onVisualToggle('showNumbers')} 
+                        <button
+                            onClick={() => onVisualToggle('showNumbers')}
                             className={`flex flex-col items-center justify-center h-auto py-3 gap-1.5 rounded-xl transition-colors text-[13px] font-medium ${showNumbers ? 'bg-blue-500/20 text-blue-500' : 'bg-[#2c2c2e] text-white/70 hover:bg-[#3a3a3c] hover:text-white'}`}
                         >
                             <Hash size={16} /> Rank
                         </button>
                       )}
-                      <button 
-                          onClick={() => onVisualToggle('showVisualToggle')} 
+                      <button
+                          onClick={() => onVisualToggle('showVisualToggle')}
                           className={`flex flex-col items-center justify-center h-auto py-3 gap-1.5 rounded-xl transition-colors text-[13px] font-medium ${showTitle ? 'bg-blue-500/20 text-blue-500' : 'bg-[#2c2c2e] text-white/70 hover:bg-[#3a3a3c] hover:text-white'}`}
                       >
                         <Type size={16} /> Title
                       </button>
-                      <button 
-                          onClick={() => onVisualToggle('showDate')} 
+                      <button
+                          onClick={() => onVisualToggle('showDate')}
                           className={`flex flex-col items-center justify-center h-auto py-3 gap-1.5 rounded-xl transition-colors text-[13px] font-medium ${showDate ? 'bg-blue-500/20 text-blue-500' : 'bg-[#2c2c2e] text-white/70 hover:bg-[#3a3a3c] hover:text-white'}`}
                       >
                         <Calendar size={16} /> Date
@@ -268,32 +337,42 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
                 <div className="h-px bg-white/10 mx-4"></div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 relative">
                   <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-4">Data Actions</span>
-                  
-                  <div className="flex flex-col gap-px bg-[#2c2c2e] rounded-[20px] mx-4 overflow-hidden">
-                      <button 
-                        onClick={onExportJson} 
-                        className="flex items-center gap-3 px-4 py-3 text-[15px] text-white hover:bg-white/5 transition-colors text-left"
+
+                  <SettingButtonGroup>
+                      <button
+                        onClick={onExportJson}
+                        className="flex items-center gap-3 px-4 py-3 text-[15px] text-white hover:bg-[#3a3a3c] transition-colors text-left"
                       >
                         <Save size={18} className="text-blue-500" /> Backup
                       </button>
-                      <div className="h-px bg-white/10 ml-12"></div>
-                      <button 
-                        onClick={() => jsonInputRef.current?.click()} 
-                        className="flex items-center gap-3 px-4 py-3 text-[15px] text-white hover:bg-white/5 transition-colors text-left"
+                      <button
+                        onClick={() => jsonInputRef.current?.click()}
+                        className="flex items-center gap-3 px-4 py-3 text-[15px] text-white hover:bg-[#3a3a3c] transition-colors text-left"
                       >
                         <Upload size={18} className="text-blue-500" /> Restore
                       </button>
-                      <div className="h-px bg-white/10 ml-12"></div>
-                      <button 
-                        onClick={onClearAll} 
-                        className="flex items-center gap-3 px-4 py-3 text-[15px] text-[#ff453a] hover:bg-white/5 transition-colors text-left"
+                      <button
+                        onClick={onClearAll}
+                        className="flex items-center gap-3 px-4 py-3 text-[15px] text-[#ff453a] hover:bg-[#3a3a3c] transition-colors text-left"
                       >
                         <Trash2 size={18} /> Clear {projectType === 'tierlist' ? 'Tiers' : 'Grid'}
                       </button>
-                  </div>
-                
+                  </SettingButtonGroup>
+                  <input
+                      type="file"
+                      ref={jsonInputRef}
+                      className="hidden"
+                      accept="application/json"
+                      onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                              onImportJson(e.target.files[0]);
+                              e.target.value = ''; // Reset input so same file can be selected again
+                          }
+                      }}
+                  />
+
                 <div className="h-10"></div>
             </div>
             </div>

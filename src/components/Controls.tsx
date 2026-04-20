@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Settings2, Download, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -41,10 +42,21 @@ export const Controls: React.FC<ControlsProps> = ({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group"
             title="Open Library"
           >
-            <span className="font-semibold text-[15px] text-white tracking-tight truncate max-w-[150px] sm:max-w-[300px]">
-              {projectName}
+            <span className="font-semibold text-[15px] text-white tracking-tight truncate max-w-[150px] sm:max-w-[300px] flex items-center justify-center relative min-w-[20px] min-h-[22px]">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span 
+                  key={projectName} 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.15 }}
+                  className="inline-block whitespace-nowrap"
+                >
+                  {projectName || "Untitled"}
+                </motion.span>
+              </AnimatePresence>
             </span>
-            <ChevronDown size={14} className="text-white/50 group-hover:text-white/80 transition-colors" />
+            <ChevronDown size={14} className="text-white/50 group-hover:text-white/80 transition-colors shrink-0" />
           </button>
         </div>
 

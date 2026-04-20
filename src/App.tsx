@@ -115,6 +115,7 @@ export const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState('');
   const [internalClipboard, setInternalClipboard] = useState<string | null>(null);
   
   // Toasts
@@ -414,6 +415,7 @@ export const App: React.FC = () => {
             borderless={activeRank.borderless ?? false}
             gap={activeRank.gap ?? 0}
             rankBackgroundColor={activeRank.backgroundColor}
+            aspectRatio={activeRank.aspectRatio || '3:4'}
             onConfigChange={state.handleConfigChange}
             onStyleChange={(s) => state.updateActiveRank({ style: s })}
             onModeChange={state.handleModeChange}
@@ -421,6 +423,7 @@ export const App: React.FC = () => {
             onBorderlessChange={(borderless) => state.updateActiveRank({ borderless })}
             onGapChange={(gap) => state.updateActiveRank({ gap })}
             onBackgroundColorChange={(color) => state.updateActiveRank({ backgroundColor: color })}
+            onAspectRatioChange={(ratio) => state.updateActiveRank({ aspectRatio: ratio })}
             onExportJson={handleExportJson}
             onImportJson={handleImportJson}
             onClearAll={handleClearAll}
@@ -433,7 +436,7 @@ export const App: React.FC = () => {
             >
                 <div 
                   ref={gridRef}
-                  className="relative transition-all duration-300 shadow-2xl"
+                  className="relative transition-all duration-200 shadow-2xl"
                   style={{ 
                       width: 'fit-content',
                       minWidth: activeRank.mode === 'list' ? '100%' : (activeRank.type === 'tierlist' ? '98%' : 'auto'),
@@ -441,27 +444,42 @@ export const App: React.FC = () => {
                       backgroundColor: activeRank.backgroundColor === 'transparent' ? '' : activeRank.backgroundColor,
                       padding: containerPadding,
                   }}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                      e.stopPropagation();
+                      if(state.interactionState) state.setInteractionState(null);
+                  }}
                 >
                   {(activeRank.showTitle !== false || isEditingTitle) && (
-                      <div className="text-center mb-8 pb-4 border-b border-white/5">
+                      <div className="text-center mb-8 pb-4 border-b border-white/5 relative">
                         {isEditingTitle ? (
                           <input
                             ref={titleInputRef}
                             type="text"
-                            value={activeRank.title}
-                            onChange={(e) => state.updateActiveRank({ title: e.target.value })}
-                            onBlur={() => setIsEditingTitle(false)}
-                            onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
+                            value={tempTitle}
+                            onChange={(e) => setTempTitle(e.target.value)}
+                            onBlur={() => {
+                              setIsEditingTitle(false);
+                              if(tempTitle.trim() && tempTitle !== activeRank.title) {
+                                state.updateActiveRank({ title: tempTitle });
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setIsEditingTitle(false);
+                                if(tempTitle.trim() && tempTitle !== activeRank.title) {
+                                  state.updateActiveRank({ title: tempTitle });
+                                }
+                              }
+                            }}
                             autoFocus
                             onFocus={(e) => e.target.select()}
-                            className="text-4xl md:text-5xl font-black text-center bg-transparent border-b-2 border-primary focus:outline-none w-full max-w-2xl placeholder-white/20"
+                            className="text-4xl md:text-5xl font-black text-center bg-transparent border-b-2 border-primary focus:outline-none w-full max-w-2xl placeholder-white/20 animate-in fade-in duration-200"
                             style={{ color: textColor }}
                           />
                         ) : (
                           <h1 
-                            onClick={() => setIsEditingTitle(true)}
-                            className="text-4xl md:text-5xl font-black tracking-tighter cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-3 group/title"
+                            onClick={() => { setTempTitle(activeRank.title); setIsEditingTitle(true); }}
+                            className="text-4xl md:text-5xl font-black tracking-tighter cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-3 group/title animate-in fade-in duration-200"
                             style={{ color: textColor }}
                           >
                             {activeRank.title}

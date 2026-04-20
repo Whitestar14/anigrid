@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Rank, TierRow, InteractionState, CellData } from '@/types';
 import { Settings, Trash2, ArrowUp, ArrowDown, Plus, Palette, X, Eraser, ChevronUp, ChevronDown, Edit2, Crop, Check } from 'lucide-react';
 
@@ -28,10 +29,19 @@ const TierItem: React.FC<{
     onInboxDropMulti: (itemIds: string[], collectionId: string, rowId: string, itemIndex: number) => void;
     onInternalMove: (sourceRowId: string, sourceItemId: string, targetRowId: string, targetIndex: number) => void;
     onSearchDrop: (imageSrc: string, rowId: string, itemIndex: number) => void;
-}> = ({ item, rowId, idx, interactionState, onInteract, onMoveToInbox, handleItemDrop, onUpdateItem, onInboxDrop, onInboxDropMulti, onInternalMove, onSearchDrop }) => {
+    aspectRatio?: '1:1' | '3:4' | '4:3' | '16:9' | '9:16';
+}> = ({ item, rowId, idx, interactionState, onInteract, onMoveToInbox, handleItemDrop, onUpdateItem, onInboxDrop, onInboxDropMulti, onInternalMove, onSearchDrop, aspectRatio }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [isDragOver, setIsDragOver] = useState(false);
     const [isAdjusting, setIsAdjusting] = useState(false);
+
+    const aspectMap: Record<string, string> = {
+        '1:1': 'w-24 h-24',
+        '3:4': 'w-24 h-32',
+        '4:3': 'w-32 h-24',
+        '16:9': 'w-[136px] h-20',
+        '9:16': 'w-20 h-32'
+    };
     
     const [zoom, setZoom] = useState(item.zoom || 1);
     const [posX, setPosX] = useState(item.objectPosition ? parseInt(item.objectPosition.split(' ')[0]) : 50);
@@ -64,7 +74,7 @@ const TierItem: React.FC<{
                 handleItemDrop(e, rowId, idx);
             }}
             onClick={(e) => { 
-                if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.adjust-controls')) return;
+                if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.adjust-controls') || (e.target as HTMLElement).closest('.popover-menu')) return;
                 e.stopPropagation(); 
                 if (interactionState?.type === 'inbox') {
                     onInboxDrop(interactionState.itemId, interactionState.collectionId, rowId, idx);
@@ -87,14 +97,14 @@ const TierItem: React.FC<{
             onDragEnd={() => setIsDragging(false)}
         >
             <div className={`
-                w-24 h-32 relative cursor-grab active:cursor-grabbing overflow-hidden select-none bg-black/20
+                ${aspectMap[aspectRatio || '3:4']} relative cursor-grab active:cursor-grabbing overflow-hidden select-none bg-black/20
                 ${interactionState?.type === 'tier-item' && interactionState.itemId === item.id ? 'opacity-50 ring-2 ring-primary z-10' : ''}
             `}>
                 <img src={item.imageSrc!} className="w-full h-full object-cover pointer-events-none transition-all duration-300" style={objectPosStyle} referrerPolicy="no-referrer" />
                 
-                {/* Hover Controls */}
+                {/* Hover Controls (Desktop) */}
                 {!isAdjusting && (
-                    <div className="absolute top-0 right-0 flex gap-1 p-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity export-hidden">
+                    <div className="absolute top-0 right-0 hidden md:flex gap-1 p-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity export-hidden">
                         <button 
                             className="bg-black/60 text-white p-1 hover:bg-white/20 rounded-sm"
                             onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }}
@@ -131,6 +141,27 @@ const TierItem: React.FC<{
                     </div>
                 )}
             </div>
+
+            {/* Popover Menu (Mobile Only) */}
+            <AnimatePresence>
+                {interactionState?.type === 'tier-item' && interactionState.itemId === item.id && !isAdjusting && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
+                        className="popover-menu md:hidden absolute top-full mt-2 w-32 left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1"
+                    >
+                        <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors">
+                            Adjust <Crop size={14} className="text-white/50" />
+                        </button>
+                        <div className="h-px bg-white/10 mx-2 my-0.5" />
+                        <button onClick={(e) => { e.stopPropagation(); onMoveToInbox(rowId, idx); }} className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors">
+                            Remove <X size={14} className="text-red-500/50" />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

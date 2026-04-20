@@ -60,6 +60,7 @@ export interface Rank {
   showDate: boolean;
   showTiers?: boolean;
   borderless?: boolean; // New: Toggle item borders in grid
+  aspectRatio?: '1:1' | '3:4' | '4:3' | '16:9' | '9:16';
   gap: number; 
   backgroundColor: string; 
 

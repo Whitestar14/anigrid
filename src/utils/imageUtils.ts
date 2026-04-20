@@ -1,4 +1,4 @@
-import { toPng, toJpeg } from 'html-to-image';
+import html2canvas from 'html2canvas';
 
 export type ImageFormat = 'png' | 'jpeg' | 'webp';
 
@@ -13,14 +13,21 @@ export const readFileAsDataURL = (file: File | Blob): Promise<string> => {
 
 export const downloadGrid = async (element: HTMLElement, title: string, format: string = 'png') => {
     try {
-        // Small delay to ensure any layout shifts are complete
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        const canvas = await html2canvas(element, {
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#000000',
+            scale: 2,
+            logging: false,
+        });
+
         let dataUrl = '';
         if (format === 'jpeg' || format === 'jpg') {
-            dataUrl = await toJpeg(element, { quality: 0.95, backgroundColor: '#000' });
+            dataUrl = canvas.toDataURL('image/jpeg', 0.95);
         } else {
-            dataUrl = await toPng(element, { backgroundColor: '#000' });
+            dataUrl = canvas.toDataURL('image/png');
         }
         
         const link = document.createElement('a');

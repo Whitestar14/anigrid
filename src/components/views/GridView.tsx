@@ -160,6 +160,7 @@ export const GridView: React.FC<GridViewProps> = ({
                                   onInteract={onInteract}
                                   onUpdateCell={onUpdateCell}
                                   borderless={rank.borderless}
+                                  aspectRatio={rank.aspectRatio}
                                 />
                              );
                           })}
@@ -198,6 +199,7 @@ export const GridView: React.FC<GridViewProps> = ({
           onInteract={onInteract}
           onUpdateCell={onUpdateCell}
           borderless={rank.borderless}
+          aspectRatio={rank.aspectRatio}
         />
       ))}
     </div>
