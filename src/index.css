@@ -1,9 +1,16 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/InterVariable.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  
+
   --color-background: var(--color-background);
   --color-surface: var(--color-surface);
   --color-border: var(--color-border);
@@ -27,6 +34,9 @@
   --color-primary: #f43f5e;    /* Rose 500 */
   --color-hover: rgba(255, 255, 255, 0.04);
   --color-overlay: rgba(0, 0, 0, 0.7);
+
+  --font-family-sans: var(--font-sans);
+  --font-family-mono: var(--font-mono);
 }
 
 /* Typography */

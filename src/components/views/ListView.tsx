@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Rank, CellData, InteractionState } from '@/types';
 import { Upload, X, ArrowDownToLine, Plus, Star, Move } from 'lucide-react';
+import { getProxiedImageUrl } from '@/utils/imageProxy';
 
 interface ListViewProps {
   rank: Rank;
@@ -103,7 +104,7 @@ const ListRow: React.FC<ListRowProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`
         flex items-center gap-4 transition-all duration-200
         ${rankStyle === 'card' ? 'p-3 bg-[#2c2c2e] rounded-2xl' : 'p-3 bg-transparent hover:bg-white/[0.02]'}
@@ -129,12 +130,12 @@ const ListRow: React.FC<ListRowProps> = ({
       )}
 
       {/* 2. Image Thumb uses Cell.tsx for full features */}
-      <div 
+      <div
         className={`relative shrink-0 ${aspectMap[aspectRatio] || 'aspect-[3/4] w-16 sm:w-20'}`}
       >
           {data.imageSrc ? (
             <div className="w-full h-full relative cursor-pointer group/image rounded-lg overflow-hidden border border-white/5 shadow-sm transition-transform hover:scale-[1.02]">
-                <img src={data.imageSrc} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src={getProxiedImageUrl(data.imageSrc)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/image:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-[1px]">
                     <button onClick={(e) => { e.stopPropagation(); onClear(index); }} className="text-white/70 hover:text-red-400 p-1 hover:bg-white/10 rounded-full transition-colors"><X size={14}/></button>
                     <button onClick={(e) => { e.stopPropagation(); onInteract(index); }} className="text-white/70 hover:text-primary p-1 hover:bg-white/10 rounded-full transition-colors"><Move size={14}/></button>
@@ -142,7 +143,7 @@ const ListRow: React.FC<ListRowProps> = ({
                 </div>
             </div>
           ) : (
-            <div 
+            <div
                onClick={() => onInteract(index)}
                className="w-full h-full bg-black/40 rounded-lg border border-white/5 shadow-sm flex flex-col items-center justify-center text-muted hover:text-white transition-colors gap-1 cursor-pointer"
             >
@@ -155,7 +156,7 @@ const ListRow: React.FC<ListRowProps> = ({
                />
                <Plus size={20} className="opacity-50" />
                <span className="text-[10px] uppercase font-bold tracking-wider opacity-50">Add</span>
-               
+
                {/* Popover Menu (Empty State equivalent mapping) */}
                {isSelected && (
                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 animate-in fade-in zoom-in-95">
@@ -202,8 +203,8 @@ const ListRow: React.FC<ListRowProps> = ({
                   onClick={() => onUpdateCell(index, { rating: star === data.rating ? 0 : star })}
                   className="focus:outline-none group/star p-0.5"
                 >
-                   <Star 
-                     size={14} 
+                   <Star
+                     size={14}
                      className={`
                        ${(data.rating || 0) >= star ? 'fill-yellow-500 text-yellow-500' : 'text-white/10 group-hover/star:text-yellow-500/40'}
                        transition-colors
@@ -212,12 +213,12 @@ const ListRow: React.FC<ListRowProps> = ({
                 </button>
             ))}
          </div>
-         
+
          {/* Mobile Rating Touch Target */}
          <div className="sm:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface border border-transparent hover:border-border">
-             <Star 
-               size={20} 
-               className={`${data.rating ? 'fill-yellow-500 text-yellow-500' : 'text-muted/30'}`} 
+             <Star
+               size={20}
+               className={`${data.rating ? 'fill-yellow-500 text-yellow-500' : 'text-muted/30'}`}
              />
              <select
                 className="absolute inset-0 opacity-0 w-full h-full"
@@ -249,8 +250,8 @@ export const ListView: React.FC<ListViewProps> = ({
   onInteract
 }) => {
   return (
-    <div 
-      className={`flex flex-col w-full min-w-0 ${rank.style === 'card' ? 'gap-3' : 'divide-y divide-white/5'}`} 
+    <div
+      className={`flex flex-col w-full min-w-0 ${rank.style === 'card' ? 'gap-3' : 'divide-y divide-white/5'}`}
       style={rank.style === 'card' ? { gap: rank.gap ?? 8 } : {}}
     >
       {rank.cells.map((cell, index) => (

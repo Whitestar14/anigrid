@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Loader2, AlertCircle, Plus, Check, RefreshCw, WifiOff } from 'lucide-react';
 import { JikanResult } from '@/types';
 import { Input } from '@/components/ui/Input';
+import { getProxiedImageUrl } from '@/utils/imageProxy';
 
 interface SearchPanelProps {
   query: string;
@@ -45,19 +46,19 @@ const SearchItem: React.FC<{
       `}
       title={label}
     >
-      <img 
-        src={imgSrc} 
+      <img
+        src={getProxiedImageUrl(imgSrc)}
         alt={label}
         className={`w-full h-full object-cover pointer-events-none transition-all ${isAdded ? 'grayscale' : ''}`}
         loading="lazy"
         referrerPolicy="no-referrer"
       />
-      
+
       {/* Gradient Overlay for Text Readability */}
       <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
 
       {/* Add Button / Check Indicator */}
-      <button 
+      <button
         onClick={(e) => {
             e.stopPropagation();
             if (!isAdded) onAdd(imgSrc);
@@ -79,13 +80,13 @@ const SearchItem: React.FC<{
   );
 };
 
-export const SearchPanel: React.FC<SearchPanelProps> = ({ 
-  query, 
-  onQueryChange, 
-  mode, 
-  onModeChange, 
-  results, 
-  onResultsChange, 
+export const SearchPanel: React.FC<SearchPanelProps> = ({
+  query,
+  onQueryChange,
+  mode,
+  onModeChange,
+  results,
+  onResultsChange,
   onDragStart,
   onDragEnd,
   onAdd,
@@ -107,17 +108,17 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
   const performSearch = async () => {
     if (!query || query.length <= 2) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       if (!navigator.onLine) {
           throw new Error("offline");
       }
 
       const response = await fetch(`https://api.jikan.moe/v4/${mode}?q=${encodeURIComponent(query)}&limit=15&order_by=favorites&sort=desc`);
-      
+
       if (!response.ok) {
         if (response.status === 429) throw new Error("Rate limited. Please wait a moment.");
         if (response.status >= 500) throw new Error("Jikan API is currently down.");
@@ -153,7 +154,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
             className="font-medium bg-[#2c2c2e] border-transparent focus:border-white/20 focus:ring-1 focus:ring-white/20 text-[15px] rounded-xl h-10"
           />
         </div>
-        
+
         <div className="flex bg-[#767680]/24 rounded-xl p-1 shrink-0">
           <button
             onClick={() => onModeChange('anime')}
@@ -183,7 +184,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                 {error.isNetwork ? <WifiOff size={24} /> : <AlertCircle size={24} />}
             </div>
             <span className="text-[13px] font-medium text-white">{error.message}</span>
-            <button 
+            <button
                 onClick={performSearch}
                 className="mt-2 flex items-center gap-2 px-5 py-2 bg-[#2c2c2e] hover:bg-[#3a3a3c] border border-white/10 rounded-full text-[13px] font-medium transition-colors text-white"
             >
@@ -196,7 +197,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                const imgSrc = item.images.jpg.large_image_url || item.images.jpg.image_url;
                const label = item.title || item.name || 'Unknown';
                const isAdded = usedImageSrcs.has(imgSrc);
-               
+
                return (
                    <SearchItem
                    key={item.mal_id}

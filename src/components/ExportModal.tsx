@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { ImageFormat } from '@/utils/imageUtils';
-import { Download, FileImage, FileJson, ChevronRight, Check } from 'lucide-react';
+import { FileImage, FileJson } from 'lucide-react';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -61,7 +61,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <FileImage size={18} />
               Save as Image
             </button>
-            
+
             {onExportJson && (
               <button
                 onClick={() => {

@@ -2,13 +2,14 @@ import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Upload, Download, ArrowUp, ArrowDown, Minus, Move, Crop, Check, Globe, Search, Trash2 } from 'lucide-react';
 import { CellData, GridStyle } from '@/types';
+import { getProxiedImageUrl } from '@/utils/imageProxy';
 
 interface CellProps {
   index: number;
   data: CellData;
   styleMode: GridStyle;
   showRankNumber: boolean;
-  isSelected: boolean; 
+  isSelected: boolean;
   borderless?: boolean; // New prop
   aspectRatio?: '1:1' | '3:4' | '4:3' | '16:9' | '9:16';
   onUpload: (index: number, file: File) => void;
@@ -19,21 +20,21 @@ interface CellProps {
   onSearchDrop: (imageSrc: string, toIndex: number) => void;
   onMoveToInbox: (index: number) => void;
   onDownloadSingle: (index: number) => void;
-  onInteract: (index: number) => void; 
-  onUpdateCell: (index: number, data: Partial<CellData>) => void; 
+  onInteract: (index: number) => void;
+  onUpdateCell: (index: number, data: Partial<CellData>) => void;
 }
 
-export const Cell: React.FC<CellProps> = ({ 
-  index, 
-  data, 
+export const Cell: React.FC<CellProps> = ({
+  index,
+  data,
   styleMode,
   showRankNumber,
   isSelected,
   borderless,
   aspectRatio = '3:4',
-  onUpload, 
-  onClear, 
-  onSwap, 
+  onUpload,
+  onClear,
+  onSwap,
   onInboxDrop,
   onInboxDropMulti,
   onSearchDrop,
@@ -46,14 +47,14 @@ export const Cell: React.FC<CellProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isAdjusting, setIsAdjusting] = useState(false);
-  
+
   const [zoom, setZoom] = useState(data.zoom || 1);
   const [posX, setPosX] = useState(data.objectPosition ? parseInt(data.objectPosition.split(' ')[0]) : 50);
   const [posY, setPosY] = useState(data.objectPosition ? parseInt(data.objectPosition.split(' ')[1]) : 50);
 
   const handleClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.adjust-controls') || (e.target as HTMLElement).closest('.popover-menu')) return;
-    
+
     onInteract(index);
   };
 
@@ -116,8 +117,8 @@ export const Cell: React.FC<CellProps> = ({
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); 
-    e.stopPropagation(); 
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(true);
     e.dataTransfer.dropEffect = 'copy';
   };
@@ -136,7 +137,7 @@ export const Cell: React.FC<CellProps> = ({
   // If seamless and NOT borderless, show border. If borderless is true, hide it.
   const outlineClass = styleMode === 'seamless' && !borderless && !isDragOver && !isSelected ? 'outline outline-1 outline-border -outline-offset-1' : '';
   const bgClass = styleMode === 'card' ? 'bg-surface shadow-sm border border-white/5' : 'bg-surface';
-  
+
   const align = data.alignment || 'center';
   const objectPosStyle: React.CSSProperties = {
       objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || (align === 'top' ? 'top' : align === 'bottom' ? 'bottom' : 'center')),
@@ -169,7 +170,7 @@ export const Cell: React.FC<CellProps> = ({
       onDragEnd={() => setIsDragging(false)}
       draggable={!!data.imageSrc && !isAdjusting}
     >
-      <div 
+      <div
         className={`w-full h-full relative overflow-hidden ${roundedClass} ${bgClass} ${outlineClass} ${isDragOver ? 'ring-4 ring-primary bg-primary/20' : ''} ${isSelected ? 'ring-2 ring-primary shadow-xl scale-[0.98]' : ''} ${!data.imageSrc ? 'cursor-pointer hover:bg-hover' : 'cursor-pointer'}`}
       >
         <input
@@ -183,17 +184,17 @@ export const Cell: React.FC<CellProps> = ({
         {data.imageSrc ? (
           <>
             <img
-              src={data.imageSrc}
+              src={getProxiedImageUrl(data.imageSrc)}
               alt={`Rank ${index + 1}`}
               className="w-full h-full object-cover select-none pointer-events-none transition-all duration-300"
               style={objectPosStyle}
               referrerPolicy="no-referrer"
             />
-            
+
             {/* Overlay Controls (Desktop Hover) */}
             {!isAdjusting && (
               <div className={`export-hidden absolute inset-0 bg-black/40 opacity-0 group-hover/cell:opacity-100 transition-all duration-200 hidden md:flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]`}>
-                 
+
                  <div className="flex items-center gap-1 p-1 bg-black/60 backdrop-blur-md rounded-full border border-white/10 shadow-xl transform translate-y-2 group-hover/cell:translate-y-0 transition-transform duration-200">
                     <button
                       onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
@@ -266,7 +267,7 @@ export const Cell: React.FC<CellProps> = ({
                 </div>
               </div>
             )}
-            
+
             {showRankNumber && !isAdjusting && (
               <div className="absolute top-2 left-2 bg-black/70 text-white text-xs font-bold px-2 py-1 rounded-md backdrop-blur-sm pointer-events-none z-10 shadow-sm border border-white/10">
                 #{index + 1}
@@ -284,7 +285,7 @@ export const Cell: React.FC<CellProps> = ({
       {/* Popover Menu (Empty State) */}
       <AnimatePresence>
         {isSelected && !data.imageSrc && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -318,7 +319,7 @@ export const Cell: React.FC<CellProps> = ({
       {/* Popover Menu (Filled State - Mobile Only) */}
       <AnimatePresence>
         {isSelected && data.imageSrc && !isAdjusting && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}

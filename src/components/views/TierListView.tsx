@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Rank, TierRow, InteractionState, CellData } from '@/types';
 import { Settings, Trash2, ArrowUp, ArrowDown, Plus, Palette, X, Eraser, ChevronUp, ChevronDown, Edit2, Crop, Check } from 'lucide-react';
+import { getProxiedImageUrl } from '@/utils/imageProxy';
 
 interface TierListViewProps {
   rank: Rank;
@@ -42,7 +43,7 @@ const TierItem: React.FC<{
         '16:9': 'w-[136px] h-20',
         '9:16': 'w-20 h-32'
     };
-    
+
     const [zoom, setZoom] = useState(item.zoom || 1);
     const [posX, setPosX] = useState(item.objectPosition ? parseInt(item.objectPosition.split(' ')[0]) : 50);
     const [posY, setPosY] = useState(item.objectPosition ? parseInt(item.objectPosition.split(' ')[1]) : 50);
@@ -60,22 +61,22 @@ const TierItem: React.FC<{
     };
 
     return (
-        <div 
+        <div
             className={`relative group/item transition-all duration-200 ${isDragging ? 'opacity-40 scale-95 grayscale' : ''} ${isDragOver ? 'ring-4 ring-primary bg-primary/20 z-20 scale-105 shadow-2xl' : ''}`}
-            onDragOver={(e) => { 
-                e.preventDefault(); 
-                e.stopPropagation(); 
+            onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 e.dataTransfer.dropEffect = e.dataTransfer.effectAllowed === 'move' ? 'move' : 'copy';
                 setIsDragOver(true);
-            }} 
+            }}
             onDragLeave={() => setIsDragOver(false)}
             onDrop={(e) => {
                 setIsDragOver(false);
                 handleItemDrop(e, rowId, idx);
             }}
-            onClick={(e) => { 
+            onClick={(e) => {
                 if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.adjust-controls') || (e.target as HTMLElement).closest('.popover-menu')) return;
-                e.stopPropagation(); 
+                e.stopPropagation();
                 if (interactionState?.type === 'inbox') {
                     onInboxDrop(interactionState.itemId, interactionState.collectionId, rowId, idx);
                 } else if (interactionState?.type === 'inbox-multi') {
@@ -85,7 +86,7 @@ const TierItem: React.FC<{
                 } else if (interactionState?.type === 'search') {
                     onSearchDrop(interactionState.imageSrc, rowId, idx);
                 } else {
-                    onInteract(rowId, item.id); 
+                    onInteract(rowId, item.id);
                 }
             }}
             draggable={!isAdjusting}
@@ -100,19 +101,19 @@ const TierItem: React.FC<{
                 ${aspectMap[aspectRatio || '3:4']} relative cursor-grab active:cursor-grabbing overflow-hidden select-none bg-black/20
                 ${interactionState?.type === 'tier-item' && interactionState.itemId === item.id ? 'opacity-50 ring-2 ring-primary z-10' : ''}
             `}>
-                <img src={item.imageSrc!} className="w-full h-full object-cover pointer-events-none transition-all duration-300" style={objectPosStyle} referrerPolicy="no-referrer" />
-                
+                <img src={getProxiedImageUrl(item.imageSrc!)} className="w-full h-full object-cover pointer-events-none transition-all duration-300" style={objectPosStyle} referrerPolicy="no-referrer" />
+
                 {/* Hover Controls (Desktop) */}
                 {!isAdjusting && (
                     <div className="absolute top-0 right-0 hidden md:flex gap-1 p-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity export-hidden">
-                        <button 
+                        <button
                             className="bg-black/60 text-white p-1 hover:bg-white/20 rounded-sm"
                             onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }}
                             title="Crop & Adjust"
                         >
                             <Crop size={12} />
                         </button>
-                        <button 
+                        <button
                             className="bg-black/60 text-white p-1 hover:bg-red-500 rounded-sm"
                             onClick={(e) => { e.stopPropagation(); onMoveToInbox(rowId, idx); }}
                             title="Remove"
@@ -145,7 +146,7 @@ const TierItem: React.FC<{
             {/* Popover Menu (Mobile Only) */}
             <AnimatePresence>
                 {interactionState?.type === 'tier-item' && interactionState.itemId === item.id && !isAdjusting && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: -20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -200,7 +201,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
       const newRows = rank.tierRows.filter((_, i) => i !== index);
       onUpdateTierRows(newRows);
   };
-  
+
   const handleClearRow = (rowId: string) => {
       const newRows = rank.tierRows.map(r => r.id === rowId ? { ...r, items: [] } : r);
       onUpdateTierRows(newRows);
@@ -218,7 +219,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
 
   const handleRowClick = (rowId: string) => {
       if (!interactionState) return;
-      
+
       // If dropping from inbox to empty space in row -> Append to end (index -1)
       if (interactionState.type === 'inbox') {
           onInboxDrop(interactionState.itemId, interactionState.collectionId, rowId, -1);
@@ -232,7 +233,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
   // Drag & Drop Handlers
   const handleDragOver = (e: React.DragEvent, rowId: string) => {
       e.preventDefault();
-      e.stopPropagation(); 
+      e.stopPropagation();
       e.dataTransfer.dropEffect = e.dataTransfer.effectAllowed === 'move' ? 'move' : 'copy';
       if (activeDropRowId !== rowId) setActiveDropRowId(rowId);
   };
@@ -246,10 +247,10 @@ export const TierListView: React.FC<TierListViewProps> = ({
       e.preventDefault();
       e.stopPropagation();
       setActiveDropRowId(null);
-      
+
       const dataStr = e.dataTransfer.getData('application/json');
       if (!dataStr) return;
-      
+
       try {
           const data = JSON.parse(dataStr);
           const targetRow = rank.tierRows.find(r => r.id === rowId);
@@ -266,12 +267,12 @@ export const TierListView: React.FC<TierListViewProps> = ({
           }
       } catch (e) {}
   };
-  
+
   const handleItemDrop = (e: React.DragEvent, targetRowId: string, targetIndex: number) => {
       e.preventDefault();
       e.stopPropagation();
-      setActiveDropRowId(null); 
-      
+      setActiveDropRowId(null);
+
       const dataStr = e.dataTransfer.getData('application/json');
       if (!dataStr) return;
       try {
@@ -305,9 +306,9 @@ export const TierListView: React.FC<TierListViewProps> = ({
     <div className="flex flex-col w-full max-w-6xl mx-auto pb-20 border-b border-border">
       {rank.tierRows.map((row, rowIndex) => (
         <div key={row.id} className="flex min-h-[6rem] border-t border-border bg-surface">
-          
+
           {/* 1. Header (Left) */}
-          <div 
+          <div
             className="w-24 sm:w-32 flex items-center justify-center p-2 shrink-0 relative border-r border-border cursor-text group/label"
             style={{ backgroundColor: row.color }}
             onClick={() => setEditingLabelId(row.id)}
@@ -333,7 +334,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
                     {row.label}
                 </span>
             )}
-            
+
             {editingLabelId !== row.id && (
                 <div className="absolute top-1 right-1 opacity-0 group-hover/label:opacity-50">
                     <Edit2 size={10} className="text-black"/>
@@ -342,7 +343,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
           </div>
 
           {/* 2. Content (Middle) - Compact Layout */}
-          <div 
+          <div
             className={`
                 flex-1 flex flex-wrap content-start items-start min-h-[6rem] transition-all duration-200
                 ${activeDropRowId === row.id ? 'bg-primary/20 ring-inset ring-2 ring-primary shadow-inner' : 'bg-surface'}
@@ -353,7 +354,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
             onClick={() => handleRowClick(row.id)}
           >
               {row.items.map((item, idx) => (
-                  <TierItem 
+                  <TierItem
                       key={item.id}
                       item={item}
                       rowId={row.id}
@@ -369,7 +370,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
                       onSearchDrop={onSearchDrop}
                   />
               ))}
-              
+
               {/* Invisible Filler */}
               <div className="flex-1 min-h-[6rem]" />
           </div>
@@ -377,7 +378,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
           {/* 3. Controls (Right) */}
           <div className="w-10 sm:w-12 bg-surface shrink-0 flex flex-col items-center justify-between py-1 border-l border-border export-hidden">
              <div className="relative">
-                 <button 
+                 <button
                     onClick={() => setSettingsOpenId(settingsOpenId === row.id ? null : row.id)}
                     className="p-1 text-muted hover:text-text transition-colors"
                     title="Settings"
@@ -392,7 +393,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
                             <span className="text-xs font-bold text-muted uppercase tracking-wider">Row Settings</span>
                             <button onClick={() => setSettingsOpenId(null)} className="text-muted hover:text-white"><X size={14}/></button>
                         </div>
-                        
+
                         {/* Actions */}
                         <div className="flex flex-col gap-1">
                             <button onClick={() => handleClearRow(row.id)} className="flex items-center gap-2 text-xs p-2 hover:bg-white/5 rounded-lg text-left text-orange-400 font-bold transition-colors">
@@ -407,16 +408,16 @@ export const TierListView: React.FC<TierListViewProps> = ({
              </div>
 
              <div className="flex flex-col gap-1">
-                 <button 
-                    onClick={() => handleMoveRow(rowIndex, 'up')} 
-                    disabled={rowIndex === 0} 
+                 <button
+                    onClick={() => handleMoveRow(rowIndex, 'up')}
+                    disabled={rowIndex === 0}
                     className="p-1 text-muted hover:text-text disabled:opacity-30 disabled:hover:text-muted transition-colors"
                  >
                      <ChevronUp size={18} />
                  </button>
-                 <button 
-                    onClick={() => handleMoveRow(rowIndex, 'down')} 
-                    disabled={rowIndex === rank.tierRows.length - 1} 
+                 <button
+                    onClick={() => handleMoveRow(rowIndex, 'down')}
+                    disabled={rowIndex === rank.tierRows.length - 1}
                     className="p-1 text-muted hover:text-text disabled:opacity-30 disabled:hover:text-muted transition-colors"
                  >
                      <ChevronDown size={18} />

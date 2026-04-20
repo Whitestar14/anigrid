@@ -78,14 +78,14 @@ export const migrateState = (data: any): GlobalState | null => {
       if (!rank.tierRows) {
           rank.tierRows = JSON.parse(JSON.stringify(DEFAULT_TIER_ROWS));
       }
-      
+
       // Basic property checks
       if (typeof rank.showTitle === 'undefined') rank.showTitle = true;
       if (typeof rank.showDate === 'undefined') rank.showDate = true;
       if (typeof rank.gap === 'undefined') rank.gap = rank.style === 'card' ? 16 : 0;
       if (typeof rank.backgroundColor === 'undefined') rank.backgroundColor = 'transparent';
       if (typeof rank.mode === 'undefined') rank.mode = 'grid';
-      
+
       // V3 Migration: Assign type based on mode
       if (!rank.type) {
           rank.type = rank.mode === 'tier' ? 'tierlist' : 'ranking';
@@ -99,7 +99,7 @@ export const migrateState = (data: any): GlobalState | null => {
           isDark: true
       };
   }
-  
+
   if (!data.preferences) {
       data.preferences = { skipDuplicateWarning: false };
   }
@@ -110,28 +110,17 @@ export const migrateState = (data: any): GlobalState | null => {
   } as GlobalState;
 };
 
-export const loadState = async (): Promise<GlobalState> => {
-  try {
-    const data = await get<any>(DB_KEY);
-    const state = migrateState(data);
-    return state || createDefaultState();
-  } catch (err) {
-    console.error('Failed to load state', err);
-    return createDefaultState();
-  }
-};
-
 export const exportStateToJson = (state: GlobalState) => {
   const dataStr = JSON.stringify(state);
   const blob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  
+
   const exportFileDefaultName = `anime-ranker-backup-${new Date().toISOString().slice(0,10)}.json`;
-  
+
   const linkElement = document.createElement('a');
   linkElement.setAttribute('href', url);
   linkElement.setAttribute('download', exportFileDefaultName);
   linkElement.click();
-  
+
   URL.revokeObjectURL(url);
 };

@@ -1,5 +1,21 @@
+# Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+.pnpm-store/
+.vite/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,18 +23,64 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Backend Python
+backend/venv/
+backend/.venv/
+backend/env/
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/*.so
+backend/.Python
+backend/build/
+backend/develop-eggs/
+backend/downloads/
+backend/eggs/
+backend/.eggs/
+backend/lib/
+backend/lib64/
+backend/parts/
+backend/sdist/
+backend/var/
+backend/wheels/
+backend/*.egg-info/
+backend/.installed.cfg
+backend/*.egg
+backend/MANIFEST
+backend/pip-log.txt
+backend/pip-delete-this-directory.txt
+backend/cache/
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
 
-# Editor directories and files
+# IDE and Editor
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+.sublime-project
+.sublime-workspace
+*.iml
+*.iws
+*.ipr
+
+# OS
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.directory
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# TypeScript
+tsconfig.tsbuildinfo
+
+# Misc
+.git/
+.gitkeep
+

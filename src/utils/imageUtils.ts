@@ -1,4 +1,4 @@
-import html2canvas from 'html2canvas';
+import { toPng, toJpeg } from 'html-to-image';
 
 export type ImageFormat = 'png' | 'jpeg' | 'webp';
 
@@ -14,27 +14,27 @@ export const readFileAsDataURL = (file: File | Blob): Promise<string> => {
 export const downloadGrid = async (element: HTMLElement, title: string, format: string = 'png') => {
     try {
         await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const canvas = await html2canvas(element, {
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#000000',
-            scale: 2,
-            logging: false,
-        });
 
         let dataUrl = '';
+        const options = {
+            pixelRatio: 2,
+            cacheBust: true,
+            skipAutoScale: false,
+            httpTimeout: 5000,
+        };
+
         if (format === 'jpeg' || format === 'jpg') {
-            dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+            dataUrl = await toJpeg(element, { ...options, quality: 0.95 });
         } else {
-            dataUrl = canvas.toDataURL('image/png');
+            dataUrl = await toPng(element, options);
         }
-        
+
         const link = document.createElement('a');
         link.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${format}`;
         link.href = dataUrl;
         link.click();
     } catch (err) {
         console.error('Failed to download image', err);
+        throw new Error('Export failed. External images cannot be embedded due to CORS restrictions.');
     }
 };

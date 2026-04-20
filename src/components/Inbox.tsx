@@ -1,9 +1,10 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { InboxCollection, InboxItem, JikanResult, InteractionState } from '@/types';
-import { Plus, X, Upload, FolderPlus, Edit, Trash, Check, Search, Box, Layers, ArrowRightLeft, ChevronDown, ChevronUp, Package, Globe, Undo2, ArrowLeft, Info, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Upload, FolderPlus, Edit, Trash, Check, Search, Box, Layers, ChevronDown, ChevronUp, Package, Globe, ArrowLeft, Info, Image as ImageIcon } from 'lucide-react';
 import { SearchPanel } from '@/components/SearchPanel';
 import { CuteSlime } from '@/components/EmptyStateVector';
+import { getProxiedImageUrl } from '@/utils/imageProxy';
 
 interface InboxProps {
   collections: InboxCollection[];
@@ -17,13 +18,13 @@ interface InboxProps {
   onUpload: (files: FileList) => void;
   onRemoveItem: (itemId: string) => void;
   onDropFromGrid: (cellIndex: number) => void;
-  onDropFromTier?: (rowId: string, itemId: string) => void; 
+  onDropFromTier?: (rowId: string, itemId: string) => void;
   // New props for smart add
   lastTargetCollectionId?: string;
   onAddToCollection: (imageSrc: string, collectionId: string) => void;
   onUpdateLastTarget: (collectionId: string) => void;
   onRestoreItem?: (item: InboxItem, collectionId: string) => void;
-  
+
   // Interaction
   interactionState: InteractionState;
   onInteract: (itemId: string, collectionId: string) => void;
@@ -59,20 +60,20 @@ const InboxItemView: React.FC<{
             onClick={(e) => handleItemClick(e, item.id)}
             className={`
             relative group shrink-0 w-28 h-40 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-200 ease-out
-            ${isUsed 
-                ? 'opacity-40 grayscale hover:opacity-60' 
+            ${isUsed
+                ? 'opacity-40 grayscale hover:opacity-60'
                 : 'hover:ring-2 hover:ring-blue-500 hover:scale-105 shadow-md'}
             ${isSelected ? 'ring-2 ring-blue-500 scale-95 opacity-90 shadow-lg' : ''}
-            ${isDragging ? 'opacity-40 scale-90 grayscale' : ''}
+            ${isDragging ? 'opacity-50 scale-95 ring-2 ring-green-500 drop-shadow-lg' : ''}
             `}
         >
-            <img 
-            src={item.imageSrc} 
-            alt="Item" 
+            <img
+            src={getProxiedImageUrl(item.imageSrc)}
+            alt="Item"
             className="w-full h-full object-cover pointer-events-none bg-[#2c2c2e]"
             referrerPolicy="no-referrer"
             />
-            
+
             {isUsed && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none backdrop-blur-[2px]">
                 <div className="bg-white/20 rounded-full p-2 backdrop-blur-md">
@@ -84,7 +85,7 @@ const InboxItemView: React.FC<{
             {!isAllView && (
                 <button
                 onClick={(e) => { e.stopPropagation(); handleDeleteItem(item); }}
-                className="absolute top-2 right-2 p-1.5 bg-black/40 text-white rounded-full hover:bg-red-500 transition-all z-10 backdrop-blur-md opacity-100 md:opacity-0 group-hover:opacity-100 shadow-sm"
+                className="absolute top-2 right-2 p-1.5 bg-black/40 text-white rounded-full hover:bg-red-500 transition-all z-10 backdrop-blur-md group-hover:opacity-100 shadow-sm"
                 >
                 <X size={12} strokeWidth={2.5}/>
                 </button>
@@ -93,8 +94,8 @@ const InboxItemView: React.FC<{
     );
 };
 
-export const Inbox: React.FC<InboxProps> = ({ 
-  collections, 
+export const Inbox: React.FC<InboxProps> = ({
+  collections,
   activeCollectionId,
   usedImageSrcs,
   usedOnBoard,
@@ -102,8 +103,8 @@ export const Inbox: React.FC<InboxProps> = ({
   onAddCollection,
   onDeleteCollection,
   onRenameCollection,
-  onUpload, 
-  onRemoveItem, 
+  onUpload,
+  onRemoveItem,
   onDropFromGrid,
   onDropFromTier,
   lastTargetCollectionId,
@@ -117,8 +118,8 @@ export const Inbox: React.FC<InboxProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   // View Modes: stash | search | picker
   const [activeTab, setActiveTab] = useState<'stash' | 'search' | 'picker'>('stash');
-  const [isExpanded, setIsExpanded] = useState(true);
-  
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Search State (Lifted)
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMode, setSearchMode] = useState<'anime' | 'characters'>('characters');
@@ -129,7 +130,7 @@ export const Inbox: React.FC<InboxProps> = ({
   const [tempName, setTempName] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
-  
+
   // Picker State: Holds the image source we want to add
   const [pendingPickerImage, setPendingPickerImage] = useState<string | null>(null);
 
@@ -158,15 +159,17 @@ export const Inbox: React.FC<InboxProps> = ({
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     const idsToDrag = selectedItemIds.has(id) ? Array.from(selectedItemIds) : [id];
-    e.dataTransfer.setData('application/json', JSON.stringify({ 
-      type: 'inbox-multi', 
-      ids: idsToDrag, 
-      originCollectionId: isAllView ? 'all' : activeCollectionId 
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      type: 'inbox-multi',
+      ids: idsToDrag,
+      originCollectionId: isAllView ? 'all' : activeCollectionId
     }));
     e.dataTransfer.effectAllowed = 'copy';
-    
-    // Auto-close when dragging starts
-    setIsExpanded(false);
+
+    // Auto-close on mobile only, not desktop
+    if (window.innerWidth < 768) {
+      setIsExpanded(false);
+    }
   };
 
   const handleItemClick = (e: React.MouseEvent, itemId: string) => {
@@ -193,12 +196,12 @@ export const Inbox: React.FC<InboxProps> = ({
   };
 
   const handleSearchDragStart = (e: React.DragEvent, imageSrc: string) => {
-    e.dataTransfer.setData('application/json', JSON.stringify({ 
-      type: 'search', 
-      imageSrc 
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      type: 'search',
+      imageSrc
     }));
     e.dataTransfer.effectAllowed = 'copy';
-    
+
     // Auto-close when dragging starts
     setIsExpanded(false);
   };
@@ -208,7 +211,7 @@ export const Inbox: React.FC<InboxProps> = ({
       if (lastTargetCollectionId && collections.some(c => c.id === lastTargetCollectionId)) {
           const targetName = collections.find(c => c.id === lastTargetCollectionId)?.name || 'Collection';
           onAddToCollection(imageSrc, lastTargetCollectionId);
-          
+
           if (addToast) {
             addToast('success', `Added to ${targetName}`, "Change", () => {
               setPendingPickerImage(imageSrc);
@@ -224,7 +227,7 @@ export const Inbox: React.FC<InboxProps> = ({
 
   const handleDeleteItem = (item: InboxItem) => {
       onRemoveItem(item.id);
-      
+
       // Determine which collection it belonged to (crucial for Undo)
       let originCollectionId = activeCollectionId;
       if (isAllView) {
@@ -243,7 +246,7 @@ export const Inbox: React.FC<InboxProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    
+
     if (activeTab === 'stash' && !isAllView) {
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         onUpload(e.dataTransfer.files);
@@ -282,7 +285,7 @@ export const Inbox: React.FC<InboxProps> = ({
       onUpdateLastTarget(colId);
       setPendingPickerImage(null);
       setActiveTab('search'); // Go back to search
-      
+
       const colName = collections.find(c => c.id === colId)?.name;
       if (addToast) {
         addToast('success', `Added to ${colName}`);
@@ -290,10 +293,10 @@ export const Inbox: React.FC<InboxProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-40 px-4 transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] flex justify-center ${isExpanded ? 'w-full max-w-3xl' : 'w-[180px] sm:w-[240px]'}`}
     >
-      <div 
+      <div
         className={`
           w-full bg-[#1c1c1e]/90 backdrop-blur-3xl border border-white/10 shadow-2xl overflow-hidden
           transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col
@@ -305,20 +308,20 @@ export const Inbox: React.FC<InboxProps> = ({
         onDrop={handleDrop}
       >
         {/* Dock Header */}
-        <div 
-          className="h-14 flex items-center justify-between px-5 sm:px-6 select-none cursor-pointer hover:bg-white/5 transition-colors shrink-0 border-b border-white/10" 
+        <div
+          className="h-14 flex items-center justify-between px-5 sm:px-6 select-none cursor-pointer hover:bg-white/5 transition-colors shrink-0 border-b border-white/10"
           onClick={toggleExpand}
         >
           <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-[13px] font-medium tracking-wide text-white/50 uppercase">
                   <Box size={16} /> <span className={!isExpanded ? 'inline' : 'hidden sm:inline'}>Library</span>
               </div>
-              
+
               {/* Dock Tabs - Only visible when expanded */}
               {isExpanded && (
                   <div className="flex items-center bg-[#767680]/24 rounded-xl p-1 animate-in fade-in" onClick={e => e.stopPropagation()}>
-                     <button 
-                      onClick={() => { setActiveTab('stash'); setIsExpanded(true); }} 
+                     <button
+                      onClick={() => { setActiveTab('stash'); setIsExpanded(true); }}
                       className={`
                           flex items-center gap-2 px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all
                           ${activeTab === 'stash' ? 'bg-[#636366] text-white shadow-sm' : 'text-white/70 hover:text-white'}
@@ -326,8 +329,8 @@ export const Inbox: React.FC<InboxProps> = ({
                      >
                          <ImageIcon size={14} /> Stash
                      </button>
-                     <button 
-                      onClick={() => { setActiveTab('search'); setIsExpanded(true); }} 
+                     <button
+                      onClick={() => { setActiveTab('search'); setIsExpanded(true); }}
                       className={`
                           flex items-center gap-2 px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all
                           ${activeTab === 'search' || activeTab === 'picker' ? 'bg-[#636366] text-white shadow-sm' : 'text-white/70 hover:text-white'}
@@ -338,7 +341,7 @@ export const Inbox: React.FC<InboxProps> = ({
                   </div>
               )}
           </div>
-          
+
           <button className="text-white/70 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10">
               {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
           </button>
@@ -349,7 +352,7 @@ export const Inbox: React.FC<InboxProps> = ({
 
             {/* Content Wrapper */}
             <div className="flex-1 min-h-0 flex flex-col relative">
-                
+
                 {/* VIEW: PICKER (Replaces Overlay) */}
                 {activeTab === 'picker' && (
                     <div className="absolute inset-0 bg-[#1c1c1e] flex flex-col p-6 animate-in fade-in slide-in-from-right-4 z-20">
@@ -359,7 +362,7 @@ export const Inbox: React.FC<InboxProps> = ({
                             </button>
                             <h3 className="text-[15px] font-semibold text-white">Select Collection</h3>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto custom-scrollbar">
                             {collections.map(col => (
                                 <button
@@ -367,8 +370,8 @@ export const Inbox: React.FC<InboxProps> = ({
                                   onClick={() => handleCollectionPick(col.id)}
                                   className={`
                                       flex flex-col items-center justify-center p-4 rounded-2xl border transition-all gap-3 text-center h-32
-                                      ${col.id === lastTargetCollectionId 
-                                          ? 'bg-blue-500/10 border-blue-500/50 text-blue-500' 
+                                      ${col.id === lastTargetCollectionId
+                                          ? 'bg-blue-500/10 border-blue-500/50 text-blue-500'
                                           : 'bg-[#2c2c2e] border-transparent hover:border-white/10 hover:bg-[#3a3a3c] text-white/70 hover:text-white'}
                                   `}
                                 >
@@ -390,7 +393,7 @@ export const Inbox: React.FC<InboxProps> = ({
 
                 {/* VIEW: SEARCH */}
                 <div className={`flex-1 min-h-0 ${activeTab === 'search' ? 'block' : 'hidden'} p-4`}>
-                  <SearchPanel 
+                  <SearchPanel
                     query={searchQuery}
                     onQueryChange={setSearchQuery}
                     mode={searchMode}
@@ -406,7 +409,7 @@ export const Inbox: React.FC<InboxProps> = ({
 
                 {/* VIEW: STASH */}
                 <div className={`flex-1 min-h-0 flex flex-col ${activeTab === 'stash' ? 'block' : 'hidden'}`}>
-                    
+
                     {/* Stash Toolbar */}
                     <div className="flex items-center gap-2 px-6 py-3 border-b border-white/10 shrink-0 overflow-x-auto hide-scrollbar bg-[#1c1c1e]/50">
                         {selectedItemIds.size > 0 ? (
@@ -414,14 +417,14 @@ export const Inbox: React.FC<InboxProps> = ({
                                 <span className="text-[13px] font-medium text-blue-500 bg-blue-500/10 px-3 py-1.5 rounded-lg">
                                     {selectedItemIds.size} Selected
                                 </span>
-                                <button 
+                                <button
                                     onClick={handleBulkDelete}
                                     className="flex items-center gap-1.5 text-[13px] font-medium text-red-500 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors"
                                 >
                                     <Trash size={14} />
                                     Delete
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setSelectedItemIds(new Set())}
                                     className="flex items-center gap-1.5 text-[13px] font-medium text-white/70 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors ml-auto"
                                 >
@@ -432,7 +435,7 @@ export const Inbox: React.FC<InboxProps> = ({
                         ) : (
                             <>
                                 {/* Virtual "All" Tab */}
-                                <div 
+                                <div
                                     onClick={() => onSwitchCollection('all-images')}
                                     className={`
                                       flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-lg transition-all shrink-0
@@ -448,15 +451,15 @@ export const Inbox: React.FC<InboxProps> = ({
                                 {collections.map(col => {
                                   const isActive = col.id === activeCollectionId;
                                   const isEditing = editingNameId === col.id;
-                                  
+
                                   return (
-                                    <div 
+                                    <div
                                       key={col.id}
                                       onClick={() => !isEditing && onSwitchCollection(col.id)}
                                       className={`
                                         group relative flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-lg transition-all min-w-[100px] justify-between shrink-0
-                                        ${isActive 
-                                          ? 'bg-[#636366] text-white shadow-sm' 
+                                        ${isActive
+                                          ? 'bg-[#636366] text-white shadow-sm'
                                           : 'text-white/70 hover:text-white hover:bg-white/10'
                                         }
                                       `}
@@ -495,11 +498,11 @@ export const Inbox: React.FC<InboxProps> = ({
                                             )}
                                         </div>
                                       )}
-                                      
+
                                       {!isEditing && isActive && collections.length > 1 && (
-                                          <button 
-                                            onClick={(e) => { 
-                                              e.stopPropagation(); 
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
                                               onDeleteCollection(col.id);
                                             }}
                                             className="p-0.5 hover:text-red-400 text-white/50 transition-colors ml-auto opacity-0 group-hover:opacity-100"
@@ -511,7 +514,7 @@ export const Inbox: React.FC<InboxProps> = ({
                                     </div>
                                   );
                                 })}
-                                
+
                                 <motion.button
                                   whileTap={{ scale: 0.9, rotate: 90 }}
                                   onClick={onAddCollection}
@@ -528,7 +531,7 @@ export const Inbox: React.FC<InboxProps> = ({
                     <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 custom-scrollbar">
                         <div className="flex gap-4 h-full items-center">
                             {currentItems.length === 0 ? (
-                              <div 
+                              <div
                                 onClick={() => !isAllView && fileInputRef.current?.click()}
                                 className={`flex-1 flex flex-col items-center justify-center text-white/40 text-[13px] font-medium select-none h-full border border-dashed border-white/10 rounded-2xl bg-[#2c2c2e]/30 p-4 transition-colors ${!isAllView ? 'cursor-pointer hover:border-white/20 hover:bg-[#2c2c2e]/50 hover:text-white/60' : ''}`}
                               >
@@ -554,7 +557,7 @@ export const Inbox: React.FC<InboxProps> = ({
                                 {currentItems.map((item) => {
                                   const isUsed = usedOnBoard.has(item.imageSrc);
                                   const isSelected = selectedItemIds.has(item.id) || (interactionState?.type === 'inbox' && interactionState.itemId === item.id);
-                                  
+
                                   return (
                                     <InboxItemView
                                       key={item.id}

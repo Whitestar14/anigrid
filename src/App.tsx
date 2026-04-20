@@ -1,20 +1,19 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useStore } from '@/store/useStore';
-import { useStore as useZustandStore } from 'zustand';
 import { Controls } from '@/components/Controls';
 import { GridSettingsSidebar } from '@/components/GridSettingsSidebar';
 import { GridView } from '@/components/views/GridView';
 import { ListView } from '@/components/views/ListView';
-import { TierListView } from '@/components/views/TierListView'; 
+import { TierListView } from '@/components/views/TierListView';
 import { Inbox } from '@/components/Inbox';
 import { Library } from '@/components/Library';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { DuplicateModal } from '@/components/DuplicateModal';
 import { ExportModal } from '@/components/ExportModal';
 import { ToastContainer, ToastMessage, ToastType } from '@/components/ui/Toast';
-import { GridConfig, CellData, InboxItem, GlobalState, Rank, InboxCollection, GlobalTheme, RankMode, InteractionState, TierRow, ProjectType } from '@/types';
 import { readFileAsDataURL, downloadGrid } from '@/utils/imageUtils';
-import { saveState, loadState, exportStateToJson, migrateState } from '@/utils/storage';
+import { cleanupOldCache } from '@/utils/imageCache';
+import { saveState, exportStateToJson, migrateState } from '@/utils/storage';
 import { Edit2, Heart, Zap } from 'lucide-react';
 
 // --- Palette System Definitions ---
@@ -112,12 +111,12 @@ export const App: React.FC = () => {
   const state = useStore();
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState('');
   const [internalClipboard, setInternalClipboard] = useState<string | null>(null);
-  
+
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const addToast = (type: ToastType, message: string, actionLabel?: string, action?: () => void) => {
@@ -137,6 +136,35 @@ export const App: React.FC = () => {
   const gridRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
+  // Wrapper functions to handle File → DataURL conversion
+  const handleCellUploadWithConversion = async (index: number, file: File) => {
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      state.handleCellUpload(index, dataUrl);
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      addToast('error', 'Failed to upload image');
+    }
+  };
+
+  const handleInboxUploadWithConversion = async (files: FileList) => {
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+          const dataUrl = await readFileAsDataURL(file);
+          state.handleInboxUpload(dataUrl);
+        }
+      }
+      if (files.length > 0) {
+        addToast('success', `Added ${files.length} image(s) to collection`);
+      }
+    } catch (error) {
+      console.error('Failed to upload images:', error);
+      addToast('error', 'Failed to upload one or more images');
+    }
+  };
+
   useEffect(() => {
     if (window.innerWidth >= 1024) {
       setIsSidebarOpen(true);
@@ -145,6 +173,8 @@ export const App: React.FC = () => {
     if (useStore.persist.hasHydrated()) {
       setIsLoaded(true);
     }
+    // Cleanup old cached images on app load
+    cleanupOldCache();
   }, []);
 
   useEffect(() => {
@@ -187,8 +217,8 @@ export const App: React.FC = () => {
                 if (state.interactionState?.type === 'cell') {
                     state.handleCellUpload(state.interactionState.index, src);
                 } else {
-                    const activeColId = state.inbox.activeCollectionId === 'all-images' 
-                        ? state.inbox.collections[0].id 
+                    const activeColId = state.inbox.activeCollectionId === 'all-images'
+                        ? state.inbox.collections[0].id
                         : state.inbox.activeCollectionId;
                     state.handleAddToCollection(src, activeColId);
                 }
@@ -246,7 +276,7 @@ export const App: React.FC = () => {
   }, [state.interactionState, activeRank, state.handleCellClear, state.handleTierItemRemove, state.setInteractionState, internalClipboard, state.handleCellUpload]);
 
   const activeCollection = state.inbox.collections.find(c => c.id === state.inbox.activeCollectionId);
-  
+
   const confirmAction = (title: string, message: string, action: () => void) => {
     setModalConfig({ isOpen: true, title, message, onConfirm: () => { action(); setModalConfig(prev => ({ ...prev, isOpen: false })); } });
   };
@@ -279,9 +309,9 @@ export const App: React.FC = () => {
 
   const handleClearAll = () => {
     if (!activeRank) return;
-    
+
     confirmAction(
-      "Clear All?", 
+      "Clear All?",
       "All content will be removed.",
       () => {
           state.handleClearAll();
@@ -330,14 +360,14 @@ export const App: React.FC = () => {
   // Responsive padding logic: Less padding on mobile for tier lists to maximize width
   const mainPadding = activeRank.type === 'tierlist' ? 'p-2 md:p-8' : 'p-4 md:p-8';
   // Inner container padding: Default to 0 for Tier Lists on mobile to go edge-to-edge
-  const containerPadding = activeRank.type === 'tierlist' 
+  const containerPadding = activeRank.type === 'tierlist'
     ? (window.innerWidth < 768 ? '0px' : '32px')
     : (activeRank.style === 'card' ? '32px' : '16px');
 
   const handleCellDownload = async (index: number) => {
     const cell = activeRank.cells[index];
     if (!cell || !cell.imageSrc) return;
-    
+
     const link = document.createElement('a');
     link.href = cell.imageSrc;
     link.download = `${activeRank.title}-cell-${index + 1}.png`;
@@ -349,8 +379,8 @@ export const App: React.FC = () => {
   return (
     <div className="h-[100dvh] bg-background text-text font-sans selection:bg-primary/30 flex flex-col overflow-hidden relative">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
-      
-      <Controls 
+
+      <Controls
         projectName={activeRank.title}
         onOpenLibrary={() => setIsLibraryOpen(true)}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -361,10 +391,14 @@ export const App: React.FC = () => {
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        onExportImage={(fmt) => {
+        onExportImage={async (fmt) => {
           if (gridRef.current) {
-            downloadGrid(gridRef.current, activeRank.title, fmt);
-            addToast('success', `Exported as ${fmt.toUpperCase()}`);
+            try {
+              await downloadGrid(gridRef.current, activeRank.title, fmt);
+              addToast('success', `Exported as ${fmt.toUpperCase()}`);
+            } catch (error) {
+              addToast('error', error instanceof Error ? error.message : 'Export failed');
+            }
           }
         }}
         onExportJson={() => {
@@ -373,7 +407,7 @@ export const App: React.FC = () => {
         }}
       />
 
-      <Library 
+      <Library
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}
         ranks={Object.values(state.ranks)}
@@ -383,8 +417,8 @@ export const App: React.FC = () => {
         onNewRank={state.handleNewRank}
         onUpdateRank={state.updateRankById}
       />
-      
-      <ConfirmModal 
+
+      <ConfirmModal
         isOpen={modalConfig.isOpen}
         title={modalConfig.title}
         message={modalConfig.message}
@@ -392,7 +426,7 @@ export const App: React.FC = () => {
         onCancel={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
       />
 
-      <DuplicateModal 
+      <DuplicateModal
         isOpen={state.duplicateModalConfig.isOpen}
         imageSrc={state.duplicateModalConfig.imageSrc}
         onConfirm={state.handleDuplicateConfirm}
@@ -400,7 +434,7 @@ export const App: React.FC = () => {
       />
 
       <div className="flex flex-1 overflow-hidden pt-14">
-        <GridSettingsSidebar 
+        <GridSettingsSidebar
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
             onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -430,14 +464,14 @@ export const App: React.FC = () => {
         />
 
         <div className="flex-1 flex flex-col min-w-0 relative bg-background">
-            <main 
+            <main
                 className={`flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center ${mainPadding} pb-40`}
                 onClick={() => state.interactionState && state.setInteractionState(null)}
             >
-                <div 
+                <div
                   ref={gridRef}
                   className="relative transition-all duration-200 shadow-2xl"
-                  style={{ 
+                  style={{
                       width: 'fit-content',
                       minWidth: activeRank.mode === 'list' ? '100%' : (activeRank.type === 'tierlist' ? '98%' : 'auto'),
                       maxWidth: activeRank.type === 'tierlist' ? '1200px' : 'none',
@@ -477,7 +511,7 @@ export const App: React.FC = () => {
                             style={{ color: textColor }}
                           />
                         ) : (
-                          <h1 
+                          <h1
                             onClick={() => { setTempTitle(activeRank.title); setIsEditingTitle(true); }}
                             className="text-4xl md:text-5xl font-black tracking-tighter cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-3 group/title animate-in fade-in duration-200"
                             style={{ color: textColor }}
@@ -490,7 +524,7 @@ export const App: React.FC = () => {
                   )}
 
                   {activeRank.type === 'tierlist' ? (
-                      <TierListView 
+                      <TierListView
                           rank={activeRank}
                           onUpdateTierRows={state.handleUpdateTierRows}
                           onInboxDrop={(itemId, colId, rowId, idx) => {
@@ -514,9 +548,9 @@ export const App: React.FC = () => {
                           }}
                       />
                   ) : activeRank.mode === 'list' ? (
-                      <ListView 
+                      <ListView
                           rank={activeRank}
-                          onUpload={state.handleCellUpload}
+                          onUpload={handleCellUploadWithConversion}
                           onClear={state.handleCellClear}
                           onSwap={state.handleSwapCells}
                           onInboxDrop={state.handleInboxDrop}
@@ -544,9 +578,9 @@ export const App: React.FC = () => {
                           }}
                       />
                   ) : (
-                      <GridView 
+                      <GridView
                           rank={activeRank}
-                          onUpload={state.handleCellUpload}
+                          onUpload={handleCellUploadWithConversion}
                           onClear={state.handleCellClear}
                           onSwap={state.handleSwapCells}
                           onInboxDrop={state.handleInboxDrop}
@@ -580,7 +614,7 @@ export const App: React.FC = () => {
                     <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>
                       AniGrid
                     </div>
-                    
+
                     {activeRank.showDate !== false && (
                       <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>
                         {new Date().toLocaleDateString()}
@@ -590,7 +624,7 @@ export const App: React.FC = () => {
                 </div>
             </main>
 
-            <Inbox 
+            <Inbox
               collections={state.inbox.collections}
               activeCollectionId={state.inbox.activeCollectionId}
               usedImageSrcs={inboxImageSet}
@@ -605,7 +639,7 @@ export const App: React.FC = () => {
                   });
               }}
               onRenameCollection={state.renameCollection}
-              onUpload={state.handleInboxUpload} 
+              onUpload={state.handleInboxUpload}
               onRemoveItem={state.removeInboxItem}
               onDropFromGrid={state.handleMoveToInbox}
               onDropFromTier={state.handleTierItemRemove}
