@@ -2,7 +2,7 @@
 
 > The sleekest anime ranker/tier list builder for the perfectionists among us. There really aren't that many decent options for 3x3s out there, so I made one myself.
 
-A minimalist, **dark-mode native** ranking application built for anime enthusiasts. Rank your waifus, tier your favorite characters, and organize your anime obsessions with zero clutter and maximum finesse.
+A minimalist, **dark-mode native** ranking application built for anime enthusiasts. Now you can rank your waifus, tier favorite characters and organize your with zero clutter
 
 ## Features
 
@@ -20,6 +20,8 @@ A minimalist, **dark-mode native** ranking application built for anime enthusias
 
 ## Development
 
+> Built with React 19, Zustand, framer-motion, tailwindcss, Typescript 5.8, zundo and idb
+
 ```bash
 # Install dependencies
 pnpm install
@@ -33,7 +35,7 @@ pnpm build
 
 ## Some Known Issues
 
-> I'm building Anigrid in my free time and I have some other things to attend to, so unfortunately its not getting as much attention as I want it to have. If you want to contribute, open a PR with details of what was changed/improved and I'm sure to check it out!
+> I'm building Anigrid in my free time and I have some other things to attend to, so unfortunately its not getting as much attention as I would like to give it. If you want to contribute and have any interest in polishing the app, open a PR with details of what was changed/improved and I'm sure to check it out!
 
 - Image export is currently broken (trust environment issues with html-to-image)
 - Mobile drag-and-drop needs proper touch event support
@@ -41,4 +43,4 @@ pnpm build
 - Mobile accessibility improvements in progress
 - Some UI polish still incoming (because perfection takes time)
 
-El. Psy. Congroo
+El. Psy. Congroo.
