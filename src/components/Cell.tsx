@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Upload, Download, ArrowUp, ArrowDown, Minus, Move, Crop, Check, Globe, Search, Trash2 } from 'lucide-react';
+import { Plus, X, Upload, Download, Crop, Check, Globe, Search, Trash2 } from 'lucide-react';
 import { CellData, GridStyle } from '@/types';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
 
@@ -38,7 +38,7 @@ export const Cell: React.FC<CellProps> = ({
   onInboxDrop,
   onInboxDropMulti,
   onSearchDrop,
-  onMoveToInbox,
+  _onMoveToInbox,
   onDownloadSingle,
   onInteract,
   onUpdateCell
@@ -58,7 +58,7 @@ export const Cell: React.FC<CellProps> = ({
     onInteract(index);
   };
 
-  const handleAlignmentCycle = (e: React.MouseEvent) => {
+  const _handleAlignmentCycle = (e: React.MouseEvent) => {
     e.stopPropagation();
     const current = data.alignment || 'center';
     const next = current === 'center' ? 'top' : current === 'top' ? 'bottom' : 'center';

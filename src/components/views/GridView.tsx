@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Rank, CellData, GridStyle, InteractionState, TierData } from '@/types';
+import { Rank, CellData, InteractionState, TierData } from '@/types';
 import { Cell } from '@/components/Cell';
-import { Palette, Check } from 'lucide-react';
+import { Palette } from 'lucide-react';
 
 interface GridViewProps {
   rank: Rank;
@@ -30,13 +30,13 @@ const TIER_PRESETS = [
     { label: 'F', color: '#7fffff' }, // Blue
 ];
 
-const TierHeader: React.FC<{ 
-    index: number; 
-    data?: TierData; 
-    onUpdate: (data: TierData) => void 
+const TierHeader: React.FC<{
+    index: number;
+    data?: TierData;
+    onUpdate: (data: TierData) => void
 }> = ({ index, data, onUpdate }) => {
     const [isEditing, setIsEditing] = useState(false);
-    
+
     // Default values if no data exists yet
     const label = data?.label || TIER_PRESETS[Math.min(index, TIER_PRESETS.length - 1)].label;
     const color = data?.color || TIER_PRESETS[Math.min(index, TIER_PRESETS.length - 1)].color;
@@ -52,7 +52,7 @@ const TierHeader: React.FC<{
     };
 
     return (
-        <div 
+        <div
             className="flex items-center justify-center shrink-0 w-24 sm:w-32 rounded-xl border border-black/10 shadow-sm relative group overflow-hidden transition-all hover:shadow-md"
             style={{ backgroundColor: color }}
             onClick={() => setIsEditing(true)}
@@ -80,7 +80,7 @@ const TierHeader: React.FC<{
                     {label}
                 </span>
             )}
-            
+
             {/* Color Cycle Button (Hidden until hover) */}
             <button
                 onClick={handleColorCycle}
@@ -125,14 +125,14 @@ export const GridView: React.FC<GridViewProps> = ({
               {rows.map((rowCells, rowIndex) => (
                   <div key={rowIndex} className="flex" style={{ gap: `${rank.gap ?? 0}px` }}>
                       {/* Tier Header */}
-                      <TierHeader 
-                        index={rowIndex} 
-                        data={rank.tiers?.[rowIndex]} 
+                      <TierHeader
+                        index={rowIndex}
+                        data={rank.tiers?.[rowIndex]}
                         onUpdate={(d) => onUpdateTier && onUpdateTier(rowIndex, d)}
                       />
-                      
+
                       {/* Grid Row */}
-                      <div 
+                      <div
                         className="grid"
                         style={{
                             gridTemplateColumns: `repeat(${cols}, minmax(120px, 180px))`,
@@ -140,8 +140,8 @@ export const GridView: React.FC<GridViewProps> = ({
                         }}
                       >
                           {rowCells.map((cell) => {
-                             const globalIndex = rank.cells.indexOf(cell); 
-                             
+                             const globalIndex = rank.cells.indexOf(cell);
+
                              return (
                                 <Cell
                                   key={cell.id}
@@ -173,7 +173,7 @@ export const GridView: React.FC<GridViewProps> = ({
 
   // Standard Grid View
   return (
-    <div 
+    <div
       className="grid"
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(120px, 180px))`,

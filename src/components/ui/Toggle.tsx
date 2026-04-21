@@ -8,7 +8,7 @@ export interface ToggleProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
 }
 
 export const Toggle = React.forwardRef<HTMLInputElement, ToggleProps>(
-  ({ className, checked, onCheckedChange, disabled, ...props }, ref) => {
+  ({ className, checked, onCheckedChange, disabled, ..._props }, _ref) => {
     return (
       <button
         type="button"

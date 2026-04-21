@@ -13,7 +13,7 @@ import { ExportModal } from '@/components/ExportModal';
 import { ToastContainer, ToastMessage, ToastType } from '@/components/ui/Toast';
 import { readFileAsDataURL, downloadGrid } from '@/utils/imageUtils';
 import { cleanupOldCache } from '@/utils/imageCache';
-import { saveState, exportStateToJson, migrateState } from '@/utils/storage';
+import { exportStateToJson, migrateState } from '@/utils/storage';
 import { Edit2, Heart, Zap } from 'lucide-react';
 
 // --- Palette System Definitions ---
@@ -147,24 +147,6 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleInboxUploadWithConversion = async (files: FileList) => {
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.type.startsWith('image/')) {
-          const dataUrl = await readFileAsDataURL(file);
-          state.handleInboxUpload(dataUrl);
-        }
-      }
-      if (files.length > 0) {
-        addToast('success', `Added ${files.length} image(s) to collection`);
-      }
-    } catch (error) {
-      console.error('Failed to upload images:', error);
-      addToast('error', 'Failed to upload one or more images');
-    }
-  };
-
   useEffect(() => {
     if (window.innerWidth >= 1024) {
       setIsSidebarOpen(true);
@@ -275,8 +257,6 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.interactionState, activeRank, state.handleCellClear, state.handleTierItemRemove, state.setInteractionState, internalClipboard, state.handleCellUpload]);
 
-  const activeCollection = state.inbox.collections.find(c => c.id === state.inbox.activeCollectionId);
-
   const confirmAction = (title: string, message: string, action: () => void) => {
     setModalConfig({ isOpen: true, title, message, onConfirm: () => { action(); setModalConfig(prev => ({ ...prev, isOpen: false })); } });
   };
@@ -317,12 +297,6 @@ export const App: React.FC = () => {
           state.handleClearAll();
       }
     );
-  };
-
-  const handleDeleteRank = (id: string) => {
-    confirmAction("Delete Project?", "Cannot be undone.", () => {
-        state.handleDeleteRank(id);
-    });
   };
 
   const handleExportJson = () => {

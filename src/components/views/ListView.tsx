@@ -85,7 +85,7 @@ const ListRow: React.FC<ListRowProps> = ({
         } else if (source.type === 'search') {
           onSearchDrop(source.imageSrc, index);
         }
-      } catch (err) {}
+      } catch {}
     }
   };
 

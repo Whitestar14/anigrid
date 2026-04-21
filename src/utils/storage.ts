@@ -1,4 +1,4 @@
-import { get, set } from 'idb-keyval';
+import { set } from 'idb-keyval';
 import { GlobalState, TierRow } from '@/types';
 
 const DB_KEY = 'anime-ranker-state';
@@ -21,7 +21,7 @@ const DEFAULT_TIER_ROWS: TierRow[] = [
     { id: 'tier-f', label: 'F', color: '#7fffff', items: [] },
 ];
 
-const createDefaultState = (): GlobalState => {
+const _createDefaultState = (): GlobalState => {
   const rankId = `rank-${Date.now()}`;
   const colId = `col-${Date.now()}`;
   return {

@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import { persist, StateStorage, createJSONStorage } from 'zustand/middleware';
 import { temporal } from 'zundo';
 import { get, set, del } from 'idb-keyval';
-import { 
-  GlobalState, Rank, InboxCollection, GlobalTheme, RankMode, 
-  InteractionState, TierRow, ProjectType, GridConfig, CellData, InboxItem 
+import {
+  GlobalState, Rank, InboxCollection, GlobalTheme, RankMode,
+  InteractionState, TierRow, ProjectType, GridConfig, CellData, InboxItem
 } from '@/types';
 import { migrateState } from '@/utils/storage';
 
@@ -34,7 +34,7 @@ export interface AppState extends GlobalState {
     imageSrc: string | null;
     actionToExecute: (() => void) | null;
   };
-  
+
   // State Setters
   setInteractionState: (state: InteractionState) => void;
   setDuplicateModalConfig: (config: Partial<AppState['duplicateModalConfig']>) => void;
@@ -44,7 +44,7 @@ export interface AppState extends GlobalState {
   updateRankById: (id: string, updates: Partial<Rank>) => void;
   updateActiveCollection: (updates: Partial<InboxCollection>) => void;
   updateGlobalTheme: (themeUpdates: Partial<GlobalTheme>) => void;
-  
+
   // Grid / List Actions
   handleConfigChange: (newConfig: GridConfig) => void;
   handleModeChange: (newMode: RankMode) => void;
@@ -54,7 +54,7 @@ export interface AppState extends GlobalState {
   handleCellClear: (index: number) => void;
   handleSwapCells: (fromIndex: number, toIndex: number) => void;
   handleMoveToInbox: (index: number) => void;
-  
+
   // Tier List Actions
   handleUpdateTierRows: (rows: TierRow[]) => void;
   handleTierItemRemove: (rowId: string, itemId: string) => void;
@@ -63,7 +63,7 @@ export interface AppState extends GlobalState {
   handleInboxDropToTierMulti: (itemIds: string[], collectionId: string, rowId: string, targetIndex: number) => void;
   handleSearchDropToTier: (imageSrc: string, rowId: string, targetIndex: number) => void;
   handleInternalTierMove: (sourceRowId: string, sourceItemId: string, targetRowId: string, targetIndex: number) => void;
-  
+
   // Inbox / Search Actions
   handleInboxDrop: (itemId: string, sourceColId: string, toIndex: number) => void;
   handleInboxDropMulti: (itemIds: string[], sourceColId: string, toIndex: number) => void;
@@ -77,7 +77,7 @@ export interface AppState extends GlobalState {
   deleteCollection: (id: string) => void;
   renameCollection: (id: string, name: string) => void;
   removeInboxItem: (id: string) => void;
-  
+
   // Global Actions
   handleClearAll: () => void;
   handleNewRank: (type: ProjectType) => void;
@@ -87,7 +87,7 @@ export interface AppState extends GlobalState {
   setSkipDuplicateWarning: (skip: boolean) => void;
 }
 
-const checkAndRescueImages = (removedCells: (CellData | InboxItem)[], currentState: GlobalState, collectionToAddToId: string) => {
+const checkAndRescueImages = (removedCells: (CellData | InboxItem)[], currentState: GlobalState, _collectionToAddToId: string) => {
   const allKnownImages = new Set<string>();
   currentState.inbox.collections.forEach(col => col.items.forEach(item => allKnownImages.add(item.imageSrc)));
   const rescueItems: InboxItem[] = [];
@@ -174,7 +174,7 @@ export const useStore = create<AppState>()(
         }
         set({ duplicateModalConfig: { isOpen: false, imageSrc: null, actionToExecute: null } });
       },
-      
+
       updateActiveRank: (updates) => set((state) => {
         const activeRank = state.ranks[state.activeRankId];
         if (!activeRank) return state;
@@ -201,7 +201,7 @@ export const useStore = create<AppState>()(
         return {
           inbox: {
             ...state.inbox,
-            collections: state.inbox.collections.map(c => 
+            collections: state.inbox.collections.map(c =>
               c.id === state.inbox.activeCollectionId ? { ...c, ...updates } : c
             )
           }
@@ -215,11 +215,11 @@ export const useStore = create<AppState>()(
       handleConfigChange: (newConfig) => set((state) => {
         const activeRank = state.ranks[state.activeRankId];
         if (!activeRank) return state;
-        
+
         const isList = activeRank.mode === 'list';
         const oldTotal = activeRank.cells.length;
         const newTotal = isList ? newConfig.rows : newConfig.rows * newConfig.cols;
-        
+
         let nextCells = [...activeRank.cells];
         const targetColId = state.inbox.activeCollectionId === 'all-images' ? state.inbox.collections[0].id : state.inbox.activeCollectionId;
 
@@ -237,17 +237,17 @@ export const useStore = create<AppState>()(
           const removed = nextCells.slice(newTotal);
           const rescuedItems = checkAndRescueImages(removed, state, targetColId);
           nextCells = nextCells.slice(0, newTotal);
-          
+
           let newInbox = state.inbox;
           if (rescuedItems.length > 0) {
             newInbox = {
               ...state.inbox,
-              collections: state.inbox.collections.map(c => 
+              collections: state.inbox.collections.map(c =>
                 c.id === targetColId ? { ...c, items: [...c.items, ...rescuedItems] } : c
               )
             };
           }
-          
+
           return {
             inbox: newInbox,
             ranks: {
@@ -256,7 +256,7 @@ export const useStore = create<AppState>()(
             }
           };
         }
-        
+
         return {
           ranks: {
             ...state.ranks,
@@ -268,7 +268,7 @@ export const useStore = create<AppState>()(
       handleModeChange: (newMode) => set((state) => {
         const activeRank = state.ranks[state.activeRankId];
         if (!activeRank) return state;
-        
+
         let newConfig = { ...activeRank.config };
         const currentCellCount = activeRank.cells.length;
 
@@ -335,7 +335,7 @@ export const useStore = create<AppState>()(
             if (rescued.length > 0) {
                 newInbox = {
                   ...state.inbox,
-                  collections: state.inbox.collections.map(c => 
+                  collections: state.inbox.collections.map(c =>
                     c.id === targetColId ? { ...c, items: [...c.items, ...rescued] } : c
                   )
                 };
@@ -375,11 +375,11 @@ export const useStore = create<AppState>()(
         if (cell.imageSrc) {
           const newItem: InboxItem = { id: `inbox-${Date.now()}`, imageSrc: cell.imageSrc, createdAt: Date.now() };
           const newCells = activeRank.cells.map((c, i) => i === index ? { ...c, imageSrc: null, textLabel: undefined, rating: undefined } : c);
-          
+
           return {
             inbox: {
               ...state.inbox,
-              collections: state.inbox.collections.map(c => 
+              collections: state.inbox.collections.map(c =>
                 c.id === targetColId ? { ...c, items: [...c.items, newItem] } : c
               )
             },
@@ -408,7 +408,7 @@ export const useStore = create<AppState>()(
         if (!activeRank) return state;
         const row = activeRank.tierRows.find(r => r.id === rowId);
         if (!row) return state;
-        
+
         const item = row.items.find(i => i.id === itemId);
         let newInbox = state.inbox;
 
@@ -418,13 +418,13 @@ export const useStore = create<AppState>()(
             if (rescued.length > 0) {
                newInbox = {
                  ...state.inbox,
-                 collections: state.inbox.collections.map(c => 
+                 collections: state.inbox.collections.map(c =>
                    c.id === targetColId ? { ...c, items: [...c.items, ...rescued] } : c
                  )
                };
             }
         }
-        
+
         const newRows = activeRank.tierRows.map(r => r.id === rowId ? { ...r, items: r.items.filter(i => i.id !== itemId) } : r);
         return {
           inbox: newInbox,
@@ -441,7 +441,7 @@ export const useStore = create<AppState>()(
         const row = activeRank.tierRows.find(r => r.id === rowId);
         if (!row) return state;
         const item = row.items[itemIndex];
-        
+
         let newInbox = state.inbox;
         if (item && item.imageSrc) {
             const targetColId = state.inbox.activeCollectionId === 'all-images' ? state.inbox.collections[0].id : state.inbox.activeCollectionId;
@@ -449,14 +449,14 @@ export const useStore = create<AppState>()(
             if (rescued.length > 0) {
                newInbox = {
                  ...state.inbox,
-                 collections: state.inbox.collections.map(c => 
+                 collections: state.inbox.collections.map(c =>
                    c.id === targetColId ? { ...c, items: [...c.items, ...rescued] } : c
                  )
                };
             }
         }
         const newRows = activeRank.tierRows.map(r => r.id === rowId ? { ...r, items: r.items.filter(i => i.id !== item.id) } : r);
-        
+
         return {
           inbox: newInbox,
           ranks: {
@@ -481,7 +481,7 @@ export const useStore = create<AppState>()(
         } else {
             item = collections.find(c => c.id === collectionId)?.items.find(i => i.id === itemId);
         }
-        
+
         if (!item) return;
 
         get().checkDuplicateAndProceed(item.imageSrc, () => {
@@ -518,14 +518,14 @@ export const useStore = create<AppState>()(
                 }
                 return r;
             });
-            
+
             const targetColId = s.inbox.activeCollectionId === 'all-images' ? s.inbox.collections[0].id : s.inbox.activeCollectionId;
             const newItem: InboxItem = { id: `inbox-add-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, imageSrc, createdAt: Date.now() };
 
             return {
               inbox: {
                 ...s.inbox,
-                collections: s.inbox.collections.map(c => 
+                collections: s.inbox.collections.map(c =>
                   c.id === targetColId ? { ...c, items: [...c.items, newItem] } : c
                 )
               },
@@ -538,7 +538,7 @@ export const useStore = create<AppState>()(
       handleInternalTierMove: (sourceRowId, sourceItemId, targetRowId, targetIndex) => set((state) => {
         const activeRank = state.ranks[state.activeRankId];
         if (!activeRank) return state;
-        
+
         let itemToMove: CellData | undefined;
         let newRows = activeRank.tierRows.map(r => {
             if (r.id === sourceRowId) {
@@ -547,22 +547,22 @@ export const useStore = create<AppState>()(
             }
             return r;
         });
-        
+
         if (!itemToMove) return state;
-        
+
         newRows = newRows.map(r => {
             if (r.id === targetRowId) {
                 const newItems = [...r.items];
-                
+
                 if (sourceRowId === targetRowId) {
                      const originalItems = activeRank.tierRows.find(ro => ro.id === sourceRowId)!.items;
                      const srcIdx = originalItems.findIndex(i => i.id === sourceItemId);
                      const movingItem = originalItems[srcIdx];
                      const itemsWithout = originalItems.filter(i => i.id !== sourceItemId);
-                    
+
                      let realTarget = targetIndex === -1 ? itemsWithout.length : targetIndex;
-                     if (targetIndex !== -1 && srcIdx < targetIndex) realTarget -= 1; 
-                     
+                     if (targetIndex !== -1 && srcIdx < targetIndex) realTarget -= 1;
+
                      const finalItems = [...itemsWithout];
                      finalItems.splice(realTarget, 0, movingItem);
                      return { ...r, items: finalItems };
@@ -590,7 +590,7 @@ export const useStore = create<AppState>()(
 
         const collections = state.inbox.collections;
         const itemsToDrop: InboxItem[] = [];
-        
+
         for (const itemId of itemIds) {
             let item: InboxItem | undefined;
             if (sourceColId === 'all' || sourceColId === 'all-images') {
@@ -616,7 +616,7 @@ export const useStore = create<AppState>()(
           const currentRank = s.ranks[s.activeRankId];
           if (!currentRank) return s;
           const newCells = [...currentRank.cells];
-          
+
           let currentDropIndex = toIndex;
           for (const item of itemsToDrop) {
               // Check for duplicate
@@ -636,7 +636,7 @@ export const useStore = create<AppState>()(
                   break;
               }
           }
-          
+
           return { ranks: { ...s.ranks, [s.activeRankId]: { ...currentRank, cells: newCells, updatedAt: Date.now() } } };
         });
       },
@@ -648,7 +648,7 @@ export const useStore = create<AppState>()(
 
         const collections = state.inbox.collections;
         const itemsToDrop: InboxItem[] = [];
-        
+
         for (const itemId of itemIds) {
             let item: InboxItem | undefined;
             if (collectionId === 'all' || collectionId === 'all-images') {
@@ -672,7 +672,7 @@ export const useStore = create<AppState>()(
         set((s) => {
           const currentRank = s.ranks[s.activeRankId];
           if (!currentRank) return s;
-          
+
           const validItemsToDrop = [];
           for (const item of itemsToDrop) {
               if (!s.preferences.skipDuplicateWarning) {
@@ -692,7 +692,7 @@ export const useStore = create<AppState>()(
                   imageSrc: item.imageSrc,
                   position: 0
               }));
-              
+
               if (targetIndex === -1 || targetIndex >= newItems.length) {
                   newItems.push(...itemsToAdd);
               } else {
@@ -702,7 +702,7 @@ export const useStore = create<AppState>()(
             }
             return row;
           });
-          
+
           return { ranks: { ...s.ranks, [s.activeRankId]: { ...currentRank, tierRows: newRows, updatedAt: Date.now() } } };
         });
       },
@@ -743,8 +743,8 @@ export const useStore = create<AppState>()(
             if (!currentRank) return s;
 
             const newItem: InboxItem = { id: `inbox-search-${Date.now()}`, imageSrc, createdAt: Date.now() };
-            const targetColId = s.inbox.activeCollectionId === 'all-images' 
-                ? s.inbox.collections[0].id 
+            const targetColId = s.inbox.activeCollectionId === 'all-images'
+                ? s.inbox.collections[0].id
                 : s.inbox.activeCollectionId;
 
             const newCells = [...currentRank.cells];
@@ -753,7 +753,7 @@ export const useStore = create<AppState>()(
             return {
               inbox: {
                 ...s.inbox,
-                collections: s.inbox.collections.map(c => 
+                collections: s.inbox.collections.map(c =>
                   c.id === targetColId ? { ...c, items: [...c.items, newItem] } : c
                 )
               },
@@ -768,7 +768,7 @@ export const useStore = create<AppState>()(
         return {
           inbox: {
             ...state.inbox,
-            collections: state.inbox.collections.map(c => 
+            collections: state.inbox.collections.map(c =>
               c.id === collectionId ? { ...c, items: [...c.items, newItem] } : c
             )
           }
@@ -784,7 +784,7 @@ export const useStore = create<AppState>()(
         return {
           inbox: {
             ...state.inbox,
-            collections: state.inbox.collections.map(c => 
+            collections: state.inbox.collections.map(c =>
               c.id === targetId ? { ...c, items: [...c.items, item] } : c
             )
           }
@@ -792,14 +792,14 @@ export const useStore = create<AppState>()(
       }),
 
       handleInboxUpload: (dataUrl) => set((state) => {
-        const activeColId = state.inbox.activeCollectionId === 'all-images' 
-            ? state.inbox.collections[0].id 
+        const activeColId = state.inbox.activeCollectionId === 'all-images'
+            ? state.inbox.collections[0].id
             : state.inbox.activeCollectionId;
         const newItem: InboxItem = { id: `inbox-${Date.now()}`, imageSrc: dataUrl, createdAt: Date.now() };
         return {
           inbox: {
             ...state.inbox,
-            collections: state.inbox.collections.map(c => 
+            collections: state.inbox.collections.map(c =>
               c.id === activeColId ? { ...c, items: [...c.items, newItem] } : c
             )
           }
@@ -844,7 +844,7 @@ export const useStore = create<AppState>()(
         return {
           inbox: {
             ...state.inbox,
-            collections: state.inbox.collections.map(c => 
+            collections: state.inbox.collections.map(c =>
               c.id === activeColId ? { ...c, items: c.items.filter(i => i.id !== id) } : c
             )
           }
@@ -854,7 +854,7 @@ export const useStore = create<AppState>()(
       handleClearAll: () => set((state) => {
         const activeRank = state.ranks[state.activeRankId];
         if (!activeRank) return state;
-        
+
         const targetColId = state.inbox.activeCollectionId === 'all-images' ? state.inbox.collections[0].id : state.inbox.activeCollectionId;
         let newInbox = state.inbox;
 
@@ -864,7 +864,7 @@ export const useStore = create<AppState>()(
             if (rescued.length > 0) {
               newInbox = {
                 ...state.inbox,
-                collections: state.inbox.collections.map(c => 
+                collections: state.inbox.collections.map(c =>
                   c.id === targetColId ? { ...c, items: [...c.items, ...rescued] } : c
                 )
               };
@@ -883,7 +883,7 @@ export const useStore = create<AppState>()(
             if (rescued.length > 0) {
               newInbox = {
                 ...state.inbox,
-                collections: state.inbox.collections.map(c => 
+                collections: state.inbox.collections.map(c =>
                   c.id === targetColId ? { ...c, items: [...c.items, ...rescued] } : c
                 )
               };
@@ -937,7 +937,7 @@ export const useStore = create<AppState>()(
         const newRanks = { ...state.ranks };
         delete newRanks[id];
         const remainingIds = Object.keys(newRanks);
-        
+
         if (remainingIds.length === 0) {
           const newId = `rank-${Date.now()}`;
           return {
@@ -963,7 +963,7 @@ export const useStore = create<AppState>()(
             }
           };
         }
-        
+
         return {
           activeRankId: state.activeRankId === id ? remainingIds[0] : state.activeRankId,
           ranks: newRanks
@@ -971,7 +971,7 @@ export const useStore = create<AppState>()(
       }),
 
       importState: (newState) => set(() => newState),
-      
+
       setSkipDuplicateWarning: (skip) => set((state) => ({
         preferences: { ...state.preferences, skipDuplicateWarning: skip }
       }))
@@ -980,14 +980,14 @@ export const useStore = create<AppState>()(
       name: 'anime-ranker-state',
       storage: createJSONStorage(() => idbStorage),
       version: 3,
-      migrate: (persistedState: any, version: number) => {
+      migrate: (persistedState: any, _version: number) => {
         return migrateState(persistedState) as AppState;
       }
     }
   ),
   {
     partialize: (state) => {
-      const { interactionState, duplicateModalConfig, ...rest } = state;
+      const { _interactionState, _duplicateModalConfig, ...rest } = state;
       return rest;
     }
   }

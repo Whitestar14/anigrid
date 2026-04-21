@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Rank, TierRow, InteractionState, CellData } from '@/types';
-import { Settings, Trash2, ArrowUp, ArrowDown, Plus, Palette, X, Eraser, ChevronUp, ChevronDown, Edit2, Crop, Check } from 'lucide-react';
+import { Settings, Trash2, Plus, X, Eraser, ChevronUp, ChevronDown, Edit2, Crop, Check } from 'lucide-react';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
 
 interface TierListViewProps {
@@ -265,7 +265,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
           } else if (data.type === 'tier-item') {
               onInternalMove(data.rowId, data.itemId, rowId, targetIndex);
           }
-      } catch (e) {}
+      } catch {}
   };
 
   const handleItemDrop = (e: React.DragEvent, targetRowId: string, targetIndex: number) => {
@@ -286,7 +286,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
           } else if (data.type === 'tier-item') {
               onInternalMove(data.rowId, data.itemId, targetRowId, targetIndex);
           }
-      } catch (e) {}
+      } catch {}
   };
 
   const handleUpdateItem = (rowId: string, itemId: string, updates: Partial<CellData>) => {

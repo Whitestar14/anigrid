@@ -25,7 +25,7 @@ const SearchItem: React.FC<{
   onDragStart: (e: React.DragEvent, imgSrc: string) => void;
   onDragEnd: () => void;
   onAdd: (imgSrc: string) => void;
-}> = ({ item, imgSrc, label, isAdded, onDragStart, onDragEnd, onAdd }) => {
+}> = ({ _item, imgSrc, label, isAdded, onDragStart, onDragEnd, onAdd }) => {
   const [isDragging, setIsDragging] = useState(false);
 
   return (

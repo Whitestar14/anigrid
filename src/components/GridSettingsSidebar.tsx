@@ -55,7 +55,7 @@ const GRID_BG_COLORS = ['transparent', '#ffffff', '#0f1115', '#181b21', '#1a202c
 export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   isOpen,
   onClose,
-  onToggle,
+  _onToggle,
   config,
   style,
   mode,
@@ -63,7 +63,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   showNumbers,
   showTitle,
   showDate,
-  showTiers,
+  _showTiers,
   borderless,
   gap,
   rankBackgroundColor,

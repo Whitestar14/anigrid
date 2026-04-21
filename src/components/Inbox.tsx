@@ -1,7 +1,7 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { InboxCollection, InboxItem, JikanResult, InteractionState } from '@/types';
-import { Plus, X, Upload, FolderPlus, Edit, Trash, Check, Search, Box, Layers, ChevronDown, ChevronUp, Package, Globe, ArrowLeft, Info, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Upload, FolderPlus, Edit, Trash, Check, Box, Layers, ChevronDown, ChevronUp, Package, Globe, ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import { SearchPanel } from '@/components/SearchPanel';
 import { CuteSlime } from '@/components/EmptyStateVector';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
@@ -31,7 +31,7 @@ interface InboxProps {
   addToast?: (type: 'success' | 'info' | 'error', message: string, actionLabel?: string, action?: () => void) => void;
 }
 
-type SnackbarType = 'success' | 'info' | 'error';
+
 
 const InboxItemView: React.FC<{
     item: InboxItem;
@@ -43,7 +43,7 @@ const InboxItemView: React.FC<{
     handleDragEnd: () => void;
     handleItemClick: (e: React.MouseEvent, itemId: string) => void;
     handleDeleteItem: (item: InboxItem) => void;
-}> = ({ item, isUsed, isSelected, isAllView, activeCollectionId, handleDragStart, handleDragEnd, handleItemClick, handleDeleteItem }) => {
+}> = ({ item, isUsed, isSelected, isAllView, _activeCollectionId, handleDragStart, handleDragEnd, handleItemClick, handleDeleteItem }) => {
     const [isDragging, setIsDragging] = useState(false);
 
     return (
@@ -266,7 +266,7 @@ export const Inbox: React.FC<InboxProps> = ({
           onDropFromTier(source.rowId, source.itemId);
           setTimeout(() => setIsExpanded(true), 400);
         }
-      } catch (err) {}
+      } catch {}
     }
   };
 
