@@ -40,7 +40,7 @@ const Toast: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> =
   const icons = {
     success: <div className="bg-green-500 rounded-full p-0.5"><Check size={14} className="text-white" strokeWidth={3} /></div>,
     error: <div className="bg-red-500 rounded-full p-0.5"><AlertCircle size={14} className="text-white" strokeWidth={3} /></div>,
-    info: <div className="bg-blue-500 rounded-full p-0.5"><Info size={14} className="text-white" strokeWidth={3} /></div>,
+    info: <div className="bg-primary rounded-full p-0.5"><Info size={14} className="text-white" strokeWidth={3} /></div>,
   };
 
   return (
@@ -60,7 +60,7 @@ const Toast: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> =
             toast.action!();
             onRemove(toast.id);
           }}
-          className="ml-2 text-[13px] font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+          className="ml-2 text-[13px] font-semibold text-primary hover:text-primary/80 transition-colors"
         >
           {toast.actionLabel}
         </button>

@@ -135,7 +135,7 @@ export const GridView: React.FC<GridViewProps> = ({
                       <div
                         className="grid"
                         style={{
-                            gridTemplateColumns: `repeat(${cols}, minmax(120px, 180px))`,
+                            gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
                             gap: `${rank.gap ?? 0}px`,
                         }}
                       >
@@ -176,7 +176,7 @@ export const GridView: React.FC<GridViewProps> = ({
     <div
       className="grid"
       style={{
-        gridTemplateColumns: `repeat(${cols}, minmax(120px, 180px))`,
+        gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
         gap: `${rank.gap ?? 0}px`,
       }}
     >

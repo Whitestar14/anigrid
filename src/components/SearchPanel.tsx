@@ -42,7 +42,7 @@ const SearchItem: React.FC<{
       className={`
         group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-white/10 bg-[#2c2c2e] cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-500 transition-all shadow-md duration-300 ease-out
         ${isAdded ? 'opacity-80' : ''}
-        ${isDragging ? 'opacity-40 scale-90 grayscale' : ''}
+        ${isDragging ? 'opacity-50 scale-95 ring-2 ring-green-500 drop-shadow-lg' : ''}
       `}
       title={label}
     >

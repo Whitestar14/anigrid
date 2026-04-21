@@ -2,11 +2,16 @@
  * Image proxy utility for fetching CORS-blocked images through backend proxy
  */
 
-const PROXY_URL = import.meta.env.VITE_IMAGE_PROXY_URL || 'http://localhost:5000/proxy/image';
+const PROXY_URL =
+  import.meta.env.VITE_IMAGE_PROXY_URL || "http://localhost:5000/proxy/image";
 
 export const getProxiedImageUrl = (externalUrl: string): string => {
-  if (!externalUrl || externalUrl.startsWith('data:')) {
-    return externalUrl;
+  if (
+    !externalUrl ||
+    typeof externalUrl !== "string" ||
+    externalUrl.startsWith("data:")
+  ) {
+    return externalUrl || "";
   }
 
   // If using proxy, encode the URL parameter
@@ -31,7 +36,7 @@ export const fetchImageThroughProxy = async (
       reader.readAsDataURL(blob);
     });
   } catch (err) {
-    console.error('Proxy fetch error:', err);
+    console.error("Proxy fetch error:", err);
     return null;
   }
 };

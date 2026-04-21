@@ -2,14 +2,16 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('./assets/InterVariable.ttf') format('truetype');
+  src: url('./assets/InterVariable.woff2') format('woff2');
   font-display: swap;
 }
 
 @theme {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-
+  --font-size-base: 1rem;
+  --font-size-sm: 0.875rem;
+  --font-size-lg: 1.125rem;
   --color-background: var(--color-background);
   --color-surface: var(--color-surface);
   --color-border: var(--color-border);
@@ -33,9 +35,6 @@
   --color-primary: #f43f5e;    /* Rose 500 */
   --color-hover: rgba(255, 255, 255, 0.04);
   --color-overlay: rgba(0, 0, 0, 0.7);
-
-  --font-family-sans: var(--font-sans);
-  --font-family-mono: var(--font-mono);
 }
 
 /* Typography */
@@ -43,6 +42,7 @@ body {
   font-family: var(--font-sans);
   background-color: var(--color-background);
   color: var(--color-text);
+  @apply text-base leading-relaxed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden; /* App-like feel */

@@ -1,18 +1,17 @@
-
 export interface GridConfig {
   rows: number;
   cols: number;
 }
 
 export interface CellData {
-  id: string; 
+  id: string;
   imageSrc: string | null;
   position: number;
   // Extended data for List View
   textLabel?: string;
   rating?: number; // 0-10
   // Visuals
-  alignment?: 'top' | 'center' | 'bottom';
+  alignment?: "top" | "center" | "bottom";
   objectPosition?: string;
   zoom?: number;
 }
@@ -29,9 +28,9 @@ export interface InboxCollection {
   items: InboxItem[];
 }
 
-export type GridStyle = 'seamless' | 'card';
-export type RankMode = 'grid' | 'list' | 'tier';
-export type ProjectType = 'ranking' | 'tierlist';
+export type GridStyle = "seamless" | "card";
+export type RankMode = "grid" | "list" | "tier";
+export type ProjectType = "ranking" | "tierlist";
 
 export interface TierRow {
   id: string;
@@ -49,25 +48,26 @@ export interface Rank {
   id: string;
   title: string;
   type: ProjectType; // New strict separation
-  mode: RankMode; 
+  mode: RankMode;
   config: GridConfig; // Used for Grid Mode
   cells: CellData[]; // Used for Grid/List Mode
   style: GridStyle;
-  
+
   // Visual Preferences
   showNumbers: boolean;
   showTitle: boolean;
   showDate: boolean;
   showTiers?: boolean;
   borderless?: boolean; // New: Toggle item borders in grid
-  aspectRatio?: '1:1' | '3:4' | '4:3' | '16:9' | '9:16';
-  gap: number; 
-  backgroundColor: string; 
+  aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
+  cellWidth?: number; // New: Specific width for grid cells
+  gap: number;
+  backgroundColor: string;
 
   tiers?: TierData[];
-  
+
   // Tier List Data (Dedicated)
-  tierRows: TierRow[]; 
+  tierRows: TierRow[];
 
   createdAt: number;
   updatedAt: number;
@@ -87,17 +87,17 @@ export interface GlobalState {
   inbox: {
     collections: InboxCollection[];
     activeCollectionId: string;
-    lastTargetCollectionId?: string; 
+    lastTargetCollectionId?: string;
   };
   preferences: {
     skipDuplicateWarning: boolean;
   };
 }
 
-export type DragSource = 
-  | { type: 'cell'; index: number }
-  | { type: 'inbox'; id: string; originCollectionId: string }
-  | { type: 'search'; imageSrc: string };
+export type DragSource =
+  | { type: "cell"; index: number }
+  | { type: "inbox"; id: string; originCollectionId: string }
+  | { type: "search"; imageSrc: string };
 
 export interface JikanResult {
   mal_id: number;
@@ -105,15 +105,15 @@ export interface JikanResult {
     jpg: {
       image_url: string;
       large_image_url: string;
-    }
+    };
   };
   title?: string;
   name?: string;
 }
 
 // Interaction State
-export type InteractionState = 
-  | { type: 'cell'; index: number } // For Grid/List
-  | { type: 'tier-item'; rowId: string; itemId: string } // For Tier List
-  | { type: 'inbox'; itemId: string; collectionId: string }
+export type InteractionState =
+  | { type: "cell"; index: number } // For Grid/List
+  | { type: "tier-item"; rowId: string; itemId: string } // For Tier List
+  | { type: "inbox"; itemId: string; collectionId: string }
   | null;
