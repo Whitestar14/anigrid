@@ -1,8 +1,0 @@
-{
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install",
-  "outputDirectory": "dist",
-  "env": {
-    "VITE_IMAGE_PROXY_URL": "@vite_image_proxy_url"
-  }
-}
