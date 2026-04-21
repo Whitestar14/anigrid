@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('/public/assets/InterVariable.ttf') format('truetype');
+  src: url('./assets/InterVariable.ttf') format('truetype');
   font-display: swap;
 }
 
