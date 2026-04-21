@@ -2,9 +2,8 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('/fonts/InterVariable.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
+  src: url('/public/assets/InterVariable.ttf') format('truetype');
+  font-display: swap;
 }
 
 @theme {
