@@ -9,7 +9,8 @@ from datetime import datetime
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Simple in-memory cache (use Redis for production)
+# I'll likely implement something more robust later,
+# but for now this simple in-memory cache should help reduce redundant requests during development.
 image_cache = {}
 CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -22,20 +23,16 @@ def proxy_image():
     if not image_url:
         return jsonify({'error': 'Missing url parameter'}), 400
 
-    # Validate URL (basic security check)
     if not image_url.startswith(('http://', 'https://')):
         return jsonify({'error': 'Invalid URL'}), 400
 
-    # Whitelist allowed domains
     allowed_domains = ['myanimelist.net', 's4.anilist.co', 'cdn.myanimelist.net']
     if not any(domain in image_url for domain in allowed_domains):
         return jsonify({'error': 'Domain not allowed'}), 403
 
-    # Create cache key from URL hash
     cache_key = hashlib.md5(image_url.encode()).hexdigest()
     cache_file = os.path.join(CACHE_DIR, cache_key)
 
-    # Return cached file if exists
     if os.path.exists(cache_file):
         try:
             with open(cache_file, 'rb') as f:
@@ -49,21 +46,18 @@ def proxy_image():
             print(f'Cache read error: {e}')
 
     try:
-        # Fetch image from source
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
         response = requests.get(image_url, headers=headers, timeout=10)
         response.raise_for_status()
 
-        # Cache the image
         try:
             with open(cache_file, 'wb') as f:
                 f.write(response.content)
         except Exception as e:
             print(f'Cache write error: {e}')
 
-        # Return image
         return send_file(
             BytesIO(response.content),
             mimetype=response.headers.get('content-type', 'image/jpeg'),
@@ -86,6 +80,5 @@ def health():
     return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()})
 
 if __name__ == '__main__':
-    # Production server uses gunicorn, this is for local development
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
