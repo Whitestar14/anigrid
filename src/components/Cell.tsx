@@ -183,8 +183,9 @@ export const Cell = React.memo(function Cell({
   };
 
   return (
-    <div
+    <motion.div
       ref={cellRef}
+      layout
       className={`
         relative group/cell transition-all duration-200 ${aspectMap[aspectRatio] || 'aspect-[3/4]'}
         ${roundedClass}
@@ -323,6 +324,6 @@ export const Cell = React.memo(function Cell({
         onClose={() => setIsUrlModalOpen(false)}
         onSubmit={(url) => { onSearchDrop(url, index); onInteract(-1); }}
       />
-    </div>
+    </motion.div>
   );
 });

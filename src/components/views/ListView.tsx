@@ -183,104 +183,106 @@ const ListRow = React.memo(function ListRow({
         className={`relative shrink-0 ${aspectMap[aspectRatio] || 'aspect-[3/4] w-16 sm:w-20'}`}
       >
           {data.imageSrc ? (
-            <div
-               className={`w-full h-full relative cursor-pointer group/image rounded-lg overflow-hidden border border-white/5 shadow-sm transition-transform ${isSelected && !isAdjusting ? 'scale-[1.02] ring-2 ring-primary' : 'hover:scale-[1.02]'}`}
-               onClick={() => {
-                   if (!isAdjusting) onInteract(index);
-               }}
-            >
-                <img
-                    src={getProxiedImageUrl(data.imageSrc)}
-                    alt=""
-                    className="w-full h-full object-cover pointer-events-none transition-all duration-200"
-                    style={{
-                        objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || 'center'),
-                        transform: `scale(${isAdjusting ? zoom : (data.zoom || 1)})`,
-                        transformOrigin: 'center'
-                    }}
-                    referrerPolicy="no-referrer"
-                />
-
-                {/* Adjust Controls */}
-                {isAdjusting && (
-                  <div
-                    className="export-hidden adjust-controls absolute inset-0 bg-black/20 hover:bg-black/10 backdrop-blur-[1px] flex flex-col items-center justify-between p-1 z-30 cursor-move transition-colors"
-                    onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
-                    onWheel={handleWheel}
-                  >
-                    <div className="bg-black/60 text-white text-[8px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md border border-white/10 pointer-events-none mt-1 shadow-lg text-center leading-tight">
-                       Pan/Zoom
-                    </div>
-                    <div className="flex gap-1 mb-1">
-                      <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }} className="p-1.5 bg-black/60 backdrop-blur-md hover:bg-white/20 text-white rounded-full transition-colors border border-white/10 shadow-lg">
-                        <X size={12} />
-                      </button>
-                      <button onClick={saveAdjustments} className="p-1.5 bg-primary hover:bg-primary/80 text-white rounded-full transition-colors shadow-lg">
-                        <Check size={12} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Popover Menu (Filled State) */}
-                <AnimatePresence>
-                  {isSelected && !isAdjusting && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.15, ease: "easeOut" }}
-                      className="popover-menu absolute top-0 w-max min-w-[140px] left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 mt-[-10px]"
+            <>
+              <div
+                 className={`w-full h-full relative cursor-pointer group/image rounded-lg overflow-hidden border border-white/5 shadow-sm transition-transform ${isSelected && !isAdjusting ? 'scale-[1.02] ring-2 ring-primary' : 'hover:scale-[1.02]'}`}
+                 onClick={() => {
+                     if (!isAdjusting) onInteract(index);
+                 }}
+              >
+                  <img
+                      src={getProxiedImageUrl(data.imageSrc)}
+                      alt=""
+                      className="w-full h-full object-cover pointer-events-none transition-all duration-200"
+                      style={{
+                          objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || 'center'),
+                          transform: `scale(${isAdjusting ? zoom : (data.zoom || 1)})`,
+                          transformOrigin: 'center'
+                      }}
+                      referrerPolicy="no-referrer"
+                  />
+  
+                  {/* Adjust Controls */}
+                  {isAdjusting && (
+                    <div
+                      className="export-hidden adjust-controls absolute inset-0 bg-black/20 hover:bg-black/10 backdrop-blur-[1px] flex flex-col items-center justify-between p-1 z-30 cursor-move transition-colors"
+                      onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
+                      onWheel={handleWheel}
                     >
-                       <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                          Replace <Upload size={16} className="text-white/50" />
-                       </button>
-                       <div className="h-px bg-white/10 mx-2 my-0.5" />
-                       <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                          Crop & Adjust <Move size={16} className="text-white/50" />
-                       </button>
-                       <div className="h-px bg-white/10 mx-2 my-0.5" />
-                       <button onClick={(e) => { e.stopPropagation(); onMoveToInbox(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                          To Inbox <ArrowDownToLine size={16} className="text-white/50" />
-                       </button>
-                       <div className="h-px bg-white/10 mx-2 my-0.5" />
-                       <button onClick={(e) => { e.stopPropagation(); onClear(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors gap-2">
-                          Remove <X size={16} className="text-red-500/50" />
-                       </button>
-                    </motion.div>
+                      <div className="bg-black/60 text-white text-[8px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md border border-white/10 pointer-events-none mt-1 shadow-lg text-center leading-tight">
+                         Pan/Zoom
+                      </div>
+                      <div className="flex gap-1 mb-1">
+                        <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }} className="p-1.5 bg-black/60 backdrop-blur-md hover:bg-white/20 text-white rounded-full transition-colors border border-white/10 shadow-lg">
+                          <X size={12} />
+                        </button>
+                        <button onClick={saveAdjustments} className="p-1.5 bg-primary hover:bg-primary/80 text-white rounded-full transition-colors shadow-lg">
+                          <Check size={12} />
+                        </button>
+                      </div>
+                    </div>
                   )}
-                </AnimatePresence>
-            </div>
+              </div>
+              {/* Popover Menu (Filled State) */}
+              <AnimatePresence>
+                {isSelected && !isAdjusting && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="popover-menu absolute top-0 w-max min-w-[140px] left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 mt-[-10px]"
+                  >
+                     <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+                        Replace <Upload size={16} className="text-white/50" />
+                     </button>
+                     <div className="h-px bg-white/10 mx-2 my-0.5" />
+                     <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+                        Crop & Adjust <Move size={16} className="text-white/50" />
+                     </button>
+                     <div className="h-px bg-white/10 mx-2 my-0.5" />
+                     <button onClick={(e) => { e.stopPropagation(); onMoveToInbox(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+                        To Inbox <ArrowDownToLine size={16} className="text-white/50" />
+                     </button>
+                     <div className="h-px bg-white/10 mx-2 my-0.5" />
+                     <button onClick={(e) => { e.stopPropagation(); onClear(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors gap-2">
+                        Remove <X size={16} className="text-red-500/50" />
+                     </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
           ) : (
-            <div
-               onClick={() => onInteract(index)}
-               className="w-full h-full bg-black/40 rounded-lg border border-white/5 shadow-sm flex flex-col items-center justify-center text-muted hover:text-white transition-colors gap-1 cursor-pointer"
-            >
-               <input
-                  type="file" ref={fileInputRef} className="hidden" accept="image/*"
-                  onChange={(e) => {
-                      if (e.target.files?.[0]) onUpload(index, e.target.files[0]);
-                      onInteract(-1); // Deselect on upload
-                  }}
-               />
-               <Plus size={20} className="opacity-50" />
-               <span className="text-[10px] uppercase font-bold tracking-wider opacity-50">Add</span>
-
-               {/* Popover Menu (Empty State equivalent mapping) */}
-               {isSelected && (
-                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 animate-in fade-in zoom-in-95">
-                      <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-xl text-[11px] font-medium text-white transition-colors">
-                         Local <Upload size={12} className="text-white/50" />
-                      </button>
-                      <button onClick={(e) => {
-                         e.stopPropagation();
-                         setIsUrlModalOpen(true);
-                      }} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-xl text-[11px] font-medium text-white transition-colors">
-                         URL <ArrowDownToLine size={12} className="text-white/50" />
-                      </button>
-                   </div>
-               )}
-            </div>
+            <>
+              <div
+                 onClick={() => onInteract(index)}
+                 className="w-full h-full bg-black/40 rounded-lg border border-white/5 shadow-sm flex flex-col items-center justify-center text-muted hover:text-white transition-colors gap-1 cursor-pointer"
+              >
+                 <input
+                    type="file" ref={fileInputRef} className="hidden" accept="image/*"
+                    onChange={(e) => {
+                        if (e.target.files?.[0]) onUpload(index, e.target.files[0]);
+                        onInteract(-1); // Deselect on upload
+                    }}
+                 />
+                 <Plus size={20} className="opacity-50" />
+                 <span className="text-[10px] uppercase font-bold tracking-wider opacity-50">Add</span>
+              </div>
+              {/* Popover Menu (Empty State equivalent mapping) */}
+              {isSelected && (
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 animate-in fade-in zoom-in-95">
+                     <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-xl text-[11px] font-medium text-white transition-colors">
+                        Local <Upload size={12} className="text-white/50" />
+                     </button>
+                     <button onClick={(e) => {
+                        e.stopPropagation();
+                        setIsUrlModalOpen(true);
+                     }} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-xl text-[11px] font-medium text-white transition-colors">
+                        URL <ArrowDownToLine size={12} className="text-white/50" />
+                     </button>
+                  </div>
+              )}
+            </>
           )}
       </div>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Rank, CellData, InteractionState, TierData } from '@/types';
 import { Cell } from '@/components/Cell';
 import { Palette } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface GridViewProps {
   rank: Rank;
@@ -121,16 +122,17 @@ export const GridView: React.FC<GridViewProps> = ({
       return (
           <div className="flex flex-col" style={{ gap: `${rank.gap ?? 0}px` }}>
               {rows.map((rowCells, rowIndex) => (
-                  <div key={rowIndex} className="flex" style={{ gap: `${rank.gap ?? 0}px` }}>
+                  <motion.div layout key={rowIndex} className="flex" style={{ gap: `${rank.gap ?? 0}px` }}>
                       {/* Tier Header */}
                       <TierHeader
                         index={rowIndex}
                         data={rank.tiers?.[rowIndex]}
                         onUpdate={(d) => onUpdateTier && onUpdateTier(rowIndex, d)}
                       />
-
+ 
                       {/* Grid Row */}
-                      <div
+                      <motion.div
+                        layout
                         className="grid"
                         style={{
                             gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
@@ -139,7 +141,7 @@ export const GridView: React.FC<GridViewProps> = ({
                       >
                           {rowCells.map((cell) => {
                              const globalIndex = rank.cells.indexOf(cell);
-
+ 
                              return (
                                 <Cell
                                   key={cell.id}
@@ -161,8 +163,8 @@ export const GridView: React.FC<GridViewProps> = ({
                                 />
                              );
                           })}
-                      </div>
-                  </div>
+                      </motion.div>
+                  </motion.div>
               ))}
           </div>
       );
@@ -170,7 +172,8 @@ export const GridView: React.FC<GridViewProps> = ({
 
   // Standard Grid View
   return (
-    <div
+    <motion.div
+      layout
       className="grid"
       style={{
         gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
@@ -198,6 +201,6 @@ export const GridView: React.FC<GridViewProps> = ({
           aspectRatio={rank.aspectRatio}
         />
       ))}
-    </div>
+    </motion.div>
   );
 };
