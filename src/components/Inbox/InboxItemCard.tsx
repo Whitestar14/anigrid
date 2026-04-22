@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, X } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
 import type { InboxItem } from "@/types";
 import { getProxiedImageUrl } from "@/utils/imageProxy";
 
@@ -12,6 +12,7 @@ export interface InboxItemCardProps {
   onDragEnd: () => void;
   onItemClick: (e: React.MouseEvent, itemId: string) => void;
   onDeleteItem: (item: InboxItem) => void;
+  onRecall: (imageSrc: string) => void;
 }
 
 export const InboxItemCard: React.FC<InboxItemCardProps> = ({
@@ -23,6 +24,7 @@ export const InboxItemCard: React.FC<InboxItemCardProps> = ({
   onDragEnd,
   onItemClick,
   onDeleteItem,
+  onRecall,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -57,14 +59,25 @@ export const InboxItemCard: React.FC<InboxItemCardProps> = ({
       />
 
       {isUsed && (
-        <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none backdrop-blur-[2px]">
-          <div className="bg-white/20 rounded-full p-2 backdrop-blur-md">
-            <Check
-              size={24}
-              className="text-white drop-shadow-md"
-              strokeWidth={2.5}
-            />
-          </div>
+        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-[2px] animate-in fade-in duration-300">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRecall(item.imageSrc);
+            }}
+            className="group/recall flex flex-col items-center gap-2 transition-all transform hover:scale-110 active:scale-95 pointer-events-auto"
+          >
+            <div className="bg-white/20 group-hover/recall:bg-blue-500/40 rounded-full p-2 backdrop-blur-md transition-colors border border-white/10">
+              <RotateCcw
+                size={24}
+                className="text-white drop-shadow-md"
+                strokeWidth={2.5}
+              />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/70 group-hover/recall:text-white transition-colors">
+              Recall
+            </span>
+          </button>
         </div>
       )}
 

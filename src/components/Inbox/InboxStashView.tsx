@@ -29,6 +29,7 @@ export interface InboxStashViewProps {
   onDragEndExpand: () => void;
   onItemClick: (e: React.MouseEvent, itemId: string) => void;
   onDeleteItem: (item: InboxItem) => void;
+  onRecall: (imageSrc: string) => void;
 }
 
 export const InboxStashView: React.FC<InboxStashViewProps> = (props) => (
@@ -61,6 +62,7 @@ export const InboxStashView: React.FC<InboxStashViewProps> = (props) => (
       onDragEndExpand={props.onDragEndExpand}
       onItemClick={props.onItemClick}
       onDeleteItem={props.onDeleteItem}
+      onRecall={props.onRecall}
     />
   </div>
 );

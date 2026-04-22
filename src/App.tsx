@@ -184,6 +184,46 @@ export const App: React.FC = () => {
         return;
       }
 
+      // Undo / Redo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          useStore.temporal.getState().redo();
+        } else {
+          useStore.temporal.getState().undo();
+        }
+        return;
+      }
+
+      // Arrow navigation for grid/list
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        if (st.interactionState?.type === "cell" && rank) {
+          e.preventDefault();
+          const maxCells = rank.cells.length;
+          const cols = rank.mode === 'grid' ? rank.config.cols : 1;
+          let newIndex = st.interactionState.index;
+
+          if (e.key === 'ArrowRight') newIndex++;
+          if (e.key === 'ArrowLeft') newIndex--;
+          if (e.key === 'ArrowDown') newIndex += cols;
+          if (e.key === 'ArrowUp') newIndex -= cols;
+
+          if (newIndex >= 0 && newIndex < maxCells) {
+            st.setInteractionState({ type: "cell", index: newIndex });
+          }
+          return;
+        }
+      }
+
+      // Quick Clear
+      if (e.key === "Backspace" || e.key === "Delete") {
+        if (st.interactionState?.type === "cell" && rank) {
+          e.preventDefault();
+          st.handleCellClear(st.interactionState.index);
+          return;
+        }
+      }
+
       // Copy/Paste internal
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
         if (st.interactionState?.type === "cell" && rank) {

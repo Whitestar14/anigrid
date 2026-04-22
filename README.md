@@ -2,25 +2,35 @@
 
 > The sleekest anime ranker/tier list builder for the perfectionists among us. There really aren't that many decent options for 3x3s out there, so I made one myself.
 
-A minimalist, **dark-mode native** ranking application built for anime enthusiasts. Now you can rank your waifus, tier favorite characters and organize your with zero clutter
+A minimalist, **dark-mode native** ranking application built for anime enthusiasts. Now you can rank your waifus, tier favorite characters and organize your with zero clutter.
+
+## Premium Experience
+
+- **iOS-Inspired UI:** Modern glassmorphism, curated typography (Outfit-ish), and silky-smooth physics-based animations via Framer Motion.
+- **Direct Pan & Zoom:** No more clunky sliders. Just click "Adjust" and drag the image directly or use the scroll wheel to zoom.
+- **Intelligent Dock:** A smart bottom dock that knows when to get out of your way and when to reappear during drag-and-drop.
+- **Infinite History:** Fully integrated Undo/Redo (via zundo) with global keyboard shortcuts (`Ctrl+Z` / `Ctrl+Shift+Z`).
 
 ## Features
 
-- Multiple Ranking Modes
+- **Multiple Ranking Modes:**
+  - **Grid ranking:** Visual 3x3s and beyond at a glance.
+  - **List ranking:** Detailed ratings and labels with smooth reordering.
+  - **Tier lists:** Standard S-tier through D-tier with fluid drag-and-drop rows.
 
-  - Grid ranking (visual comparison at a glance)
-  - List ranking (detailed ratings and labels)
-  - Tier lists (S-tier through whatever you want)
+- **Inbox & Collection System:**
+  - Manage your image library with custom collections.
+  - Bulk add/delete support.
+  - "Recall" images from the board back to the stash instantly.
 
-- Image collections with inbox system
-- Drag and drop
-- Persistent storage
-- Share your rankings (once image export gets fixed)
-- Mobile-Friendly
+- **Performance & Tech:**
+  - **Image Compression:** Automatic client-side downscaling and WebP conversion to keep your storage light.
+  - **IndexedDB Persistence:** Your work is saved locally and instantly across sessions.
+  - **Keyboard Navigation:** Full arrow-key support for grid navigation and `Backspace` to clear.
 
 ## Development
 
-Built with React 19, Zustand, framer-motion, tailwindcss, Typescript 5.8, zundo and idb.
+Built with React 19, Zustand, Framer Motion, Tailwind CSS, TypeScript 5.8, Zundo, and IDB.
 
 ### Frontend Setup
 
@@ -58,20 +68,5 @@ Add to your `.env` file:
 ```
 VITE_IMAGE_PROXY_URL=http://localhost:5000/proxy/image
 ```
-
-**Why the proxy?** MyAnimeList and other image sources block CORS requests from browsers. The proxy server:
-- Fetches images server-side (no CORS restrictions)
-- Caches them locally for instant future loads
-- Returns CORS-enabled responses to the frontend
-- Enables seamless exports with external images
-
-## Known Issues
-
-> I'm building Anigrid in my free time and I have some other things to attend to, so unfortunately its not getting as much attention as I would like to give it. If you want to contribute and have any interest in polishing the app, open a PR with details of what was changed/improved and I'm sure to check it out!
-
-- Mobile drag-and-drop could use touch event optimizations
-- Empty states need tiny anime character vectors (MVP someday™)
-- Mobile accessibility improvements in progress
-- Some UI polish still incoming (because perfection takes time)
 
 El. Psy. Congroo.

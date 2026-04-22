@@ -68,30 +68,53 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
     requestDeleteCollection,
     onFileInputChange,
     expandDockAfterDrag,
+    handleRecall,
+    setIsDraggingFromDock,
+    isDraggingFromDock,
   } = ctrl;
+
+  // Global listeners to ensure the dock always reopens after a drag finishes, even if the source element was unmounted
+  const isDraggingFromDockRef = React.useRef(isDraggingFromDock);
+  React.useEffect(() => {
+    isDraggingFromDockRef.current = isDraggingFromDock;
+  }, [isDraggingFromDock]);
+
+  React.useEffect(() => {
+    let reopenTimeout: NodeJS.Timeout;
+    const handleGlobalDragFinish = () => {
+      // Only react if the drag actually originated from this dock
+      if (isDraggingFromDockRef.current) {
+        setIsDraggingFromDock(false);
+        // Re-expand the dock after a short delay to allow UI to settle
+        clearTimeout(reopenTimeout);
+        reopenTimeout = setTimeout(() => setIsExpanded(true), 300);
+      }
+    };
+    document.addEventListener("dragend", handleGlobalDragFinish, true);
+    document.addEventListener("drop", handleGlobalDragFinish, true);
+    return () => {
+      document.removeEventListener("dragend", handleGlobalDragFinish, true);
+      document.removeEventListener("drop", handleGlobalDragFinish, true);
+      // NOTE: We DO NOT clear the timeout here if it was already scheduled
+      // to ensure it survives the re-render triggered by setIsDraggingFromDock(false)
+    };
+  }, [setIsExpanded, setIsDraggingFromDock]); // Removed isDraggingFromDock dependency
 
   // Wrap drag handlers to also honour autoclose
   const handleDragStart = React.useCallback(
     (e: React.DragEvent, id: string) => {
       handleDragStartBase(e, id);
-      // After writing drag data, close if pref says so (desktop) or always on mobile
-      const isMobile = window.innerWidth < 768;
-      if (isMobile || autoCloseDockDesktop) {
-        setIsExpanded(false);
-      }
+      setIsDraggingFromDock(true);
     },
-    [handleDragStartBase, autoCloseDockDesktop, setIsExpanded],
+    [handleDragStartBase, setIsDraggingFromDock],
   );
 
   const handleSearchDragStart = React.useCallback(
     (e: React.DragEvent, src: string) => {
       handleSearchDragStartBase(e, src);
-      const isMobile = window.innerWidth < 768;
-      if (isMobile || autoCloseDockDesktop) {
-        setIsExpanded(false);
-      }
+      setIsDraggingFromDock(true);
     },
-    [handleSearchDragStartBase, autoCloseDockDesktop, setIsExpanded],
+    [handleSearchDragStartBase, setIsDraggingFromDock],
   );
 
   const commitRename = (colId: string) => {
@@ -119,13 +142,13 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
       className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-40 px-4 flex justify-center`}
       style={{
         width: isExpanded ? "min(100%, 768px)" : "min(100%, 340px)",
-        transition: "width 300ms cubic-bezier(0.32,0.72,0,1)",
+        transition: "width 240ms cubic-bezier(0.32,0.72,0,1)",
       }}
     >
       <div
         className={`
           w-full overflow-hidden flex flex-col
-          transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
+          transition-all duration-240 ease-[cubic-bezier(0.32,0.72,0,1)]
           ${isExpanded ? glassPanel : collapsedPanel}
           ${isDragOver ? "ring-2 ring-blue-500 ring-inset" : ""}
         `}
@@ -135,7 +158,25 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
           borderRadius: DOCK_RADIUS,
         }}
         onDragOver={handleDragOver}
-        onDragLeave={() => setIsDragOver(false)}
+        onDragLeave={(e) => {
+          setIsDragOver(false);
+          // INTENT-BASED CLOSING: Only collapse if we are dragging an item OUT of the dock
+          if (isDraggingFromDock) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            // Check if mouse is actually outside the dock's bounds
+            if (
+              e.clientY < rect.top ||
+              e.clientY >= rect.bottom ||
+              e.clientX < rect.left ||
+              e.clientX >= rect.right
+            ) {
+              const isMobile = window.innerWidth < 768;
+              if (isMobile || autoCloseDockDesktop) {
+                setIsExpanded(false);
+              }
+            }
+          }
+        }}
         onDrop={handleDrop}
       >
         {!isExpanded ? (
@@ -251,6 +292,7 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
                     onDragEndExpand={expandDockAfterDrag}
                     onItemClick={handleItemClick}
                     onDeleteItem={handleDeleteItem}
+                    onRecall={handleRecall}
                   />
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Rank, TierRow, InteractionState, CellData } from "@/types";
 import {
@@ -94,9 +94,11 @@ const TierItem = React.memo(function TierItem({
   onSearchDrop: (imageSrc: string, rowId: string, itemIndex: number) => void;
   aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
 }) {
+  const tierRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isAdjusting, setIsAdjusting] = useState(false);
+  const [isAdjustDragging, setIsAdjustDragging] = useState(false);
 
   const aspectMap: Record<string, string> = {
     "1:1": "w-24 h-24",
@@ -122,6 +124,33 @@ const TierItem = React.memo(function TierItem({
     transformOrigin: "center",
   };
 
+  React.useEffect(() => {
+    const handleMouseUp = () => setIsAdjustDragging(false);
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isAdjustDragging || !tierRef.current) return;
+      const rect = tierRef.current.getBoundingClientRect();
+      const percentX = (e.movementX / rect.width) * 100 / zoom;
+      const percentY = (e.movementY / rect.height) * 100 / zoom;
+      setPosX(prev => Math.min(Math.max(0, prev - percentX), 100));
+      setPosY(prev => Math.min(Math.max(0, prev - percentY), 100));
+    };
+    if (isAdjustDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isAdjustDragging, zoom]);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!isAdjusting) return;
+    e.stopPropagation();
+    const newZoom = Math.min(Math.max(1, zoom - (e.deltaY * 0.005)), 4);
+    setZoom(newZoom);
+  };
+
   const saveAdjustments = (e: React.MouseEvent) => {
     e.stopPropagation();
     onUpdateItem(rowId, item.id, { zoom, objectPosition: `${posX}% ${posY}%` });
@@ -129,8 +158,13 @@ const TierItem = React.memo(function TierItem({
   };
 
   return (
-    <div
-      className={`relative group/item transition-all duration-200 ${isDragging ? "opacity-40 scale-95 grayscale" : ""} ${isDragOver ? "ring-4 ring-primary bg-primary/20 z-20 scale-105 shadow-2xl" : ""}`}
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ type: "spring", stiffness: 450, damping: 35 }}
+      className={`relative group/item ${isDragging ? "opacity-40 scale-95 grayscale" : ""} ${isDragOver ? "ring-4 ring-primary bg-primary/20 z-20 scale-105 shadow-2xl" : ""}`}
       onDragOver={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -190,6 +224,7 @@ const TierItem = React.memo(function TierItem({
       onDragEnd={() => setIsDragging(false)}
     >
       <div
+        ref={tierRef}
         className={`
                 ${aspectMap[aspectRatio || "3:4"]} relative cursor-grab active:cursor-grabbing overflow-hidden select-none bg-black/20
                 ${interactionState?.type === "tier-item" && interactionState.itemId === item.id ? "opacity-50 ring-2 ring-primary z-10" : ""}
@@ -202,78 +237,29 @@ const TierItem = React.memo(function TierItem({
           referrerPolicy="no-referrer"
         />
 
-        {/* Hover Controls (Desktop) */}
-        {!isAdjusting && (
-          <div className="absolute top-0 right-0 hidden md:flex gap-1 p-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity export-hidden">
-            <button
-              className="bg-black/60 text-white p-1 hover:bg-white/20 rounded-sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsAdjusting(true);
-              }}
-              title="Crop & Adjust"
-            >
-              <Crop size={12} />
-            </button>
-            <button
-              className="bg-black/60 text-white p-1 hover:bg-red-500 rounded-sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoveToInbox(rowId, idx);
-              }}
-              title="Remove"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        )}
-
         {/* Adjust Controls */}
         {isAdjusting && (
-          <div className="export-hidden adjust-controls absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-1 gap-2 z-30">
-            <div className="w-full flex flex-col gap-1 bg-black/40 p-1 rounded-md border border-white/10">
-              <input
-                type="range"
-                min="1"
-                max="3"
-                step="0.1"
-                value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="w-full h-1 accent-primary"
-                title="Zoom"
-              />
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={posX}
-                onChange={(e) => setPosX(parseInt(e.target.value))}
-                className="w-full h-1 accent-primary"
-                title="Pan X"
-              />
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={posY}
-                onChange={(e) => setPosY(parseInt(e.target.value))}
-                className="w-full h-1 accent-primary"
-                title="Pan Y"
-              />
+          <div
+            className="export-hidden adjust-controls absolute inset-0 bg-black/20 hover:bg-black/10 backdrop-blur-[1px] flex flex-col items-center justify-between p-1 z-30 cursor-move transition-colors"
+            onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
+            onWheel={handleWheel}
+          >
+            <div className="bg-black/60 text-white text-[8px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md border border-white/10 pointer-events-none mt-1 shadow-lg text-center leading-tight">
+              Drag to Pan<br />Scroll to Zoom
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 mb-1">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsAdjusting(false);
                 }}
-                className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-sm transition-colors"
+                className="p-1.5 bg-black/60 backdrop-blur-md hover:bg-white/20 text-white rounded-full transition-colors border border-white/10 shadow-lg"
               >
                 <X size={12} />
               </button>
               <button
                 onClick={saveAdjustments}
-                className="p-1 bg-primary hover:bg-primary/80 text-white rounded-sm transition-colors"
+                className="p-1.5 bg-primary hover:bg-primary/80 text-white rounded-full transition-colors shadow-lg"
               >
                 <Check size={12} />
               </button>
@@ -282,7 +268,7 @@ const TierItem = React.memo(function TierItem({
         )}
       </div>
 
-      {/* Popover Menu (Mobile Only) */}
+      {/* Popover Menu */}
       <AnimatePresence>
         {interactionState?.type === "tier-item" &&
           interactionState.itemId === item.id &&
@@ -292,7 +278,7 @@ const TierItem = React.memo(function TierItem({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="popover-menu md:hidden absolute top-full mt-2 w-32 left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1"
+              className="popover-menu absolute top-full mt-2 w-32 left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1"
             >
               <button
                 onClick={(e) => {
@@ -316,7 +302,7 @@ const TierItem = React.memo(function TierItem({
             </motion.div>
           )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 });
 
@@ -443,7 +429,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
       } else if (data.type === "tier-item") {
         onInternalMove(data.rowId, data.itemId, rowId, targetIndex);
       }
-    } catch {}
+    } catch { }
   };
 
   const handleItemDrop = (
@@ -473,7 +459,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
       } else if (data.type === "tier-item") {
         onInternalMove(data.rowId, data.itemId, targetRowId, targetIndex);
       }
-    } catch {}
+    } catch { }
   };
 
   const handleUpdateItem = (
@@ -542,7 +528,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
           {/* 2. Content (Middle) - Compact Layout */}
           <div
             className={`
-                flex-1 flex flex-wrap content-start items-start min-h-[6rem] transition-all duration-200
+                relative flex-1 flex flex-wrap content-start items-start min-h-[6rem] transition-all duration-200
                 ${activeDropRowId === row.id ? "bg-primary/20 ring-inset ring-2 ring-primary shadow-inner" : "bg-surface"}
             `}
             onDragOver={(e) => handleDragOver(e, row.id)}
@@ -550,23 +536,31 @@ export const TierListView: React.FC<TierListViewProps> = ({
             onDrop={(e) => handleDropOnRow(e, row.id)}
             onClick={() => handleRowClick(row.id)}
           >
-            {row.items.map((item, idx) => (
-              <TierItem
-                key={item.id}
-                item={item}
-                rowId={row.id}
-                idx={idx}
-                interactionState={interactionState}
-                onInteract={onInteract}
-                onMoveToInbox={onMoveToInbox}
-                handleItemDrop={handleItemDrop}
-                onUpdateItem={handleUpdateItem}
-                onInboxDrop={onInboxDrop}
-                onInboxDropMulti={onInboxDropMulti}
-                onInternalMove={onInternalMove}
-                onSearchDrop={onSearchDrop}
-              />
-            ))}
+            <AnimatePresence>
+              {row.items.map((item, idx) => (
+                <TierItem
+                  key={item.id}
+                  item={item}
+                  rowId={row.id}
+                  idx={idx}
+                  interactionState={interactionState}
+                  onInteract={onInteract}
+                  onMoveToInbox={onMoveToInbox}
+                  handleItemDrop={handleItemDrop}
+                  onUpdateItem={handleUpdateItem}
+                  onInboxDrop={onInboxDrop}
+                  onInboxDropMulti={onInboxDropMulti}
+                  onInternalMove={onInternalMove}
+                  onSearchDrop={onSearchDrop}
+                />
+              ))}
+            </AnimatePresence>
+
+            {row.items.length === 0 && activeDropRowId !== row.id && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none export-hidden">
+                <span className="text-white/20 text-sm font-medium border-2 border-dashed border-white/10 px-4 py-2 rounded-xl">Drop items here</span>
+              </div>
+            )}
 
             {/* Invisible Filler */}
             <div className="flex-1 min-h-[6rem]" />
@@ -574,27 +568,27 @@ export const TierListView: React.FC<TierListViewProps> = ({
 
           {/* 3. Controls (Right) */}
           <div className="w-10 sm:w-16 bg-surface shrink-0 flex flex-col items-center justify-between py-1 border-l border-border export-hidden px-1">
-              <Select
-                value=""
-                onChange={(val) => {
-                  if (val === 'clear') handleClearRow(row.id);
-                  if (val === 'delete') handleDeleteRow(rowIndex);
-                }}
-                options={[
-                  { label: "Clear Images", value: "clear" },
-                  { label: "Delete Row", value: "delete" }
-                ]}
-                customTrigger={
-                  <button className="p-1 text-muted hover:text-text transition-colors mt-1" title="Settings">
-                    <Settings size={18} />
-                  </button>
-                }
-                alignOffset="right"
-                dropdownClassName="w-48"
-                className="w-auto flex justify-center"
-              />
+            <Select
+              value=""
+              onChange={(val) => {
+                if (val === 'clear') handleClearRow(row.id);
+                if (val === 'delete') handleDeleteRow(rowIndex);
+              }}
+              options={[
+                { label: "Clear Images", value: "clear" },
+                { label: "Delete Row", value: "delete" }
+              ]}
+              customTrigger={
+                <button className="p-1 text-muted hover:text-text transition-colors mt-1" title="Settings">
+                  <Settings size={18} />
+                </button>
+              }
+              alignOffset="right"
+              dropdownClassName="w-48"
+              className="w-auto flex justify-center"
+            />
 
-             <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               <button
                 onClick={() => handleMoveRow(rowIndex, "up")}
                 disabled={rowIndex === 0}

@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Rank, CellData, InteractionState } from '@/types';
-import { Upload, X, ArrowDownToLine, Plus, Star, Move } from 'lucide-react';
+import { Upload, X, ArrowDownToLine, Plus, Star, Move, Check } from 'lucide-react';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
 import { UrlInputModal } from '@/components/ui/UrlInputModal';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ListViewProps {
   rank: Rank;
@@ -56,10 +57,50 @@ const ListRow = React.memo(function ListRow({
   isSelected,
   onInteract
 }: ListRowProps) {
+  const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [isAdjustDragging, setIsAdjustDragging] = useState(false);
+  const [zoom, setZoom] = useState(data.zoom || 1);
+  const [posX, setPosX] = useState(data.objectPosition ? parseInt(data.objectPosition.split(' ')[0]) : 50);
+  const [posY, setPosY] = useState(data.objectPosition ? parseInt(data.objectPosition.split(' ')[1]) : 50);
+
+  useEffect(() => {
+    const handleMouseUp = () => setIsAdjustDragging(false);
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isAdjustDragging || !listRef.current) return;
+      const rect = listRef.current.getBoundingClientRect();
+      const percentX = (e.movementX / rect.width) * 100 / zoom;
+      const percentY = (e.movementY / rect.height) * 100 / zoom;
+      setPosX(prev => Math.min(Math.max(0, prev - percentX), 100));
+      setPosY(prev => Math.min(Math.max(0, prev - percentY), 100));
+    };
+    if (isAdjustDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isAdjustDragging, zoom]);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!isAdjusting) return;
+    e.stopPropagation();
+    const newZoom = Math.min(Math.max(1, zoom - (e.deltaY * 0.005)), 4);
+    setZoom(newZoom);
+  };
+
+  const saveAdjustments = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUpdateCell(index, { zoom, objectPosition: `${posX}% ${posY}%` });
+    setIsAdjusting(false);
+  };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -106,7 +147,12 @@ const ListRow = React.memo(function ListRow({
   };
 
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 450, damping: 35 }}
       className={`
         flex items-center gap-4 transition-all duration-200
         ${rankStyle === 'card' ? 'p-3 bg-[#2c2c2e] rounded-2xl' : 'p-3 bg-transparent hover:bg-white/[0.02]'}
@@ -119,7 +165,7 @@ const ListRow = React.memo(function ListRow({
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); e.dataTransfer.dropEffect = 'copy'; }}
       onDragLeave={() => setIsDragOver(false)}
       draggable
-      onDragStart={handleDragStart}
+      onDragStart={handleDragStart as any}
       onDragEnd={() => setIsDragging(false)}
     >
       {/* 1. Rank Number */}
@@ -133,16 +179,77 @@ const ListRow = React.memo(function ListRow({
 
       {/* 2. Image Thumb uses Cell.tsx for full features */}
       <div
+        ref={listRef}
         className={`relative shrink-0 ${aspectMap[aspectRatio] || 'aspect-[3/4] w-16 sm:w-20'}`}
       >
           {data.imageSrc ? (
-            <div className="w-full h-full relative cursor-pointer group/image rounded-lg overflow-hidden border border-white/5 shadow-sm transition-transform hover:scale-[1.02]">
-                <img src={getProxiedImageUrl(data.imageSrc)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/image:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-[1px]">
-                    <button onClick={(e) => { e.stopPropagation(); onClear(index); }} className="text-white/70 hover:text-red-400 p-1 hover:bg-white/10 rounded-full transition-colors"><X size={14}/></button>
-                    <button onClick={(e) => { e.stopPropagation(); onInteract(index); }} className="text-white/70 hover:text-primary p-1 hover:bg-white/10 rounded-full transition-colors"><Move size={14}/></button>
-                    <button onClick={(e) => { e.stopPropagation(); onMoveToInbox(index); }} className="text-white/70 hover:text-primary p-1 hover:bg-white/10 rounded-full transition-colors"><ArrowDownToLine size={14}/></button>
-                </div>
+            <div
+               className={`w-full h-full relative cursor-pointer group/image rounded-lg overflow-hidden border border-white/5 shadow-sm transition-transform ${isSelected && !isAdjusting ? 'scale-[1.02] ring-2 ring-primary' : 'hover:scale-[1.02]'}`}
+               onClick={() => {
+                   if (!isAdjusting) onInteract(index);
+               }}
+            >
+                <img
+                    src={getProxiedImageUrl(data.imageSrc)}
+                    alt=""
+                    className="w-full h-full object-cover pointer-events-none transition-all duration-200"
+                    style={{
+                        objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || 'center'),
+                        transform: `scale(${isAdjusting ? zoom : (data.zoom || 1)})`,
+                        transformOrigin: 'center'
+                    }}
+                    referrerPolicy="no-referrer"
+                />
+
+                {/* Adjust Controls */}
+                {isAdjusting && (
+                  <div
+                    className="export-hidden adjust-controls absolute inset-0 bg-black/20 hover:bg-black/10 backdrop-blur-[1px] flex flex-col items-center justify-between p-1 z-30 cursor-move transition-colors"
+                    onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
+                    onWheel={handleWheel}
+                  >
+                    <div className="bg-black/60 text-white text-[8px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md border border-white/10 pointer-events-none mt-1 shadow-lg text-center leading-tight">
+                       Pan/Zoom
+                    </div>
+                    <div className="flex gap-1 mb-1">
+                      <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }} className="p-1.5 bg-black/60 backdrop-blur-md hover:bg-white/20 text-white rounded-full transition-colors border border-white/10 shadow-lg">
+                        <X size={12} />
+                      </button>
+                      <button onClick={saveAdjustments} className="p-1.5 bg-primary hover:bg-primary/80 text-white rounded-full transition-colors shadow-lg">
+                        <Check size={12} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Popover Menu (Filled State) */}
+                <AnimatePresence>
+                  {isSelected && !isAdjusting && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      className="popover-menu absolute top-0 w-max min-w-[140px] left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 mt-[-10px]"
+                    >
+                       <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+                          Replace <Upload size={16} className="text-white/50" />
+                       </button>
+                       <div className="h-px bg-white/10 mx-2 my-0.5" />
+                       <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+                          Crop & Adjust <Move size={16} className="text-white/50" />
+                       </button>
+                       <div className="h-px bg-white/10 mx-2 my-0.5" />
+                       <button onClick={(e) => { e.stopPropagation(); onMoveToInbox(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+                          To Inbox <ArrowDownToLine size={16} className="text-white/50" />
+                       </button>
+                       <div className="h-px bg-white/10 mx-2 my-0.5" />
+                       <button onClick={(e) => { e.stopPropagation(); onClear(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors gap-2">
+                          Remove <X size={16} className="text-red-500/50" />
+                       </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
             </div>
           ) : (
             <div
@@ -238,7 +345,7 @@ const ListRow = React.memo(function ListRow({
              </select>
          </div>
       </div>
-    </div>
+    </motion.div>
   );
 });
 
@@ -260,27 +367,29 @@ export const ListView: React.FC<ListViewProps> = ({
       className={`flex flex-col w-full min-w-0 ${rank.style === 'card' ? 'gap-3' : 'divide-y divide-white/5'}`}
       style={rank.style === 'card' ? { gap: rank.gap ?? 8 } : {}}
     >
-      {rank.cells.map((cell, index) => (
-        <ListRow
-          key={cell.id}
-          index={index}
-          data={cell}
-          rankStyle={rank.style ?? 'card'}
-          borderless={rank.borderless ?? false}
-          aspectRatio={rank.aspectRatio ?? '3:4'}
-          showNumbers={rank.showNumbers ?? true}
-          isSelected={interactionState?.type === 'cell' && interactionState.index === index}
-          onInteract={onInteract}
-          onUpload={onUpload}
-          onClear={onClear}
-          onSwap={onSwap}
-          onInboxDrop={onInboxDrop}
-          onInboxDropMulti={onInboxDropMulti}
-          onSearchDrop={onSearchDrop}
-          onMoveToInbox={onMoveToInbox}
-          onUpdateCell={onUpdateCell}
-        />
-      ))}
+      <AnimatePresence>
+        {rank.cells.map((cell, index) => (
+          <ListRow
+            key={cell.id}
+            index={index}
+            data={cell}
+            rankStyle={rank.style ?? 'card'}
+            borderless={rank.borderless ?? false}
+            aspectRatio={rank.aspectRatio ?? '3:4'}
+            showNumbers={rank.showNumbers ?? true}
+            isSelected={interactionState?.type === 'cell' && interactionState.index === index}
+            onInteract={onInteract}
+            onUpload={onUpload}
+            onClear={onClear}
+            onSwap={onSwap}
+            onInboxDrop={onInboxDrop}
+            onInboxDropMulti={onInboxDropMulti}
+            onSearchDrop={onSearchDrop}
+            onMoveToInbox={onMoveToInbox}
+            onUpdateCell={onUpdateCell}
+          />
+        ))}
+      </AnimatePresence>
     </div>
   );
 };

@@ -24,12 +24,12 @@ import type { DockSurface, InboxTab } from "@/components/Inbox/types";
 const OPEN_SEARCH_EVENT = "open-inbox-search";
 
 export function useInboxController(
-  requestConfirm: (title: string, message: string, action: () => void) => void,
+  requestConfirm: (title: string, message: string, action: () => void) => void
 ) {
   const addToast = useToast();
   const onInteract = useInboxItemInteraction();
   const autoCloseDockDesktop = useStore(
-    (s) => s.preferences.autoCloseDockOnDragDesktop,
+    (s) => s.preferences.autoCloseDockOnDragDesktop
   );
   const { inboxImageSet: usedImageSrcs, boardImageSet: usedOnBoard } =
     useImagePresenceSets();
@@ -47,9 +47,12 @@ export function useInboxController(
     handleMoveToInbox,
     handleTierItemRemove,
     handleAddToCollection,
+    recallItemByImageSrc,
     handleUpdateLastTarget,
     handleRestoreItem,
     handleInboxUpload,
+    setIsDraggingFromDock,
+    isDraggingFromDock,
   } = useStore(
     useShallow((s) => ({
       collections: s.inbox.collections,
@@ -64,10 +67,13 @@ export function useInboxController(
       handleMoveToInbox: s.handleMoveToInbox,
       handleTierItemRemove: s.handleTierItemRemove,
       handleAddToCollection: s.handleAddToCollection,
+      recallItemByImageSrc: s.recallItemByImageSrc,
       handleUpdateLastTarget: s.handleUpdateLastTarget,
+      setIsDraggingFromDock: s.setIsDraggingFromDock,
+      isDraggingFromDock: s.inbox.isDraggingFromDock,
       handleRestoreItem: s.handleRestoreItem,
       handleInboxUpload: s.handleInboxUpload,
-    })),
+    }))
   );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,7 +83,7 @@ export function useInboxController(
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<"anime" | "characters">(
-    "characters",
+    "characters"
   );
   const [searchResults, setSearchResults] = useState<JikanResult[]>([]);
 
@@ -85,15 +91,15 @@ export function useInboxController(
   const [tempName, setTempName] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(
-    new Set(),
+    new Set()
   );
   const [pendingPickerImage, setPendingPickerImage] = useState<string | null>(
-    null,
+    null
   );
 
   const allItems = useMemo(
     () => collections.flatMap((c) => c.items),
-    [collections],
+    [collections]
   );
 
   const activeCollection = collections.find((c) => c.id === activeCollectionId);
@@ -126,10 +132,12 @@ export function useInboxController(
       writeInboxMultiDragData(
         e,
         idsToDrag,
-        isAllView ? "all" : activeCollectionId,
+        isAllView ? "all" : activeCollectionId
       );
+      // Flag that drag originated from dock so it can auto-reopen after drop
+      setIsDraggingFromDock(true);
     },
-    [selectedItemIds, isAllView, activeCollectionId],
+    [selectedItemIds, isAllView, activeCollectionId]
   );
 
   const handleItemClick = useCallback(
@@ -146,7 +154,7 @@ export function useInboxController(
         onInteract(itemId, isAllView ? "all-images" : activeCollectionId);
       }
     },
-    [onInteract, isAllView, activeCollectionId],
+    [onInteract, isAllView, activeCollectionId]
   );
 
   const handleBulkDelete = useCallback(() => {
@@ -166,8 +174,10 @@ export function useInboxController(
   const handleSearchDragStart = useCallback(
     (e: React.DragEvent, imageSrc: string) => {
       writeSearchDragData(e, imageSrc);
+      // Flag that drag originated from dock so it can auto-reopen after drop
+      setIsDraggingFromDock(true);
     },
-    [],
+    []
   );
 
   const handleSmartAdd = useCallback(
@@ -189,12 +199,15 @@ export function useInboxController(
         setActiveTab("picker");
       }
     },
-    [
-      lastTargetCollectionId,
-      collections,
-      handleAddToCollection,
-      addToast,
-    ],
+    [lastTargetCollectionId, collections, handleAddToCollection, addToast]
+  );
+
+  const handleRecall = useCallback(
+    (imageSrc: string) => {
+      recallItemByImageSrc(imageSrc);
+      addToast("info", "Image recalled from board");
+    },
+    [recallItemByImageSrc, addToast]
   );
 
   const handleDeleteItem = useCallback(
@@ -203,7 +216,7 @@ export function useInboxController(
       let originCollectionId = activeCollectionId;
       if (isAllView) {
         const foundCol = collections.find((c) =>
-          c.items.some((i) => i.id === item.id),
+          c.items.some((i) => i.id === item.id)
         );
         if (foundCol) originCollectionId = foundCol.id;
       }
@@ -218,7 +231,7 @@ export function useInboxController(
       collections,
       addToast,
       handleRestoreItem,
-    ],
+    ]
   );
 
   const handleDrop = useCallback(
@@ -261,14 +274,24 @@ export function useInboxController(
         }
       }
     },
-    [activeTab, isAllView, isExpanded, handleInboxUpload, handleMoveToInbox, handleTierItemRemove],
+    [
+      activeTab,
+      isAllView,
+      isExpanded,
+      handleInboxUpload,
+      handleMoveToInbox,
+      handleTierItemRemove,
+    ]
   );
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-    if (!isExpanded) setIsExpanded(true);
-  }, [isExpanded]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(true);
+      if (!isExpanded) setIsExpanded(true);
+    },
+    [isExpanded]
+  );
 
   const toggleExpand = useCallback(() => setIsExpanded((v) => !v), []);
 
@@ -292,16 +315,16 @@ export function useInboxController(
       handleUpdateLastTarget,
       collections,
       addToast,
-    ],
+    ]
   );
 
   const requestDeleteCollection = useCallback(
     (col: { id: string; name: string }) => {
       requestConfirm(`Delete "${col.name}"?`, "All items lost.", () =>
-        deleteCollection(col.id),
+        deleteCollection(col.id)
       );
     },
-    [requestConfirm, deleteCollection],
+    [requestConfirm, deleteCollection]
   );
 
   const onFileInputChange = useCallback(
@@ -320,7 +343,7 @@ export function useInboxController(
         }
       })();
     },
-    [handleInboxUpload],
+    [handleInboxUpload]
   );
 
   return {
@@ -362,6 +385,7 @@ export function useInboxController(
     handleSearchDragStart,
     handleSmartAdd,
     handleDeleteItem,
+    handleRecall,
     handleDrop,
     handleDragOver,
     toggleExpand,
@@ -369,5 +393,7 @@ export function useInboxController(
     requestDeleteCollection,
     onFileInputChange,
     expandDockAfterDrag,
+    setIsDraggingFromDock,
+    isDraggingFromDock,
   };
 }

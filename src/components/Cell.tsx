@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Upload, Download, Crop, Check, Globe, Search, Trash2 } from 'lucide-react';
 import { CellData, GridStyle } from '@/types';
@@ -42,10 +42,12 @@ export const Cell = React.memo(function Cell({
   onInteract,
   onUpdateCell
 }: CellProps) {
+  const cellRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isAdjusting, setIsAdjusting] = useState(false);
+  const [isAdjustDragging, setIsAdjustDragging] = useState(false);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
 
   const [zoom, setZoom] = useState(data.zoom || 1);
@@ -56,6 +58,33 @@ export const Cell = React.memo(function Cell({
     if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.adjust-controls') || (e.target as HTMLElement).closest('.popover-menu')) return;
 
     onInteract(index);
+  };
+
+  useEffect(() => {
+    const handleMouseUp = () => setIsAdjustDragging(false);
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isAdjustDragging || !cellRef.current) return;
+      const rect = cellRef.current.getBoundingClientRect();
+      const percentX = (e.movementX / rect.width) * 100 / zoom;
+      const percentY = (e.movementY / rect.height) * 100 / zoom;
+      setPosX(prev => Math.min(Math.max(0, prev - percentX), 100));
+      setPosY(prev => Math.min(Math.max(0, prev - percentY), 100));
+    };
+    if (isAdjustDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isAdjustDragging, zoom]);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!isAdjusting) return;
+    e.stopPropagation();
+    const newZoom = Math.min(Math.max(1, zoom - (e.deltaY * 0.005)), 4);
+    setZoom(newZoom);
   };
 
   const _handleAlignmentCycle = (e: React.MouseEvent) => {
@@ -140,9 +169,9 @@ export const Cell = React.memo(function Cell({
 
   const align = data.alignment || 'center';
   const objectPosStyle: React.CSSProperties = {
-      objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || (align === 'top' ? 'top' : align === 'bottom' ? 'bottom' : 'center')),
-      transform: `scale(${isAdjusting ? zoom : (data.zoom || 1)})`,
-      transformOrigin: 'center'
+    objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || (align === 'top' ? 'top' : align === 'bottom' ? 'bottom' : 'center')),
+    transform: `scale(${isAdjusting ? zoom : (data.zoom || 1)})`,
+    transformOrigin: 'center'
   };
 
   const aspectMap: Record<string, string> = {
@@ -155,6 +184,7 @@ export const Cell = React.memo(function Cell({
 
   return (
     <div
+      ref={cellRef}
       className={`
         relative group/cell transition-all duration-200 ${aspectMap[aspectRatio] || 'aspect-[3/4]'}
         ${roundedClass}
@@ -191,78 +221,23 @@ export const Cell = React.memo(function Cell({
               referrerPolicy="no-referrer"
             />
 
-            {/* Overlay Controls (Desktop Hover) */}
-            {!isAdjusting && (
-              <div className={`export-hidden absolute inset-0 bg-black/40 opacity-0 group-hover/cell:opacity-100 transition-all duration-200 hidden md:flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]`}>
-
-                 <div className="flex items-center gap-1 p-1 bg-black/60 backdrop-blur-md rounded-full border border-white/10 shadow-xl transform translate-y-2 group-hover/cell:translate-y-0 transition-transform duration-200">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                      className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                      title="Replace Image"
-                    >
-                      <Upload size={14} />
-                    </button>
-                    <div className="w-px h-4 bg-white/10"></div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }}
-                      className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                      title="Crop & Adjust"
-                    >
-                      <Crop size={14} />
-                    </button>
-                    <div className="w-px h-4 bg-white/10"></div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onDownloadSingle(index); }}
-                      className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                      title="Download Image"
-                    >
-                      <Download size={14} />
-                    </button>
-                    <div className="w-px h-4 bg-white/10"></div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onClear(index); }}
-                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-colors"
-                      title="Remove"
-                    >
-                      <X size={14} />
-                    </button>
-                 </div>
-              </div>
-            )}
-
             {/* Adjust Controls */}
             {isAdjusting && (
-              <div className="export-hidden adjust-controls absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-4 gap-4 z-40">
-                <div className="w-full max-w-[150px] flex flex-col gap-3 bg-black/40 p-3 rounded-xl border border-white/10">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-white/70 font-bold uppercase tracking-wider flex justify-between">
-                      <span>Zoom</span>
-                      <span>{zoom.toFixed(1)}x</span>
-                    </label>
-                    <input type="range" min="1" max="3" step="0.1" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-full accent-primary" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-white/70 font-bold uppercase tracking-wider flex justify-between">
-                      <span>Pan X</span>
-                      <span>{posX}%</span>
-                    </label>
-                    <input type="range" min="0" max="100" value={posX} onChange={(e) => setPosX(parseInt(e.target.value))} className="w-full accent-primary" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-white/70 font-bold uppercase tracking-wider flex justify-between">
-                      <span>Pan Y</span>
-                      <span>{posY}%</span>
-                    </label>
-                    <input type="range" min="0" max="100" value={posY} onChange={(e) => setPosY(parseInt(e.target.value))} className="w-full accent-primary" />
-                  </div>
+              <div
+                className="export-hidden adjust-controls absolute inset-0 bg-black/20 hover:bg-black/10 backdrop-blur-[1px] flex flex-col items-center justify-between p-2 z-40 cursor-move transition-colors"
+                onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
+                onWheel={handleWheel}
+              >
+                <div className="bg-black/60 text-white text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full backdrop-blur-md border border-white/10 pointer-events-none mt-2 shadow-lg">
+                  Drag to Pan • Scroll to Zoom
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors">
-                    <X size={16} />
+
+                <div className="flex gap-2 mb-2">
+                  <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }} className="p-3 bg-black/60 backdrop-blur-md hover:bg-white/20 text-white rounded-full transition-colors border border-white/10 shadow-lg">
+                    <X size={18} />
                   </button>
-                  <button onClick={saveAdjustments} className="p-2 bg-primary hover:bg-primary/80 text-white rounded-full transition-colors">
-                    <Check size={16} />
+                  <button onClick={saveAdjustments} className="p-3 bg-primary hover:bg-primary/80 text-white rounded-full transition-colors shadow-lg">
+                    <Check size={18} />
                   </button>
                 </div>
               </div>
@@ -292,29 +267,29 @@ export const Cell = React.memo(function Cell({
             transition={{ duration: 0.15, ease: "easeOut" }}
             className="popover-menu absolute top-0 w-max min-w-[140px] left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 mt-[-10px]"
           >
-             <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                Local File <Upload size={16} className="text-white/50" />
-             </button>
-             <div className="h-px bg-white/10 mx-2 my-0.5" />
-             <button onClick={(e) => {
-                e.stopPropagation();
-                setIsUrlModalOpen(true);
-             }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                From URL <Globe size={16} className="text-white/50" />
-             </button>
-             <div className="h-px bg-white/10 mx-2 my-0.5" />
-             <button onClick={(e) => {
-                e.stopPropagation();
-                window.dispatchEvent(new CustomEvent('open-inbox-search'));
-                onInteract(-1);
-             }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                Search Online <Search size={16} className="text-white/50" />
-             </button>
+            <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+              Local File <Upload size={16} className="text-white/50" />
+            </button>
+            <div className="h-px bg-white/10 mx-2 my-0.5" />
+            <button onClick={(e) => {
+              e.stopPropagation();
+              setIsUrlModalOpen(true);
+            }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+              From URL <Globe size={16} className="text-white/50" />
+            </button>
+            <div className="h-px bg-white/10 mx-2 my-0.5" />
+            <button onClick={(e) => {
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent('open-inbox-search'));
+              onInteract(-1);
+            }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+              Search Online <Search size={16} className="text-white/50" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Popover Menu (Filled State - Mobile Only) */}
+      {/* Popover Menu (Filled State) */}
       <AnimatePresence>
         {isSelected && data.imageSrc && !isAdjusting && (
           <motion.div
@@ -322,23 +297,23 @@ export const Cell = React.memo(function Cell({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="popover-menu md:hidden absolute top-0 w-max min-w-[140px] left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 mt-[-10px]"
+            className="popover-menu absolute top-0 w-max min-w-[140px] left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 mt-[-10px]"
           >
-             <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                Replace <Upload size={16} className="text-white/50" />
-             </button>
-             <div className="h-px bg-white/10 mx-2 my-0.5" />
-             <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                Crop & Adjust <Crop size={16} className="text-white/50" />
-             </button>
-             <div className="h-px bg-white/10 mx-2 my-0.5" />
-             <button onClick={(e) => { e.stopPropagation(); onDownloadSingle(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                Download <Download size={16} className="text-white/50" />
-             </button>
-             <div className="h-px bg-white/10 mx-2 my-0.5" />
-             <button onClick={(e) => { e.stopPropagation(); onClear(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors gap-2">
-                Remove <Trash2 size={16} className="text-red-500/50" />
-             </button>
+            <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+              Replace <Upload size={16} className="text-white/50" />
+            </button>
+            <div className="h-px bg-white/10 mx-2 my-0.5" />
+            <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+              Crop & Adjust <Crop size={16} className="text-white/50" />
+            </button>
+            <div className="h-px bg-white/10 mx-2 my-0.5" />
+            <button onClick={(e) => { e.stopPropagation(); onDownloadSingle(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+              Download <Download size={16} className="text-white/50" />
+            </button>
+            <div className="h-px bg-white/10 mx-2 my-0.5" />
+            <button onClick={(e) => { e.stopPropagation(); onClear(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors gap-2">
+              Remove <Trash2 size={16} className="text-red-500/50" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

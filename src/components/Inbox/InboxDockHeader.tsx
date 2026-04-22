@@ -18,7 +18,7 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
       className="h-12 flex items-center justify-between px-5 sm:px-6 select-none shrink-0 border-b border-white/10 cursor-pointer"
       onClick={onToggleExpand}
     >
-      <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 text-[13px] font-medium tracking-wide text-white/50 uppercase">
           <Box size={15} />
           <span>Library</span>
@@ -27,7 +27,7 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
         <div className="flex items-center bg-[#767680]/24 rounded-xl p-1">
           <button
             type="button"
-            onClick={() => onSelectTab("stash")}
+            onClick={(e) => { e.stopPropagation(); onSelectTab("stash"); }}
             className={`
               flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all
               ${activeTab === "stash" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}
@@ -37,7 +37,7 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => onSelectTab("search")}
+            onClick={(e) => { e.stopPropagation(); onSelectTab("search"); }}
             className={`
               flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all
               ${activeTab === "search" || activeTab === "picker" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}
