@@ -1,5 +1,4 @@
 import React from "react";
-import { GridConfig, GridStyle, RankMode, ProjectType } from "@/types";
 import {
   Maximize2,
   Grid,
@@ -17,60 +16,66 @@ import {
   X,
   Palette,
 } from "lucide-react";
+import { ColorPicker } from '@/components/ui/ColorPicker';
+import { useStore } from "@/store/useStore";
+import { Slider } from "@/components/ui/Slider";
+import { exportStateToJson, migrateState } from "@/utils/storage";
+import { useShallow } from "zustand/react/shallow";
 
-interface GridSettingsSidebarProps {
+export interface GridSettingsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onToggle: () => void;
-  config: GridConfig;
-  style: GridStyle;
-  mode: RankMode;
-  projectType: ProjectType;
-  showNumbers: boolean;
-  showTitle: boolean;
-  showDate: boolean;
-  showTiers: boolean;
-  borderless: boolean; // New prop
-  gap: number;
-  cellWidth?: number;
-  rankBackgroundColor: string;
-  aspectRatio: string;
-  onConfigChange: (config: GridConfig) => void;
-  onStyleChange: (style: GridStyle) => void;
-  onModeChange: (mode: RankMode) => void;
-  onVisualToggle: (
-    key: "showNumbers" | "showTitle" | "showDate" | "showTiers",
-  ) => void;
-  onBorderlessChange: (borderless: boolean) => void; // New handler
-  onGapChange: (gap: number) => void;
-  onCellWidthChange: (width?: number) => void;
-  onBackgroundColorChange: (color: string) => void;
-  onAspectRatioChange: (aspectRatio: string) => void;
-  onExportJson: () => void;
-  onImportJson: (file: File) => void;
-  onClearAll: () => void;
+  /** Destructive actions (clear grid) use the app-level confirm modal */
+  requestConfirm: (title: string, message: string, action: () => void) => void;
 }
 
-const SettingButtonGroup: React.FC<{ children: React.ReactNode }> = ({
+/**
+ * iOS-style grouped list card — automatically inserts inset dividers between children.
+ * Each child is typically a <button> or <label> row.
+ */
+const SettingButtonGroup: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
+  className = "",
 }) => {
   const childrenArray = React.Children.toArray(children).filter(Boolean);
   return (
-    <div className="flex flex-col bg-[#2c2c2e] rounded-[20px] mx-4 overflow-hidden relative">
+    <div className={`flex flex-col bg-[#2c2c2e] rounded-2xl mx-4 overflow-hidden ${className}`}>
       {childrenArray.map((child, idx) => (
         <React.Fragment key={idx}>
           {child}
           {idx < childrenArray.length - 1 && (
-            <div
-              className="h-px bg-[#3a3a3c] absolute w-[calc(100%-2.875rem)] right-0"
-              style={{ top: `${(idx + 1) * 45}px` }}
-            ></div>
+            <div className="h-px bg-[#3a3a3c] ml-[3.25rem]" />
           )}
         </React.Fragment>
       ))}
     </div>
   );
 };
+
+/** A single row inside a SettingButtonGroup — icon + label + optional right element */
+const SettingRow: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  iconBg?: string;
+  onClick?: () => void;
+  right?: React.ReactNode;
+  destructive?: boolean;
+  className?: string;
+}> = ({ icon, label, iconBg = "bg-primary/20 text-primary", onClick, right, destructive, className = "" }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`flex items-center gap-3 px-4 py-3 w-full text-left hover:bg-white/5 transition-colors ${destructive ? "text-[#ff453a]" : "text-white"
+      } ${className}`}
+  >
+    <div className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${iconBg}`}>
+      {icon}
+    </div>
+    <span className="flex-1 text-[15px]">{label}</span>
+    {right}
+  </button>
+);
 const GRID_BG_COLORS = [
   "transparent",
   "#ffffff",
@@ -84,43 +89,56 @@ const GRID_BG_COLORS = [
 export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   isOpen,
   onClose,
-  _onToggle,
-  config,
-  style,
-  mode,
-  projectType,
-  showNumbers,
-  showTitle,
-  showDate,
-  _showTiers,
-  borderless,
-  gap,
-  cellWidth,
-  rankBackgroundColor,
-  aspectRatio,
-  onConfigChange,
-  onStyleChange,
-  onModeChange,
-  onVisualToggle,
-  onBorderlessChange,
-  onGapChange,
-  onCellWidthChange,
-  onBackgroundColorChange,
-  onAspectRatioChange,
-  onExportJson,
-  onImportJson,
-  onClearAll,
+  requestConfirm,
 }) => {
   const jsonInputRef = React.useRef<HTMLInputElement>(null);
 
+  const activeRank = useStore(useShallow((s) => s.ranks[s.activeRankId]));
+  const handleConfigChange = useStore((s) => s.handleConfigChange);
+  const handleModeChange = useStore((s) => s.handleModeChange);
+  const handleVisualToggle = useStore((s) => s.handleVisualToggle);
+  const updateActiveRank = useStore((s) => s.updateActiveRank);
+
+  if (!activeRank) return null;
+
+  const { config, style, mode, type: projectType } = activeRank;
+  const showNumbers = activeRank.showNumbers ?? true;
+  const showTitle = activeRank.showTitle ?? true;
+  const showDate = activeRank.showDate ?? true;
+  const borderless = activeRank.borderless ?? false;
+  const gap = activeRank.gap ?? 0;
+  const cellWidth = activeRank.cellWidth;
+  const rankBackgroundColor = activeRank.backgroundColor;
+  const aspectRatio = activeRank.aspectRatio || "3:4";
+
   const handleRowsChange = (val: number) => {
     const r = Math.max(1, Math.min(50, val));
-    onConfigChange({ ...config, rows: r });
+    handleConfigChange({ ...config, rows: r });
   };
 
   const handleColsChange = (val: number) => {
     const c = Math.max(1, Math.min(20, val));
-    onConfigChange({ ...config, cols: c });
+    handleConfigChange({ ...config, cols: c });
+  };
+
+  const handleExportJson = () => exportStateToJson(useStore.getState());
+
+  const handleImportJson = async (file: File) => {
+    const text = await file.text();
+    try {
+      const json = JSON.parse(text);
+      const migrated = migrateState(json);
+      if (migrated) useStore.getState().importState(migrated);
+    } catch (e) {
+      console.error("Failed to import JSON", e);
+      alert("Invalid JSON file");
+    }
+  };
+
+  const handleClearAll = () => {
+    requestConfirm("Clear All?", "All content will be removed.", () => {
+      useStore.getState().handleClearAll();
+    });
   };
 
   return (
@@ -132,26 +150,32 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
       <aside
         className={`
-           border-r border-white/10 bg-[#1c1c1e]/90 backdrop-blur-3xl shadow-2xl flex shrink-0 z-40
-           fixed top-14 bottom-0 left-0 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
-           ${isOpen ? "translate-x-0 w-80" : "-translate-x-full w-80"}
-           md:static
-           ${isOpen ? "md:translate-x-0 md:w-80 md:mr-0 md:opacity-100" : "md:-translate-x-full md:w-0 md:mr-0 md:opacity-0 md:border-none"}
-           overflow-hidden
+           border-r border-border bg-surface/90 backdrop-blur-3xl shadow-2xl flex shrink-0 z-40
+           fixed top-14 bottom-0 left-0 md:static overflow-hidden
          `}
+        style={{
+          width: isOpen ? "20rem" : "0",
+          transform: isOpen ? "translateX(0)" : "translateX(-100%)",
+          transition: [
+            "width 300ms cubic-bezier(0.32,0.72,0,1)",
+            "transform 300ms cubic-bezier(0.32,0.72,0,1)",
+            "opacity 200ms ease",
+          ].join(", "),
+          opacity: isOpen ? 1 : 0,
+        }}
       >
         <div className="relative w-80 h-full">
           {/* Expanded Content */}
           <div
             className={`
                     absolute inset-y-0 left-0 w-80 flex flex-col overflow-y-auto custom-scrollbar overflow-x-hidden
-                    transition-opacity duration-300
+                    transition-opacity duration-200
                     ${isOpen ? "opacity-100 delay-150" : "opacity-0 pointer-events-none"}
                 `}
           >
             <div className="flex flex-col gap-8 py-6 w-80">
               {/* Header Section: Project Type */}
-              <div className="flex items-center justify-between gap-4 p-4 bg-[#2c2c2e] rounded-[20px] mx-4">
+              <div className="flex items-center justify-between gap-4 p-4 bg-[#2c2c2e] rounded-2xl mx-4">
                 <div className="flex items-center gap-4">
                   <div
                     className={`p-3 rounded-xl ${projectType === "tierlist" ? "bg-purple-500/20 text-purple-500" : "bg-primary/20 text-primary"}`}
@@ -190,13 +214,13 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                   </span>
                   <div className="flex bg-[#767680]/24 p-1 rounded-xl mx-4">
                     <button
-                      onClick={() => onModeChange("grid")}
+                      onClick={() => handleModeChange("grid")}
                       className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg transition-colors text-[13px] font-medium ${mode === "grid" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
                     >
                       <LayoutGrid size={14} /> Grid
                     </button>
                     <button
-                      onClick={() => onModeChange("list")}
+                      onClick={() => handleModeChange("list")}
                       className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg transition-colors text-[13px] font-medium ${mode === "list" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
                     >
                       <List size={14} /> List
@@ -215,7 +239,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                       Dimensions
                     </span>
                     {mode === "grid" ? (
-                      <div className="flex flex-col gap-3 px-4 py-3 bg-[#2c2c2e] rounded-[20px] mx-4">
+                      <div className="flex flex-col gap-3 px-4 py-3 bg-[#2c2c2e] rounded-2xl mx-4">
                         <div className="flex items-center gap-3">
                           <div className="flex-1 flex flex-col gap-1">
                             <span className="text-[11px] text-white/50 font-medium uppercase">
@@ -251,27 +275,29 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                         </div>
                         <div className="h-px bg-white/10 w-full"></div>
                         <div className="flex flex-col gap-1 pt-1">
-                           <div className="flex justify-between items-center text-[11px] text-white/50 font-medium uppercase">
-                               <span>Cell Width</span>
-                               <span>{cellWidth || 'Auto'}</span>
-                           </div>
-                           <input
-                               type="range"
-                               min="60"
-                               max="300"
-                               step="5"
-                               value={cellWidth || 0}
-                               onChange={(e) => onCellWidthChange(parseInt(e.target.value) || undefined)}
-                               className="accent-primary w-full"
-                           />
-                           <div className="flex justify-between text-[10px] text-white/30">
-                              <span>Auto</span>
-                              <span>Wide</span>
-                           </div>
+                          <div className="flex justify-between items-center text-[11px] text-white/50 font-medium uppercase">
+                            <span>Cell Width</span>
+                            <span>{cellWidth || 'Auto'}</span>
+                          </div>
+                          <Slider
+                            min={60}
+                            max={300}
+                            step={5}
+                            value={cellWidth || 60}
+                            onChange={(v) =>
+                              updateActiveRank({
+                                cellWidth: v || undefined,
+                              })
+                            }
+                          />
+                          <div className="flex justify-between text-[10px] text-white/30">
+                            <span>Auto</span>
+                            <span>Wide</span>
+                          </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-1 px-4 py-3 bg-[#2c2c2e] rounded-[20px] mx-4">
+                      <div className="flex flex-col gap-1 px-4 py-3 bg-[#2c2c2e] rounded-2xl mx-4">
                         <span className="text-[11px] text-white/50 font-medium uppercase">
                           Items
                         </span>
@@ -310,7 +336,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                             (ratio) => (
                               <button
                                 key={ratio}
-                                onClick={() => onAspectRatioChange(ratio)}
+                                onClick={() => updateActiveRank({ aspectRatio: ratio })}
                                 className={`py-1.5 text-[11px] font-medium rounded-md transition-colors ${aspectRatio === ratio || (!aspectRatio && ratio === "3:4") ? "bg-[#3a3a3c] text-white shadow-sm" : "text-white/50 hover:text-white"}`}
                               >
                                 {ratio}
@@ -319,81 +345,80 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                           )}
                         </div>
                       </div>
-                      <div className="h-px bg-white/5 mx-2"></div>
-
-                      <div className="flex flex-col gap-2">
-                        <div className="flex justify-between text-[13px] font-medium text-white/70 mb-1">
-                          <span>Spacing</span>
-                          <span className="text-white">{gap}px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="32"
-                          step="2"
-                          value={gap}
-                          onChange={(e) =>
-                            onGapChange(parseInt(e.target.value))
-                          }
-                          className="w-full h-1.5 bg-black/40 rounded-lg appearance-none cursor-pointer focus:outline-none"
-                          style={{
-                            background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(gap / 32) * 100}%, rgba(0,0,0,0.4) ${(gap / 32) * 100}%, rgba(0,0,0,0.4) 100%)`,
-                          }}
-                        />
-                      </div>
-
-                      <div className="h-px bg-white/10 -mx-4"></div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-[13px] text-white/70 font-medium">
-                          Grid Style
-                        </span>
-                        <div className="flex bg-[#767680]/24 p-1 rounded-xl">
-                          <button
-                            onClick={() => onStyleChange("seamless")}
-                            title="Seamless"
-                            className={`p-1.5 rounded-lg transition-colors ${style === "seamless" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
-                          >
-                            <Maximize2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => onStyleChange("card")}
-                            title="Cards"
-                            className={`p-1.5 rounded-lg transition-colors ${style === "card" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
-                          >
-                            <Grid size={16} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {style === "seamless" && (
+                      {projectType === "ranking" && (
                         <>
+                          <div className="h-px bg-white/5 mx-2"></div>
+
+                          <div className="flex flex-col gap-2">
+                            <div className="flex justify-between text-[13px] font-medium text-white/70 mb-1">
+                              <span>Spacing</span>
+                              <span className="text-white">{gap}px</span>
+                            </div>
+                            <Slider
+                              min={0}
+                              max={32}
+                              step={2}
+                              value={gap}
+                              onChange={(v) =>
+                                updateActiveRank({ gap: v })
+                              }
+                            />
+                          </div>
+
                           <div className="h-px bg-white/10 -mx-4"></div>
+
                           <div className="flex items-center justify-between">
                             <span className="text-[13px] text-white/70 font-medium">
-                              Borders
+                              Grid Style
                             </span>
                             <div className="flex bg-[#767680]/24 p-1 rounded-xl">
                               <button
-                                onClick={() => onBorderlessChange(false)}
-                                title="Show Borders"
-                                className={`p-1.5 rounded-lg transition-colors ${!borderless ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
+                                onClick={() => updateActiveRank({ style: "seamless" })}
+                                title="Seamless"
+                                className={`p-1.5 rounded-lg transition-colors ${style === "seamless" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
                               >
-                                <SquareDashedKanban size={16} />
+                                <Maximize2 size={16} />
                               </button>
                               <button
-                                onClick={() => onBorderlessChange(true)}
-                                title="Borderless"
-                                className={`p-1.5 rounded-lg transition-colors ${borderless ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
+                                onClick={() => updateActiveRank({ style: "card" })}
+                                title="Cards"
+                                className={`p-1.5 rounded-lg transition-colors ${style === "card" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
                               >
-                                <Square size={16} />
+                                <Grid size={16} />
                               </button>
                             </div>
                           </div>
+
+                          {style === "seamless" && (
+                            <>
+                              <div className="h-px bg-white/10 -mx-4"></div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[13px] text-white/70 font-medium">
+                                  Borders
+                                </span>
+                                <div className="flex bg-[#767680]/24 p-1 rounded-xl">
+                                  <button
+                                    onClick={() => updateActiveRank({ borderless: false })}
+                                    title="Show Borders"
+                                    className={`p-1.5 rounded-lg transition-colors ${!borderless ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
+                                  >
+                                    <SquareDashedKanban size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => updateActiveRank({ borderless: true })}
+                                    title="Borderless"
+                                    className={`p-1.5 rounded-lg transition-colors ${borderless ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
+                                  >
+                                    <Square size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          <div className="h-px bg-white/10 -mx-4"></div>
                         </>
                       )}
-
-                      <div className="h-px bg-white/10 -mx-4"></div>
 
                       <div className="flex flex-col gap-2">
                         <span className="text-[11px] font-medium text-white/50 uppercase tracking-wide">
@@ -403,7 +428,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                           {GRID_BG_COLORS.map((color) => (
                             <button
                               key={color}
-                              onClick={() => onBackgroundColorChange(color)}
+                              onClick={() => updateActiveRank({ backgroundColor: color })}
                               className={`w-6 h-6 rounded-full border-2 transition-all ${rankBackgroundColor === color ? "border-primary scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]" : "border-white/20 hover:border-white/50"}`}
                               style={{
                                 backgroundColor:
@@ -419,11 +444,10 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                             />
                           ))}
                           <label
-                            className={`relative w-6 h-6 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center ${
-                              !GRID_BG_COLORS.includes(rankBackgroundColor)
+                            className={`relative w-6 h-6 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center ${!GRID_BG_COLORS.includes(rankBackgroundColor)
                                 ? "border-primary scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]"
                                 : "border-white/20 hover:border-white/50"
-                            }`}
+                              }`}
                             style={{
                               backgroundColor: !GRID_BG_COLORS.includes(
                                 rankBackgroundColor,
@@ -437,17 +461,15 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                               size={12}
                               className="text-white mix-blend-difference"
                             />
-                            <input
-                              type="color"
+                            <ColorPicker
                               value={
                                 !GRID_BG_COLORS.includes(rankBackgroundColor)
                                   ? rankBackgroundColor
                                   : "#000000"
                               }
-                              onChange={(e) =>
-                                onBackgroundColorChange(e.target.value)
+                              onChange={(v) =>
+                                updateActiveRank({ backgroundColor: v })
                               }
-                              className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
                             />
                           </label>
                         </div>
@@ -464,22 +486,22 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                   Visibility
                 </span>
                 <div className="grid grid-cols-3 gap-2 px-4">
-                  {projectType === "ranking" && mode === "grid" && (
+                  {projectType === "ranking" && (
                     <button
-                      onClick={() => onVisualToggle("showNumbers")}
+                      onClick={() => handleVisualToggle("showNumbers")}
                       className={`flex flex-col items-center justify-center h-auto py-3 gap-1.5 rounded-xl transition-colors text-[13px] font-medium ${showNumbers ? "bg-primary/20 text-primary" : "bg-[#2c2c2e] text-white/70 hover:bg-[#3a3a3c] hover:text-white"}`}
                     >
                       <Hash size={16} /> Rank
                     </button>
                   )}
                   <button
-                    onClick={() => onVisualToggle("showTitle")}
+                    onClick={() => handleVisualToggle("showTitle")}
                     className={`flex flex-col items-center justify-center h-auto py-3 gap-1.5 rounded-xl transition-colors text-[13px] font-medium ${showTitle ? "bg-primary/20 text-primary" : "bg-[#2c2c2e] text-white/70 hover:bg-[#3a3a3c] hover:text-white"}`}
                   >
                     <Type size={16} /> Title
                   </button>
                   <button
-                    onClick={() => onVisualToggle("showDate")}
+                    onClick={() => handleVisualToggle("showDate")}
                     className={`flex flex-col items-center justify-center h-auto py-3 gap-1.5 rounded-xl transition-colors text-[13px] font-medium ${showDate ? "bg-primary/20 text-primary" : "bg-[#2c2c2e] text-white/70 hover:bg-[#3a3a3c] hover:text-white"}`}
                   >
                     <Calendar size={16} /> Date
@@ -495,25 +517,25 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                 </span>
 
                 <SettingButtonGroup>
-                  <button
-                    onClick={onExportJson}
-                    className="flex items-center gap-3 px-4 py-3 text-[15px] text-white hover:bg-[#3a3a3c] transition-colors text-left"
-                  >
-                    <Save size={18} className="text-primary" /> Backup
-                  </button>
-                  <button
+                  <SettingRow
+                    icon={<Save size={16} />}
+                    label="Backup"
+                    iconBg="bg-primary/20 text-primary"
+                    onClick={handleExportJson}
+                  />
+                  <SettingRow
+                    icon={<Upload size={16} />}
+                    label="Restore"
+                    iconBg="bg-primary/20 text-primary"
                     onClick={() => jsonInputRef.current?.click()}
-                    className="flex items-center gap-3 px-4 py-3 text-[15px] text-white hover:bg-[#3a3a3c] transition-colors text-left"
-                  >
-                    <Upload size={18} className="text-primary" /> Restore
-                  </button>
-                  <button
-                    onClick={onClearAll}
-                    className="flex items-center gap-3 px-4 py-3 text-[15px] text-[#ff453a] hover:bg-[#3a3a3c] transition-colors text-left"
-                  >
-                    <Trash2 size={18} /> Clear{" "}
-                    {projectType === "tierlist" ? "Tiers" : "Grid"}
-                  </button>
+                  />
+                  <SettingRow
+                    icon={<Trash2 size={16} />}
+                    label={`Clear ${projectType === "tierlist" ? "Tiers" : "Grid"}`}
+                    iconBg="bg-red-500/20 text-[#ff453a]"
+                    onClick={handleClearAll}
+                    destructive
+                  />
                 </SettingButtonGroup>
                 <input
                   type="file"
@@ -522,8 +544,8 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                   accept="application/json"
                   onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
-                      onImportJson(e.target.files[0]);
-                      e.target.value = ""; // Reset input so same file can be selected again
+                      handleImportJson(e.target.files[0]);
+                      e.target.value = "";
                     }
                   }}
                 />

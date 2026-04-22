@@ -7,7 +7,7 @@
 }
 
 @theme {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --font-size-base: 1rem;
   --font-size-sm: 0.875rem;
@@ -26,15 +26,30 @@
 }
 
 :root {
-  /* Default Theme: Midnight (Refined) */
-  --color-background: #09090b; /* Zinc 950 */
-  --color-surface: #18181b;    /* Zinc 900 */
-  --color-border: #27272a;     /* Zinc 800 */
-  --color-text: #fafafa;       /* Zinc 50 */
-  --color-muted: #a1a1aa;      /* Zinc 400 */
-  --color-primary: #f43f5e;    /* Rose 500 */
+  --color-background: #000000;
+  /* Zinc 950 */
+  --color-surface: #1c1c1e;
+  /* Zinc 900 */
+  --color-border: #38383a;
+  /* Zinc 800 */
+  --color-text: #ffffff;
+  /* Zinc 50 */
+  --color-muted: #98989d;
+  /* Zinc 400 */
+  --color-primary: #0a84ff;
+  /* Rose 500 */
   --color-hover: rgba(255, 255, 255, 0.04);
   --color-overlay: rgba(0, 0, 0, 0.7);
+
+  /* ── Z-index stacking system ────────────────────────────── */
+  /* Dropdowns/popovers within panels    */
+  --z-dropdown: 30;
+  /* Sidebar + dock                      */
+  --z-dock: 40;
+  /* Modals (above dock)                 */
+  --z-modal: 100;
+  /* Toasts (above everything)           */
+  --z-toast: 200;
 }
 
 /* Typography */
@@ -45,24 +60,22 @@ body {
   @apply text-base leading-relaxed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden; /* App-like feel */
+  overflow: hidden;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Selection */
 ::selection {
   background-color: var(--color-primary);
   color: white;
 }
 
-/* iOS-like buttons */
-button, a {
+button,
+a {
   -webkit-touch-callout: none;
   user-select: none;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -81,47 +94,23 @@ button, a {
   background: var(--color-muted);
 }
 
-/* Range Slider (Custom) */
-input[type=range] {
-  -webkit-appearance: none;
-  width: 100%;
-  background: transparent;
+/* Glass reduction: strip backdrop-filter and ensure solid backgrounds */
+html[data-reduce-glass] *,
+html[data-reduce-glass] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 14px;
-  width: 14px;
-  border-radius: 50%;
-  background: var(--color-text);
-  cursor: pointer;
-  margin-top: -5px;
-  box-shadow: 0 0 0 1px var(--color-background);
-  transition: transform 0.1s;
+html[data-reduce-glass] .bg-\[\#18181b\]\/90,
+html[data-reduce-glass] .bg-\[\#2c2c2e\]\/95,
+html[data-reduce-glass] .bg-\[\#1c1c1e\]\/90,
+html[data-reduce-glass] .bg-surface\/90,
+html[data-reduce-glass] .bg-surface\/80 {
+  background-color: var(--color-surface) !important;
 }
 
-input[type=range]::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-
-input[type=range]::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 4px;
-  cursor: pointer;
-  background: var(--color-border);
-  border-radius: 2px;
-}
-
-input[type=range]:focus {
-  outline: none;
-}
-
-/* Utilities */
-.glass {
-  background: rgba(24, 24, 27, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+html[data-reduce-glass] .bg-background\/80 {
+  background-color: var(--color-background) !important;
 }
 
 .hide-scrollbar::-webkit-scrollbar {

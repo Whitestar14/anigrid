@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Rank, CellData, InteractionState } from '@/types';
 import { Upload, X, ArrowDownToLine, Plus, Star, Move } from 'lucide-react';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
+import { UrlInputModal } from '@/components/ui/UrlInputModal';
 
 interface ListViewProps {
   rank: Rank;
@@ -37,7 +38,7 @@ interface ListRowProps {
   onInteract: (index: number) => void;
 }
 
-const ListRow: React.FC<ListRowProps> = ({
+const ListRow = React.memo(function ListRow({
   index,
   data,
   rankStyle,
@@ -54,10 +55,11 @@ const ListRow: React.FC<ListRowProps> = ({
   onUpdateCell,
   isSelected,
   onInteract
-}) => {
+}: ListRowProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -165,9 +167,7 @@ const ListRow: React.FC<ListRowProps> = ({
                       </button>
                       <button onClick={(e) => {
                          e.stopPropagation();
-                         const url = prompt("Enter Image URL");
-                         if (url) onSearchDrop(url, index);
-                         onInteract(-1);
+                         setIsUrlModalOpen(true);
                       }} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-xl text-[11px] font-medium text-white transition-colors">
                          URL <ArrowDownToLine size={12} className="text-white/50" />
                       </button>
@@ -176,6 +176,12 @@ const ListRow: React.FC<ListRowProps> = ({
             </div>
           )}
       </div>
+
+      <UrlInputModal
+        isOpen={isUrlModalOpen}
+        onClose={() => setIsUrlModalOpen(false)}
+        onSubmit={(url) => { onSearchDrop(url, index); onInteract(-1); }}
+      />
 
       {/* 3. Title Input */}
       <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
@@ -234,7 +240,7 @@ const ListRow: React.FC<ListRowProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export const ListView: React.FC<ListViewProps> = ({
   rank,

@@ -42,7 +42,21 @@ interface TierListViewProps {
   ) => void;
 }
 
-const TierItem: React.FC<{
+const TierItem = React.memo(function TierItem({
+  item,
+  rowId,
+  idx,
+  interactionState,
+  onInteract,
+  onMoveToInbox,
+  handleItemDrop,
+  onUpdateItem,
+  onInboxDrop,
+  onInboxDropMulti,
+  onInternalMove,
+  onSearchDrop,
+  aspectRatio,
+}: {
   item: CellData;
   rowId: string;
   idx: number;
@@ -79,21 +93,7 @@ const TierItem: React.FC<{
   ) => void;
   onSearchDrop: (imageSrc: string, rowId: string, itemIndex: number) => void;
   aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
-}> = ({
-  item,
-  rowId,
-  idx,
-  interactionState,
-  onInteract,
-  onMoveToInbox,
-  handleItemDrop,
-  onUpdateItem,
-  onInboxDrop,
-  onInboxDropMulti,
-  onInternalMove,
-  onSearchDrop,
-  aspectRatio,
-}) => {
+}) {
   const [isDragging, setIsDragging] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isAdjusting, setIsAdjusting] = useState(false);
@@ -197,7 +197,7 @@ const TierItem: React.FC<{
       >
         <img
           src={getProxiedImageUrl(item.imageSrc!)}
-          className="w-full h-full object-cover pointer-events-none transition-all duration-300"
+          className="w-full h-full object-cover pointer-events-none transition-all duration-200"
           style={objectPosStyle}
           referrerPolicy="no-referrer"
         />
@@ -318,7 +318,7 @@ const TierItem: React.FC<{
       </AnimatePresence>
     </div>
   );
-};
+});
 
 export const TierListView: React.FC<TierListViewProps> = ({
   rank,

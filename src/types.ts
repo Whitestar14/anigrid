@@ -7,10 +7,8 @@ export interface CellData {
   id: string;
   imageSrc: string | null;
   position: number;
-  // Extended data for List View
   textLabel?: string;
-  rating?: number; // 0-10
-  // Visuals
+  rating?: number;
   alignment?: "top" | "center" | "bottom";
   objectPosition?: string;
   zoom?: number;
@@ -47,26 +45,24 @@ export interface TierData {
 export interface Rank {
   id: string;
   title: string;
-  type: ProjectType; // New strict separation
+  type: ProjectType;
   mode: RankMode;
-  config: GridConfig; // Used for Grid Mode
-  cells: CellData[]; // Used for Grid/List Mode
+  config: GridConfig;
+  cells: CellData[];
   style: GridStyle;
 
-  // Visual Preferences
   showNumbers: boolean;
   showTitle: boolean;
   showDate: boolean;
   showTiers?: boolean;
-  borderless?: boolean; // New: Toggle item borders in grid
+  borderless?: boolean;
   aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
-  cellWidth?: number; // New: Specific width for grid cells
+  cellWidth?: number;
   gap: number;
   backgroundColor: string;
 
   tiers?: TierData[];
 
-  // Tier List Data (Dedicated)
   tierRows: TierRow[];
 
   createdAt: number;
@@ -91,6 +87,10 @@ export interface GlobalState {
   };
   preferences: {
     skipDuplicateWarning: boolean;
+    /** Disables backdrop-blur across the app (better on low-end GPUs). */
+    reduceGlassEffects: boolean;
+    /** When true, dock collapses on drag start on desktop too (not only mobile). */
+    autoCloseDockOnDragDesktop: boolean;
   };
 }
 
@@ -113,7 +113,9 @@ export interface JikanResult {
 
 // Interaction State
 export type InteractionState =
-  | { type: "cell"; index: number } // For Grid/List
-  | { type: "tier-item"; rowId: string; itemId: string } // For Tier List
+  | { type: "cell"; index: number }
+  | { type: "tier-item"; rowId: string; itemId: string }
   | { type: "inbox"; itemId: string; collectionId: string }
+  | { type: "inbox-multi"; itemIds: string[]; collectionId: string }
+  | { type: "search"; imageSrc: string }
   | null;

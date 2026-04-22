@@ -85,6 +85,7 @@ export interface AppState extends GlobalState {
   setActiveRankId: (id: string) => void;
   importState: (newState: GlobalState) => void;
   setSkipDuplicateWarning: (skip: boolean) => void;
+  updatePreferences: (p: Partial<GlobalState['preferences']>) => void;
 }
 
 const checkAndRescueImages = (removedCells: (CellData | InboxItem)[], currentState: GlobalState, _collectionToAddToId: string) => {
@@ -102,7 +103,7 @@ const checkAndRescueImages = (removedCells: (CellData | InboxItem)[], currentSta
 const defaultState: GlobalState = {
   version: 2,
   activeRankId: 'default',
-  theme: { accentColor: '#3b82f6', paletteId: 'midnight', isDark: true },
+  theme: { accentColor: '#0a84ff', paletteId: 'ios-dark', isDark: true },
   ranks: {
     'default': {
       id: 'default',
@@ -126,7 +127,11 @@ const defaultState: GlobalState = {
     collections: [{ id: 'default-inbox', name: 'Inbox', items: [] }],
     activeCollectionId: 'default-inbox'
   },
-  preferences: { skipDuplicateWarning: false }
+  preferences: {
+    skipDuplicateWarning: false,
+    reduceGlassEffects: false,
+    autoCloseDockOnDragDesktop: false,
+  }
 };
 
 export const useStore = create<AppState>()(
@@ -971,6 +976,10 @@ export const useStore = create<AppState>()(
       }),
 
       importState: (newState) => set(() => newState),
+
+      updatePreferences: (p) => set((state) => ({
+        preferences: { ...state.preferences, ...p }
+      })),
 
       setSkipDuplicateWarning: (skip) => set((state) => ({
         preferences: { ...state.preferences, skipDuplicateWarning: skip }

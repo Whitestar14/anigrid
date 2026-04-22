@@ -11,7 +11,6 @@ interface GridViewProps {
   onInboxDrop: (itemId: string, collectionId: string, toIndex: number) => void;
   onInboxDropMulti: (itemIds: string[], collectionId: string, toIndex: number) => void;
   onSearchDrop: (imageSrc: string, toIndex: number) => void;
-  onMoveToInbox: (index: number) => void;
   onDownloadSingle: (index: number) => void;
   // Interaction
   interactionState: InteractionState;
@@ -101,7 +100,6 @@ export const GridView: React.FC<GridViewProps> = ({
   onInboxDrop,
   onInboxDropMulti,
   onSearchDrop,
-  onMoveToInbox,
   onDownloadSingle,
   interactionState,
   onInteract,
@@ -155,7 +153,6 @@ export const GridView: React.FC<GridViewProps> = ({
                                   onSwap={onSwap}
                                   onInboxDrop={onInboxDrop}
                                   onSearchDrop={onSearchDrop}
-                                  onMoveToInbox={onMoveToInbox}
                                   onDownloadSingle={onDownloadSingle}
                                   onInteract={onInteract}
                                   onUpdateCell={onUpdateCell}
@@ -194,7 +191,6 @@ export const GridView: React.FC<GridViewProps> = ({
           onInboxDrop={onInboxDrop}
           onInboxDropMulti={onInboxDropMulti}
           onSearchDrop={onSearchDrop}
-          onMoveToInbox={onMoveToInbox}
           onDownloadSingle={onDownloadSingle}
           onInteract={onInteract}
           onUpdateCell={onUpdateCell}

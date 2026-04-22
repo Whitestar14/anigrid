@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useStore } from "@/store/useStore";
 import { Controls } from "@/components/Controls";
 import { GridSettingsSidebar } from "@/components/GridSettingsSidebar";
@@ -10,105 +10,49 @@ import { Library } from "@/components/Library";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { DuplicateModal } from "@/components/DuplicateModal";
 import { ExportModal } from "@/components/ExportModal";
-import { ToastContainer, ToastMessage, ToastType } from "@/components/ui/Toast";
+import { useToast } from "@/context/ToastContext";
 import { readFileAsDataURL, downloadGrid } from "@/utils/imageUtils";
 import { cleanupOldCache } from "@/utils/imageCache";
-import { exportStateToJson, migrateState } from "@/utils/storage";
+import { THEME_PALETTES, getContrastColor } from "@/theme/palettes";
 import { Edit2, Heart, Zap } from "lucide-react";
-
-// --- Palette System Definitions ---
-const THEME_PALETTES = [
-  {
-    id: "midnight",
-    name: "Midnight",
-    colors: {
-      background: "#0f1115",
-      surface: "#181b21",
-      border: "#2a2e36",
-      text: "#e2e8f0",
-      muted: "#94a3b8",
-      hover: "rgba(255, 255, 255, 0.06)",
-      overlay: "rgba(0, 0, 0, 0.8)",
-    },
-  },
-  {
-    id: "slate",
-    name: "Slate",
-    colors: {
-      background: "#0f172a", // Slate 900
-      surface: "#1e293b", // Slate 800
-      border: "#334155", // Slate 700
-      text: "#f1f5f9", // Slate 100
-      muted: "#94a3b8", // Slate 400
-      hover: "rgba(255, 255, 255, 0.08)",
-      overlay: "rgba(15, 23, 42, 0.8)",
-    },
-  },
-  {
-    id: "oled",
-    name: "OLED",
-    colors: {
-      background: "#000000",
-      surface: "#0a0a0a",
-      border: "#262626", // Neutral 800
-      text: "#e5e5e5", // Neutral 200
-      muted: "#737373", // Neutral 500
-      hover: "rgba(255, 255, 255, 0.1)",
-      overlay: "rgba(0, 0, 0, 0.9)",
-    },
-  },
-  {
-    id: "cloud",
-    name: "Cloud",
-    colors: {
-      background: "#ffffff",
-      surface: "#f8fafc", // Slate 50
-      border: "#e2e8f0", // Slate 200
-      text: "#0f172a", // Slate 900
-      muted: "#64748b", // Slate 500
-      hover: "rgba(15, 23, 42, 0.05)",
-      overlay: "rgba(255, 255, 255, 0.8)",
-    },
-  },
-  {
-    id: "dawn",
-    name: "Dawn",
-    colors: {
-      background: "#fff1f2", // Rose 50 (Tinted Background)
-      surface: "#ffffff",
-      border: "#e2e8f0", // Slate 200 (Neutral Border)
-      text: "#334155", // Slate 700 (Neutral Text)
-      muted: "#94a3b8", // Slate 400
-      hover: "rgba(15, 23, 42, 0.05)",
-      overlay: "rgba(255, 255, 255, 0.8)",
-    },
-  },
-  {
-    id: "latte",
-    name: "Latte",
-    colors: {
-      background: "#fdfbf7", // Warm off-white
-      surface: "#f5f0e8",
-      border: "#e7e5e4", // Stone 200
-      text: "#44403c", // Stone 700
-      muted: "#a8a29e", // Stone 400
-      hover: "rgba(28, 25, 23, 0.05)",
-      overlay: "rgba(253, 251, 247, 0.8)",
-    },
-  },
-];
-
-const getContrastColor = (hex: string) => {
-  if (hex === "transparent") return "var(--color-text)";
-  const r = parseInt(hex.substr(1, 2), 16);
-  const g = parseInt(hex.substr(3, 2), 16);
-  const b = parseInt(hex.substr(5, 2), 16);
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq >= 128 ? "#000000" : "#ffffff";
-};
+import { useBoardCellInteraction } from "@/hooks/useBoardCellInteraction";
 
 export const App: React.FC = () => {
-  const state = useStore();
+  const addToast = useToast();
+  const onBoardCellInteract = useBoardCellInteraction();
+  const theme = useStore((s) => s.theme);
+  const reduceGlassEffects = useStore(
+    (s) => s.preferences.reduceGlassEffects ?? false,
+  );
+  const activeRankId = useStore((s) => s.activeRankId);
+  const activeRank = useStore((s) => s.ranks[s.activeRankId]);
+  const ranks = useStore((s) => s.ranks);
+  const interactionState = useStore((s) => s.interactionState);
+  const duplicateModalConfig = useStore((s) => s.duplicateModalConfig);
+  const setInteractionState = useStore((s) => s.setInteractionState);
+  const updateActiveRank = useStore((s) => s.updateActiveRank);
+  const handleUpdateTierRows = useStore((s) => s.handleUpdateTierRows);
+  const handleInboxDropToTier = useStore((s) => s.handleInboxDropToTier);
+  const handleInboxDropToTierMulti = useStore(
+    (s) => s.handleInboxDropToTierMulti,
+  );
+  const handleSearchDropToTier = useStore((s) => s.handleSearchDropToTier);
+  const handleTierMoveToInbox = useStore((s) => s.handleTierMoveToInbox);
+  const handleInternalTierMove = useStore((s) => s.handleInternalTierMove);
+  const handleCellClear = useStore((s) => s.handleCellClear);
+  const handleSwapCells = useStore((s) => s.handleSwapCells);
+  const handleInboxDrop = useStore((s) => s.handleInboxDrop);
+  const handleInboxDropMulti = useStore((s) => s.handleInboxDropMulti);
+  const handleSearchDrop = useStore((s) => s.handleSearchDrop);
+  const handleMoveToInbox = useStore((s) => s.handleMoveToInbox);
+  const handleUpdateCell = useStore((s) => s.handleUpdateCell);
+  const setActiveRankId = useStore((s) => s.setActiveRankId);
+  const handleDeleteRank = useStore((s) => s.handleDeleteRank);
+  const handleNewRank = useStore((s) => s.handleNewRank);
+  const updateRankById = useStore((s) => s.updateRankById);
+  const handleDuplicateConfirm = useStore((s) => s.handleDuplicateConfirm);
+  const setDuplicateModalConfig = useStore((s) => s.setDuplicateModalConfig);
+
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -118,20 +62,6 @@ export const App: React.FC = () => {
   const [internalClipboard, setInternalClipboard] = useState<string | null>(
     null,
   );
-
-  // Toasts
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const addToast = (
-    type: ToastType,
-    message: string,
-    actionLabel?: string,
-    action?: () => void,
-  ) => {
-    const id = Date.now().toString();
-    setToasts((prev) => [...prev, { id, type, message, actionLabel, action }]);
-  };
-  const removeToast = (id: string) =>
-    setToasts((prev) => prev.filter((t) => t.id !== id));
 
   // Modals
   const [modalConfig, setModalConfig] = useState<{
@@ -148,7 +78,7 @@ export const App: React.FC = () => {
   const handleCellUploadWithConversion = async (index: number, file: File) => {
     try {
       const dataUrl = await readFileAsDataURL(file);
-      state.handleCellUpload(index, dataUrl);
+      useStore.getState().handleCellUpload(index, dataUrl);
     } catch (error) {
       console.error("Failed to upload image:", error);
       addToast("error", "Failed to upload image");
@@ -163,15 +93,14 @@ export const App: React.FC = () => {
     if (useStore.persist.hasHydrated()) {
       setIsLoaded(true);
     }
-    // Cleanup old cached images on app load
     cleanupOldCache();
   }, []);
 
   useEffect(() => {
-    if (isLoaded && state.theme) {
+    if (isLoaded && theme) {
       const root = document.documentElement;
-      root.style.setProperty("--color-primary", state.theme.accentColor);
-      const paletteId = state.theme.paletteId || "midnight";
+      root.style.setProperty("--color-primary", theme.accentColor);
+      const paletteId = theme.paletteId || "ios-dark";
       const palette =
         THEME_PALETTES.find((p) => p.id === paletteId) || THEME_PALETTES[0];
       root.style.setProperty("--color-background", palette.colors.background);
@@ -190,7 +119,14 @@ export const App: React.FC = () => {
         root.classList.add("dark");
       }
     }
-  }, [state.theme, isLoaded]);
+  }, [theme, isLoaded]);
+
+  useEffect(() => {
+    document.documentElement.toggleAttribute(
+      "data-reduce-glass",
+      reduceGlassEffects,
+    );
+  }, [reduceGlassEffects]);
 
   // Global Paste
   useEffect(() => {
@@ -209,14 +145,15 @@ export const App: React.FC = () => {
           if (blob) {
             try {
               const src = await readFileAsDataURL(blob);
-              if (state.interactionState?.type === "cell") {
-                state.handleCellUpload(state.interactionState.index, src);
+              const st = useStore.getState();
+              if (st.interactionState?.type === "cell") {
+                st.handleCellUpload(st.interactionState.index, src);
               } else {
                 const activeColId =
-                  state.inbox.activeCollectionId === "all-images"
-                    ? state.inbox.collections[0].id
-                    : state.inbox.activeCollectionId;
-                state.handleAddToCollection(src, activeColId);
+                  st.inbox.activeCollectionId === "all-images"
+                    ? st.inbox.collections[0].id
+                    : st.inbox.activeCollectionId;
+                st.handleAddToCollection(src, activeColId);
               }
             } catch (err) {
               console.error(err);
@@ -227,15 +164,7 @@ export const App: React.FC = () => {
     };
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
-  }, [
-    state.inbox.activeCollectionId,
-    state.inbox.collections,
-    state.handleAddToCollection,
-    state.interactionState,
-    state.handleCellUpload,
-  ]);
-
-  const activeRank = state.ranks[state.activeRankId];
+  }, []);
 
   // --- Keyboard Shortcuts ---
   useEffect(() => {
@@ -246,16 +175,19 @@ export const App: React.FC = () => {
       )
         return;
 
+      const st = useStore.getState();
+      const rank = st.ranks[st.activeRankId];
+
       if (e.key === "Escape") {
-        state.setInteractionState(null);
+        st.setInteractionState(null);
         setIsEditingTitle(false);
         return;
       }
 
       // Copy/Paste internal
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
-        if (state.interactionState?.type === "cell" && activeRank) {
-          const cell = activeRank.cells[state.interactionState.index];
+        if (st.interactionState?.type === "cell" && rank) {
+          const cell = rank.cells[st.interactionState.index];
           if (cell && cell.imageSrc) {
             setInternalClipboard(cell.imageSrc);
           }
@@ -263,43 +195,35 @@ export const App: React.FC = () => {
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
         if (
-          state.interactionState?.type === "cell" &&
-          activeRank &&
+          st.interactionState?.type === "cell" &&
+          rank &&
           internalClipboard
         ) {
-          state.handleCellUpload(
-            state.interactionState.index,
+          st.handleCellUpload(
+            st.interactionState.index,
             internalClipboard,
           );
         }
       }
 
       if (e.key === "Delete" || e.key === "Backspace") {
-        if (state.interactionState?.type === "cell" && activeRank) {
-          state.handleCellClear(state.interactionState.index);
-          state.setInteractionState(null);
+        if (st.interactionState?.type === "cell" && rank) {
+          st.handleCellClear(st.interactionState.index);
+          st.setInteractionState(null);
         }
         // For Tier Item delete
-        if (state.interactionState?.type === "tier-item" && activeRank) {
-          state.handleTierItemRemove(
-            state.interactionState.rowId,
-            state.interactionState.itemId,
+        if (st.interactionState?.type === "tier-item" && rank) {
+          st.handleTierItemRemove(
+            st.interactionState.rowId,
+            st.interactionState.itemId,
           );
-          state.setInteractionState(null);
+          st.setInteractionState(null);
         }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    state.interactionState,
-    activeRank,
-    state.handleCellClear,
-    state.handleTierItemRemove,
-    state.setInteractionState,
-    internalClipboard,
-    state.handleCellUpload,
-  ]);
+  }, [internalClipboard]);
 
   const confirmAction = (
     title: string,
@@ -317,63 +241,7 @@ export const App: React.FC = () => {
     });
   };
 
-  // Track images present in the Inbox (for Search Panel checks)
-  const inboxImageSet = useMemo(() => {
-    const set = new Set<string>();
-    if (state.inbox) {
-      state.inbox.collections.forEach((c) =>
-        c.items.forEach((i) => set.add(i.imageSrc)),
-      );
-    }
-    return set;
-  }, [state.inbox]);
-
-  // Track images present on the current Board (for Stash gray-out)
-  const boardImageSet = useMemo(() => {
-    const set = new Set<string>();
-    if (activeRank) {
-      if (activeRank.type === "tierlist") {
-        activeRank.tierRows.forEach((row) =>
-          row.items.forEach((item) => {
-            if (item.imageSrc) set.add(item.imageSrc);
-          }),
-        );
-      } else {
-        activeRank.cells.forEach((cell) => {
-          if (cell.imageSrc) set.add(cell.imageSrc);
-        });
-      }
-    }
-    return set;
-  }, [activeRank]);
-
-  const handleClearAll = () => {
-    if (!activeRank) return;
-
-    confirmAction("Clear All?", "All content will be removed.", () => {
-      state.handleClearAll();
-    });
-  };
-
-  const handleExportJson = () => {
-    exportStateToJson(useStore.getState());
-  };
-
-  const handleImportJson = async (file: File) => {
-    const text = await file.text();
-    try {
-      const json = JSON.parse(text);
-      const migrated = migrateState(json);
-      if (migrated) {
-        state.importState(migrated);
-      }
-    } catch (e) {
-      console.error("Failed to import JSON", e);
-      alert("Invalid JSON file");
-    }
-  };
-
-  if (!isLoaded || !state || !activeRank)
+  if (!isLoaded || !activeRank)
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <div className="grid grid-cols-2 gap-2 w-16 h-16">
@@ -429,8 +297,6 @@ export const App: React.FC = () => {
 
   return (
     <div className="h-[100dvh] bg-background text-text font-sans selection:bg-primary/30 flex flex-col overflow-hidden relative">
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-
       <Controls
         projectName={activeRank.title}
         onOpenLibrary={() => setIsLibraryOpen(true)}
@@ -465,18 +331,18 @@ export const App: React.FC = () => {
       <Library
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}
-        ranks={Object.values(state.ranks)}
-        activeRankId={state.activeRankId}
-        onSelectRank={state.setActiveRankId}
+        ranks={Object.values(ranks)}
+        activeRankId={activeRankId}
+        onSelectRank={setActiveRankId}
         onDeleteRank={(id) => {
-          const rank = state.ranks[id];
+          const rank = ranks[id];
           if (!rank) return;
           confirmAction(`Delete "${rank.title}"?`, "This cannot be undone.", () => {
-            state.handleDeleteRank(id);
+            handleDeleteRank(id);
           });
         }}
-        onNewRank={state.handleNewRank}
-        onUpdateRank={state.updateRankById}
+        onNewRank={handleNewRank}
+        onUpdateRank={updateRankById}
       />
 
       <ConfirmModal
@@ -488,11 +354,11 @@ export const App: React.FC = () => {
       />
 
       <DuplicateModal
-        isOpen={state.duplicateModalConfig.isOpen}
-        imageSrc={state.duplicateModalConfig.imageSrc}
-        onConfirm={state.handleDuplicateConfirm}
+        isOpen={duplicateModalConfig.isOpen}
+        imageSrc={duplicateModalConfig.imageSrc}
+        onConfirm={handleDuplicateConfirm}
         onCancel={() =>
-          state.setDuplicateModalConfig({
+          setDuplicateModalConfig({
             isOpen: false,
             imageSrc: null,
             actionToExecute: null,
@@ -505,44 +371,14 @@ export const App: React.FC = () => {
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          config={activeRank.config}
-          style={activeRank.style}
-          mode={activeRank.mode}
-          projectType={activeRank.type}
-          showNumbers={activeRank.showNumbers ?? true}
-          showTitle={activeRank.showTitle ?? true}
-          showDate={activeRank.showDate ?? true}
-          showTiers={activeRank.type === "tierlist"}
-          borderless={activeRank.borderless ?? false}
-          gap={activeRank.gap ?? 0}
-          cellWidth={activeRank.cellWidth}
-          rankBackgroundColor={activeRank.backgroundColor}
-          aspectRatio={activeRank.aspectRatio || "3:4"}
-          onConfigChange={state.handleConfigChange}
-          onStyleChange={(s) => state.updateActiveRank({ style: s })}
-          onModeChange={state.handleModeChange}
-          onVisualToggle={state.handleVisualToggle}
-          onBorderlessChange={(borderless) =>
-            state.updateActiveRank({ borderless })
-          }
-          onGapChange={(gap) => state.updateActiveRank({ gap })}
-          onCellWidthChange={(width) => state.updateActiveRank({ cellWidth: width })}
-          onBackgroundColorChange={(color) =>
-            state.updateActiveRank({ backgroundColor: color })
-          }
-          onAspectRatioChange={(ratio) =>
-            state.updateActiveRank({ aspectRatio: ratio })
-          }
-          onExportJson={handleExportJson}
-          onImportJson={handleImportJson}
-          onClearAll={handleClearAll}
+          requestConfirm={confirmAction}
         />
 
         <div className="flex-1 flex flex-col min-w-0 relative bg-background">
           <main
             className={`flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center ${mainPadding} pb-40`}
             onClick={() =>
-              state.interactionState && state.setInteractionState(null)
+              interactionState && setInteractionState(null)
             }
           >
             <div
@@ -565,7 +401,7 @@ export const App: React.FC = () => {
               }}
               onClick={(e) => {
                 e.stopPropagation();
-                if (state.interactionState) state.setInteractionState(null);
+                if (interactionState) setInteractionState(null);
               }}
             >
               {(activeRank.showTitle !== false || isEditingTitle) && (
@@ -582,7 +418,7 @@ export const App: React.FC = () => {
                           tempTitle.trim() &&
                           tempTitle !== activeRank.title
                         ) {
-                          state.updateActiveRank({ title: tempTitle });
+                          updateActiveRank({ title: tempTitle });
                         }
                       }}
                       onKeyDown={(e) => {
@@ -592,7 +428,7 @@ export const App: React.FC = () => {
                             tempTitle.trim() &&
                             tempTitle !== activeRank.title
                           ) {
-                            state.updateActiveRank({ title: tempTitle });
+                            updateActiveRank({ title: tempTitle });
                           }
                         }
                       }}
@@ -623,131 +459,70 @@ export const App: React.FC = () => {
               {activeRank.type === "tierlist" ? (
                 <TierListView
                   rank={activeRank}
-                  onUpdateTierRows={state.handleUpdateTierRows}
+                  onUpdateTierRows={handleUpdateTierRows}
                   onInboxDrop={(itemId, colId, rowId, idx) => {
-                    state.handleInboxDropToTier(itemId, colId, rowId, idx);
-                    state.setInteractionState(null);
+                    handleInboxDropToTier(itemId, colId, rowId, idx);
+                    setInteractionState(null);
                   }}
                   onInboxDropMulti={(itemIds, colId, rowId, idx) => {
-                    state.handleInboxDropToTierMulti(
+                    handleInboxDropToTierMulti(
                       itemIds,
                       colId,
                       rowId,
                       idx,
                     );
-                    state.setInteractionState(null);
+                    setInteractionState(null);
                   }}
                   onSearchDrop={(imageSrc, rowId, idx) => {
-                    state.handleSearchDropToTier(imageSrc, rowId, idx);
-                    state.setInteractionState(null);
+                    handleSearchDropToTier(imageSrc, rowId, idx);
+                    setInteractionState(null);
                   }}
-                  onMoveToInbox={state.handleTierMoveToInbox}
-                  interactionState={state.interactionState}
+                  onMoveToInbox={handleTierMoveToInbox}
+                  interactionState={interactionState}
                   onInteract={(rowId, itemId) =>
-                    state.setInteractionState({
+                    setInteractionState({
                       type: "tier-item",
                       rowId,
                       itemId,
                     })
                   }
                   onInternalMove={(srcRow, srcItem, tgtRow, tgtIdx) => {
-                    state.handleInternalTierMove(
+                    handleInternalTierMove(
                       srcRow,
                       srcItem,
                       tgtRow,
                       tgtIdx,
                     );
-                    state.setInteractionState(null);
+                    setInteractionState(null);
                   }}
                 />
               ) : activeRank.mode === "list" ? (
                 <ListView
                   rank={activeRank}
                   onUpload={handleCellUploadWithConversion}
-                  onClear={state.handleCellClear}
-                  onSwap={state.handleSwapCells}
-                  onInboxDrop={state.handleInboxDrop}
-                  onInboxDropMulti={state.handleInboxDropMulti}
-                  onSearchDrop={state.handleSearchDrop}
-                  onMoveToInbox={state.handleMoveToInbox}
-                  onUpdateCell={state.handleUpdateCell}
-                  interactionState={state.interactionState}
-                  onInteract={(index) => {
-                    if (state.interactionState?.type === "inbox") {
-                      state.handleInboxDrop(
-                        state.interactionState.itemId,
-                        state.interactionState.collectionId,
-                        index,
-                      );
-                      state.setInteractionState(null);
-                    } else if (state.interactionState?.type === "inbox-multi") {
-                      state.handleInboxDropMulti(
-                        state.interactionState.itemIds,
-                        state.interactionState.collectionId,
-                        index,
-                      );
-                      state.setInteractionState(null);
-                    } else if (state.interactionState?.type === "search") {
-                      state.handleSearchDrop(
-                        state.interactionState.imageSrc,
-                        index,
-                      );
-                      state.setInteractionState(null);
-                    } else if (state.interactionState?.type === "cell") {
-                      state.handleSwapCells(
-                        state.interactionState.index,
-                        index,
-                      );
-                      state.setInteractionState(null);
-                    } else {
-                      state.setInteractionState({ type: "cell", index });
-                    }
-                  }}
+                  onClear={handleCellClear}
+                  onSwap={handleSwapCells}
+                  onInboxDrop={handleInboxDrop}
+                  onInboxDropMulti={handleInboxDropMulti}
+                  onSearchDrop={handleSearchDrop}
+                  onMoveToInbox={handleMoveToInbox}
+                  onUpdateCell={handleUpdateCell}
+                  interactionState={interactionState}
+                  onInteract={onBoardCellInteract}
                 />
               ) : (
                 <GridView
                   rank={activeRank}
                   onUpload={handleCellUploadWithConversion}
-                  onClear={state.handleCellClear}
-                  onSwap={state.handleSwapCells}
-                  onInboxDrop={state.handleInboxDrop}
-                  onInboxDropMulti={state.handleInboxDropMulti}
-                  onSearchDrop={state.handleSearchDrop}
-                  onMoveToInbox={state.handleMoveToInbox}
+                  onClear={handleCellClear}
+                  onSwap={handleSwapCells}
+                  onInboxDrop={handleInboxDrop}
+                  onInboxDropMulti={handleInboxDropMulti}
+                  onSearchDrop={handleSearchDrop}
                   onDownloadSingle={handleCellDownload}
-                  onUpdateCell={state.handleUpdateCell}
-                  interactionState={state.interactionState}
-                  onInteract={(index) => {
-                    if (state.interactionState?.type === "inbox") {
-                      state.handleInboxDrop(
-                        state.interactionState.itemId,
-                        state.interactionState.collectionId,
-                        index,
-                      );
-                      state.setInteractionState(null);
-                    } else if (state.interactionState?.type === "inbox-multi") {
-                      state.handleInboxDropMulti(
-                        state.interactionState.itemIds,
-                        state.interactionState.collectionId,
-                        index,
-                      );
-                      state.setInteractionState(null);
-                    } else if (state.interactionState?.type === "search") {
-                      state.handleSearchDrop(
-                        state.interactionState.imageSrc,
-                        index,
-                      );
-                      state.setInteractionState(null);
-                    } else if (state.interactionState?.type === "cell") {
-                      state.handleSwapCells(
-                        state.interactionState.index,
-                        index,
-                      );
-                      state.setInteractionState(null);
-                    } else {
-                      state.setInteractionState({ type: "cell", index });
-                    }
-                  }}
+                  onUpdateCell={handleUpdateCell}
+                  interactionState={interactionState}
+                  onInteract={onBoardCellInteract}
                 />
               )}
 
@@ -771,96 +546,7 @@ export const App: React.FC = () => {
             </div>
           </main>
 
-          <Inbox
-            collections={state.inbox.collections}
-            activeCollectionId={state.inbox.activeCollectionId}
-            usedImageSrcs={inboxImageSet}
-            usedOnBoard={boardImageSet}
-            onSwitchCollection={state.switchCollection}
-            onAddCollection={state.addCollection}
-            onDeleteCollection={(id) => {
-              const col = state.inbox.collections.find((c) => c.id === id);
-              if (!col) return;
-              confirmAction(`Delete "${col.name}"?`, "All items lost.", () => {
-                state.deleteCollection(id);
-              });
-            }}
-            onRenameCollection={state.renameCollection}
-            onUpload={async (files) => {
-              for (let i = 0; i < files.length; i++) {
-                try {
-                  const src = await readFileAsDataURL(files[i]);
-                  state.handleInboxUpload(src);
-                } catch (err) {
-                  console.error('Failed to parse file', err);
-                }
-              }
-            }}
-            onRemoveItem={state.removeInboxItem}
-            onDropFromGrid={state.handleMoveToInbox}
-            onDropFromTier={state.handleTierItemRemove}
-            lastTargetCollectionId={state.inbox.lastTargetCollectionId}
-            onAddToCollection={state.handleAddToCollection}
-            onUpdateLastTarget={state.handleUpdateLastTarget}
-            onRestoreItem={state.handleRestoreItem}
-            interactionState={state.interactionState}
-            addToast={addToast}
-            onInteract={(itemId, collectionId) => {
-              if (state.interactionState?.type === "cell") {
-                state.handleInboxDrop(
-                  itemId,
-                  collectionId,
-                  state.interactionState.index,
-                );
-                const nextIndex = state.interactionState.index + 1;
-                if (nextIndex < activeRank.cells.length) {
-                  state.setInteractionState({ type: "cell", index: nextIndex });
-                } else {
-                  state.setInteractionState(null);
-                }
-              } else if (state.interactionState?.type === "tier-item") {
-                state.handleInboxDropToTier(
-                  itemId,
-                  collectionId,
-                  state.interactionState.rowId,
-                  -1,
-                );
-                state.setInteractionState(null);
-              } else {
-                if (activeRank.type === "ranking") {
-                  const firstEmptyIndex = activeRank.cells.findIndex(
-                    (c) => !c.imageSrc,
-                  );
-                  if (firstEmptyIndex !== -1) {
-                    state.handleInboxDrop(
-                      itemId,
-                      collectionId,
-                      firstEmptyIndex,
-                    );
-                    const nextIndex = firstEmptyIndex + 1;
-                    if (nextIndex < activeRank.cells.length) {
-                      state.setInteractionState({
-                        type: "cell",
-                        index: nextIndex,
-                      });
-                    }
-                  } else {
-                    state.setInteractionState({
-                      type: "inbox",
-                      itemId,
-                      collectionId,
-                    });
-                  }
-                } else {
-                  state.setInteractionState({
-                    type: "inbox",
-                    itemId,
-                    collectionId,
-                  });
-                }
-              }
-            }}
-          />
+          <Inbox requestConfirm={confirmAction} />
         </div>
       </div>
     </div>

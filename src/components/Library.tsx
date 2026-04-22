@@ -147,7 +147,7 @@ export const Library: React.FC<ExtendedLibraryProps> = ({
                                    </h4>
                                    <button
                                      onClick={(e) => startEditing(e, rank)}
-                                     className="opacity-0 group-hover:opacity-100 p-1 text-white/40 hover:text-white transition-all hover:bg-white/10 rounded"
+                                     className="p-1 text-white/30 hover:text-white transition-all hover:bg-white/10 rounded"
                                      title="Rename"
                                    >
                                        <Edit2 size={12} />
@@ -174,7 +174,7 @@ export const Library: React.FC<ExtendedLibraryProps> = ({
                                   e.stopPropagation();
                                   onDeleteRank(rank.id);
                               }}
-                              className={`p-2 rounded-lg transition-all ${ranks.length === 1 ? 'text-white/10 cursor-not-allowed' : 'text-white/30 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100'}`}
+                              className={`p-2 rounded-lg transition-all ${ranks.length === 1 ? 'text-white/10 cursor-not-allowed' : 'text-white/30 hover:text-red-400 hover:bg-red-500/10'}`}
                               disabled={ranks.length === 1}
                               title={ranks.length === 1 ? "Cannot delete the only project" : "Delete Project"}
                           >

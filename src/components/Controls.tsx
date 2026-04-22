@@ -11,7 +11,7 @@ interface ControlsProps {
   isSidebarOpen: boolean;
 }
 
-export const Controls: React.FC<ControlsProps> = ({ 
+export const Controls: React.FC<ControlsProps> = ({
   projectName,
   onOpenLibrary,
   onToggleSidebar,
@@ -19,12 +19,12 @@ export const Controls: React.FC<ControlsProps> = ({
   isSidebarOpen
 }) => {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 md:px-6 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm transition-all duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 md:px-6 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm transition-all duration-200">
       <div className="w-full max-w-[1920px] mx-auto flex items-center justify-between relative">
-        
+
         {/* Left: Settings Button */}
         <div className="flex items-center shrink-0 w-20">
-          <Button 
+          <Button
              variant="ghost"
              size="icon"
              onClick={onToggleSidebar}
@@ -37,15 +37,15 @@ export const Controls: React.FC<ControlsProps> = ({
 
         {/* Center: Project Name (Clickable) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-          <button 
+          <button
             onClick={onOpenLibrary}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors group"
             title="Open Library"
           >
             <span className="font-semibold text-[15px] text-white tracking-tight truncate max-w-[150px] sm:max-w-[300px] flex items-center justify-center relative min-w-[20px] min-h-[22px]">
               <AnimatePresence mode="popLayout" initial={false}>
-                <motion.span 
-                  key={projectName} 
+                <motion.span
+                  key={projectName}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}

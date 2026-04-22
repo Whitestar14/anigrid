@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Upload, Download, Crop, Check, Globe, Search, Trash2 } from 'lucide-react';
 import { CellData, GridStyle } from '@/types';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
+import { UrlInputModal } from '@/components/ui/UrlInputModal';
 
 interface CellProps {
   index: number;
@@ -18,13 +19,12 @@ interface CellProps {
   onInboxDrop: (itemId: string, collectionId: string, toIndex: number) => void;
   onInboxDropMulti?: (itemIds: string[], collectionId: string, toIndex: number) => void;
   onSearchDrop: (imageSrc: string, toIndex: number) => void;
-  onMoveToInbox: (index: number) => void;
   onDownloadSingle: (index: number) => void;
   onInteract: (index: number) => void;
   onUpdateCell: (index: number, data: Partial<CellData>) => void;
 }
 
-export const Cell: React.FC<CellProps> = ({
+export const Cell = React.memo(function Cell({
   index,
   data,
   styleMode,
@@ -38,15 +38,15 @@ export const Cell: React.FC<CellProps> = ({
   onInboxDrop,
   onInboxDropMulti,
   onSearchDrop,
-  _onMoveToInbox,
   onDownloadSingle,
   onInteract,
   onUpdateCell
-}) => {
+}: CellProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isAdjusting, setIsAdjusting] = useState(false);
+  const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
 
   const [zoom, setZoom] = useState(data.zoom || 1);
   const [posX, setPosX] = useState(data.objectPosition ? parseInt(data.objectPosition.split(' ')[0]) : 50);
@@ -186,7 +186,7 @@ export const Cell: React.FC<CellProps> = ({
             <img
               src={getProxiedImageUrl(data.imageSrc)}
               alt={`Rank ${index + 1}`}
-              className="w-full h-full object-cover select-none pointer-events-none transition-all duration-300"
+              className="w-full h-full object-cover select-none pointer-events-none transition-all duration-200"
               style={objectPosStyle}
               referrerPolicy="no-referrer"
             />
@@ -298,9 +298,7 @@ export const Cell: React.FC<CellProps> = ({
              <div className="h-px bg-white/10 mx-2 my-0.5" />
              <button onClick={(e) => {
                 e.stopPropagation();
-                const url = prompt("Enter Image URL");
-                if (url) onSearchDrop(url, index);
-                onInteract(-1);
+                setIsUrlModalOpen(true);
              }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
                 From URL <Globe size={16} className="text-white/50" />
              </button>
@@ -344,6 +342,12 @@ export const Cell: React.FC<CellProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <UrlInputModal
+        isOpen={isUrlModalOpen}
+        onClose={() => setIsUrlModalOpen(false)}
+        onSubmit={(url) => { onSearchDrop(url, index); onInteract(-1); }}
+      />
     </div>
   );
-};
+});

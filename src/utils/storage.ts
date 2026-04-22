@@ -29,7 +29,7 @@ const _createDefaultState = (): GlobalState => {
     activeRankId: rankId,
     theme: {
       accentColor: '#f43f5e',
-      paletteId: 'midnight',
+      paletteId: 'ios-dark',
       isDark: true
     },
     ranks: {
@@ -63,7 +63,9 @@ const _createDefaultState = (): GlobalState => {
       lastTargetCollectionId: colId
     },
     preferences: {
-      skipDuplicateWarning: false
+      skipDuplicateWarning: false,
+      reduceGlassEffects: false,
+      autoCloseDockOnDragDesktop: false,
     }
   };
 };
@@ -94,14 +96,25 @@ export const migrateState = (data: any): GlobalState | null => {
 
   if (!data.theme) {
       data.theme = {
-          accentColor: '#f43f5e',
-          paletteId: 'midnight',
+          accentColor: '#0a84ff',
+          paletteId: 'ios-dark',
           isDark: true
       };
   }
 
   if (!data.preferences) {
-      data.preferences = { skipDuplicateWarning: false };
+      data.preferences = {
+        skipDuplicateWarning: false,
+        reduceGlassEffects: false,
+        autoCloseDockOnDragDesktop: false,
+      };
+  } else {
+      if (typeof data.preferences.reduceGlassEffects !== 'boolean') {
+        data.preferences.reduceGlassEffects = false;
+      }
+      if (typeof data.preferences.autoCloseDockOnDragDesktop !== 'boolean') {
+        data.preferences.autoCloseDockOnDragDesktop = false;
+      }
   }
 
   return {

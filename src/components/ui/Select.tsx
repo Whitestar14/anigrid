@@ -61,7 +61,7 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
       )}
 
       {isOpen && (
-        <div className={cn("absolute z-50 mt-2 overflow-hidden bg-[#18181b]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200",
+        <div className={cn("absolute z-30 mt-2 overflow-hidden bg-[#18181b]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200",
             dropdownClassName || "w-full",
             alignOffset === 'right' ? "right-0" : "left-0"
         )}>

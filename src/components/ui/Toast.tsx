@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Info, AlertCircle } from 'lucide-react';
+import { useStore } from '@/store/useStore';
 
 export type ToastType = 'success' | 'info' | 'error';
 
@@ -19,7 +20,7 @@ interface ToastProps {
 
 export const ToastContainer: React.FC<ToastProps> = ({ toasts, onRemove }) => {
   return (
-    <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none">
+    <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 pointer-events-none">
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
           <Toast key={toast.id} toast={toast} onRemove={onRemove} />
@@ -30,6 +31,8 @@ export const ToastContainer: React.FC<ToastProps> = ({ toasts, onRemove }) => {
 };
 
 const Toast: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> = ({ toast, onRemove }) => {
+  const reduceGlass = useStore((s) => s.preferences.reduceGlassEffects ?? false);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       onRemove(toast.id);
@@ -50,7 +53,11 @@ const Toast: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> =
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.9 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className="pointer-events-auto flex items-center gap-3 px-4 py-3 bg-[#2c2c2e]/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl max-w-[90vw] sm:max-w-md"
+      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 border border-white/10 shadow-2xl rounded-2xl max-w-[90vw] sm:max-w-md ${
+        reduceGlass
+          ? 'bg-[#2c2c2e]'
+          : 'bg-[#2c2c2e]/90 backdrop-blur-xl'
+      }`}
     >
       {icons[toast.type]}
       <span className="text-[14px] font-medium text-white">{toast.message}</span>

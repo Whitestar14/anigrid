@@ -1,0 +1,53 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "react",
+    "react-hooks",
+    "jsx-a11y",
+    "typescript",
+    "unicorn",
+    "import"
+  ],
+  "rules": {
+    // --- React Specifics ---
+    "react/jsx-no-duplicate-props": "error",
+    "react/jsx-no-undef": "error",
+    "react/no-danger": "warn",
+    "react/no-string-refs": "error",
+    "react/react-in-jsx-scope": "off",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+
+    // --- Accessibility (a11y) ---
+    "jsx-a11y/alt-text": "error",
+    "jsx-a11y/aria-props": "error",
+    "jsx-a11y/aria-role": "error",
+    "jsx-a11y/no-static-element-interactions": "warn",
+
+    // --- TypeScript & Logic ---
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-unused-vars": "error",
+    "no-console": "warn",
+    "no-debugger": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+
+    // --- Import & Cleanliness ---
+    "import/no-duplicates": "error",
+    "unicorn/prefer-module": "error",
+    "unicorn/filename-case": [
+      "warn",
+      {
+        "case": "kebabCase"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["*.test.ts", "*.test.tsx"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    }
+  ]
+}

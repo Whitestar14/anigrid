@@ -40,7 +40,7 @@ const SearchItem: React.FC<{
         onDragEnd();
       }}
       className={`
-        group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-white/10 bg-[#2c2c2e] cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-500 transition-all shadow-md duration-300 ease-out
+        group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-white/10 bg-[#2c2c2e] cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-500 transition-all shadow-md duration-200 ease-out
         ${isAdded ? 'opacity-80' : ''}
         ${isDragging ? 'opacity-50 scale-95 ring-2 ring-green-500 drop-shadow-lg' : ''}
       `}
@@ -141,7 +141,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-300 px-2">
+    <div className="flex flex-col h-full animate-in fade-in duration-200 px-2">
       {/* Search Bar & Toggles */}
       <div className="flex items-center gap-4 mb-6">
         <div className="flex-1">
