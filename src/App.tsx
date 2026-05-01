@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { useStore } from "@/store/useStore";
 import { Controls } from "@/components/Controls";
 import { GridSettingsSidebar } from "@/components/GridSettingsSidebar";
@@ -96,7 +96,7 @@ export const App: React.FC = () => {
     cleanupOldCache();
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isLoaded && theme) {
       const root = document.documentElement;
       root.style.setProperty("--color-primary", theme.accentColor);
@@ -121,7 +121,7 @@ export const App: React.FC = () => {
     }
   }, [theme, isLoaded]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.toggleAttribute(
       "data-reduce-glass",
       reduceGlassEffects,

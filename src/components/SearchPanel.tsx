@@ -64,7 +64,7 @@ const SearchItem: React.FC<{
             if (!isAdded) onAdd(imgSrc);
         }}
         className={`
-          absolute top-2 right-2 p-1.5 rounded-full shadow-sm border border-white/20 hover:scale-110 transition-all z-10 backdrop-blur-md
+          absolute top-2 right-2 p-1.5 rounded-full shadow-sm hover:scale-110 transition-all z-10 glass
           ${isAdded ? 'bg-green-500/90 text-white cursor-default' : 'bg-blue-500/90 text-white'}
         `}
         title={isAdded ? "Already added" : "Add to Collection"}

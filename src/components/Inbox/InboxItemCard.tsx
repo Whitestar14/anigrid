@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { RotateCcw, X } from "lucide-react";
+import { useDraggable } from '@dnd-kit/core';
 import type { InboxItem } from "@/types";
 import { getProxiedImageUrl } from "@/utils/imageProxy";
 
@@ -8,8 +9,6 @@ export interface InboxItemCardProps {
   isUsed: boolean;
   isSelected: boolean;
   isAllView: boolean;
-  onDragStart: (e: React.DragEvent, id: string) => void;
-  onDragEnd: () => void;
   onItemClick: (e: React.MouseEvent, itemId: string) => void;
   onDeleteItem: (item: InboxItem) => void;
   onRecall: (imageSrc: string) => void;
@@ -20,28 +19,23 @@ export const InboxItemCard: React.FC<InboxItemCardProps> = ({
   isUsed,
   isSelected,
   isAllView,
-  onDragStart,
-  onDragEnd,
   onItemClick,
   onDeleteItem,
   onRecall,
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `inbox-item-${item.id}`,
+    data: { type: 'inbox-item', id: item.id, collectionId: item.collectionId, imageSrc: item.imageSrc },
+  });
 
   return (
     <div
-      draggable
-      onDragStart={(e) => {
-        onDragStart(e, item.id);
-        setTimeout(() => setIsDragging(true), 0);
-      }}
-      onDragEnd={() => {
-        setIsDragging(false);
-        onDragEnd();
-      }}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       onClick={(e) => onItemClick(e, item.id)}
       className={`
-            relative group shrink-0 w-28 h-40 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-200 ease-out
+            relative group shrink-0 w-28 h-40 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-200 ease-out touch-none
             ${
               isUsed
                 ? "opacity-40 grayscale hover:opacity-60"
@@ -59,7 +53,7 @@ export const InboxItemCard: React.FC<InboxItemCardProps> = ({
       />
 
       {isUsed && (
-        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-[2px] animate-in fade-in duration-300">
+        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center backdrop-blur-[2px] animate-in fade-in duration-150">
           <button
             onClick={(e) => {
               e.stopPropagation();

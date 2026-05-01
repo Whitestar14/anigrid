@@ -1,4 +1,5 @@
 import React from "react";
+import { useDroppable } from "@dnd-kit/core";
 import { Library, Settings2, ChevronDown } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { useInboxController } from "@/hooks/useInboxController";
@@ -15,8 +16,9 @@ export type BottomDockCtrl = ReturnType<typeof useInboxController>;
 // and naturally square-cornered while tall.
 const DOCK_RADIUS = "24px";
 
-export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
+export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?: (title: string, message: string, onConfirm: () => void) => void }> = ({
   ctrl,
+  requestConfirm,
 }) => {
   const reduceGlass = useStore((s) => s.preferences.reduceGlassEffects ?? false);
   const autoCloseDockDesktop = useStore(
@@ -73,6 +75,11 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
     isDraggingFromDock,
   } = ctrl;
 
+  const { isOver: isDndOver, setNodeRef: setDroppableRef } = useDroppable({
+    id: 'inbox-trash',
+    data: { type: 'inbox-trash' }
+  });
+
   // Global listeners to ensure the dock always reopens after a drag finishes, even if the source element was unmounted
   const isDraggingFromDockRef = React.useRef(isDraggingFromDock);
   React.useEffect(() => {
@@ -81,24 +88,17 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
 
   React.useEffect(() => {
     let reopenTimeout: NodeJS.Timeout;
-    const handleGlobalDragFinish = () => {
-      // Only react if the drag actually originated from this dock
-      if (isDraggingFromDockRef.current) {
-        setIsDraggingFromDock(false);
-        // Re-expand the dock after a short delay to allow UI to settle
-        clearTimeout(reopenTimeout);
-        reopenTimeout = setTimeout(() => setIsExpanded(true), 300);
-      }
-    };
-    document.addEventListener("dragend", handleGlobalDragFinish, true);
-    document.addEventListener("drop", handleGlobalDragFinish, true);
+    if (!isDraggingFromDock && isDraggingFromDockRef.current) {
+      // Re-expand the dock after a short delay to allow UI to settle when drag ends
+      clearTimeout(reopenTimeout);
+      reopenTimeout = setTimeout(() => setIsExpanded(true), 300);
+    }
+    isDraggingFromDockRef.current = isDraggingFromDock;
+    
     return () => {
-      document.removeEventListener("dragend", handleGlobalDragFinish, true);
-      document.removeEventListener("drop", handleGlobalDragFinish, true);
-      // NOTE: We DO NOT clear the timeout here if it was already scheduled
-      // to ensure it survives the re-render triggered by setIsDraggingFromDock(false)
+      clearTimeout(reopenTimeout);
     };
-  }, [setIsExpanded, setIsDraggingFromDock]); // Removed isDraggingFromDock dependency
+  }, [isDraggingFromDock, setIsExpanded]);
 
   // Wrap drag handlers to also honour autoclose
   const handleDragStart = React.useCallback(
@@ -130,12 +130,12 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
   // Single source-of-truth for glass styles — same token as sidebar
   const glassPanel = reduceGlass
     ? "bg-surface border border-border shadow-2xl"
-    : "bg-surface/90 backdrop-blur-3xl border border-white/10 shadow-2xl";
+    : "glass";
 
   // Collapsed: use the app surface color so it feels unified, not foreign
   const collapsedPanel = reduceGlass
     ? "bg-surface border border-border shadow-2xl"
-    : "bg-surface/80 backdrop-blur-2xl border border-white/8 shadow-[0_4px_24px_rgba(0,0,0,0.4)]";
+    : "glass-panel";
 
   return (
     <div
@@ -146,11 +146,12 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
       }}
     >
       <div
+        ref={setDroppableRef}
         className={`
           w-full overflow-hidden flex flex-col
           transition-all duration-240 ease-[cubic-bezier(0.32,0.72,0,1)]
           ${isExpanded ? glassPanel : collapsedPanel}
-          ${isDragOver ? "ring-2 ring-blue-500 ring-inset" : ""}
+          ${isDragOver || isDndOver ? "ring-2 ring-blue-500 ring-inset" : ""}
         `}
         style={{
           height: isExpanded ? "28rem" : "3.5rem",
@@ -179,126 +180,128 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl }> = ({
         }}
         onDrop={handleDrop}
       >
-        {!isExpanded ? (
-          /* ── Collapsed pill ─────────────────────────────── */
-          <div className="h-14 flex items-center shrink-0 pr-1 pl-2">
-            <button
-              type="button"
-              aria-label="Open Library"
-              className="flex-1 flex items-center justify-center gap-2.5 text-[14px] font-medium text-white/90 hover:bg-white/5 transition-all duration-150 h-12 rounded-[20px]"
-              onClick={() => {
-                setDockSurface("library");
-                setActiveTab("stash");
-                setIsExpanded(true);
-              }}
-            >
-              <Library size={18} strokeWidth={2} />
-              <span>Library</span>
-            </button>
-            <div className="w-px bg-white/10 h-8 mx-1 shrink-0" />
-            <button
-              type="button"
-              aria-label="Open Settings"
-              className="w-12 h-12 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150 rounded-[20px] shrink-0"
-              onClick={() => {
-                setDockSurface("settings");
-                setIsExpanded(true);
-              }}
-            >
-              <Settings2 size={20} strokeWidth={2} />
-            </button>
-          </div>
-        ) : dockSurface === "settings" ? (
-          /* ── Settings surface ───────────────────────────── */
-          <>
-            <DockSurfaceHeader
-              title="Settings"
-              onCollapse={() => setIsExpanded(false)}
-            />
-            <SettingsDockPanel />
-          </>
-        ) : (
-          /* ── Library surface ────────────────────────────── */
-          <>
-            <InboxDockHeader
-              activeTab={activeTab}
-              onToggleExpand={toggleExpand}
-              onSelectTab={(tab) => {
-                setActiveTab(tab);
-                setIsExpanded(true);
-              }}
-            />
+        <div
+          className={`absolute left-0 right-0 top-0 flex items-center pr-1 pl-2 h-[3.5rem] transition-opacity duration-200 ${!isExpanded ? "opacity-100 pointer-events-auto delay-75" : "opacity-0 pointer-events-none"}`}
+        >
+          <button
+            type="button"
+            aria-label="Open Library"
+            className="flex-1 min-w-0 flex items-center justify-center gap-2.5 text-[14px] font-medium text-white/90 hover:bg-white/5 transition-all duration-150 h-12 rounded-[20px]"
+            onClick={() => {
+              setDockSurface("library");
+              setActiveTab("stash");
+              setIsExpanded(true);
+            }}
+          >
+            <Library size={18} strokeWidth={2} className="shrink-0" />
+            <span className="truncate">Library</span>
+          </button>
+          <div className="w-px bg-white/10 h-8 mx-1 shrink-0" />
+          <button
+            type="button"
+            aria-label="Open Settings"
+            className="w-12 h-12 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150 rounded-[20px] shrink-0"
+            onClick={() => {
+              setDockSurface("settings");
+              setIsExpanded(true);
+            }}
+          >
+            <Settings2 size={20} strokeWidth={2} />
+          </button>
+        </div>
 
-            <div className="flex-1 overflow-hidden relative flex flex-col min-h-0 bg-black/20">
-              <div className="flex-1 min-h-0 flex flex-col relative">
-                {activeTab === "picker" && (
-                  <InboxCollectionPickerPanel
-                    collections={collections}
-                    lastTargetCollectionId={lastTargetCollectionId}
-                    editingNameId={editingNameId}
-                    tempName={tempName}
-                    onBack={() => setActiveTab("search")}
-                    onPickCollection={handleCollectionPick}
-                    onAddCollection={addCollection}
-                    onStartRename={startRename}
-                    onTempNameChange={setTempName}
-                    onCommitRename={commitRename}
-                    onCancelRename={() => setEditingNameId(null)}
-                  />
-                )}
+        {/* ── Expanded surfaces ───────────────────────────── */}
+        <div
+          className={`flex flex-col w-full h-[28rem] transition-opacity duration-200 ${isExpanded ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        >
+          {dockSurface === "settings" ? (
+            <>
+              <DockSurfaceHeader
+                title="Settings"
+                onCollapse={() => setIsExpanded(false)}
+              />
+              <SettingsDockPanel requestConfirm={requestConfirm} />
+            </>
+          ) : (
+            <>
+              <InboxDockHeader
+                activeTab={activeTab}
+                onToggleExpand={toggleExpand}
+                onSelectTab={(tab) => {
+                  setActiveTab(tab);
+                  setIsExpanded(true);
+                }}
+              />
 
-                <div
-                  className={`flex-1 min-h-0 ${activeTab === "search" ? "flex flex-col" : "hidden"}`}
-                >
-                  <InboxSearchView
-                    searchQuery={searchQuery}
-                    searchMode={searchMode}
-                    searchResults={searchResults}
-                    usedImageSrcs={usedImageSrcs}
-                    onQueryChange={setSearchQuery}
-                    onModeChange={setSearchMode}
-                    onResultsChange={setSearchResults}
-                    onSearchDragStart={handleSearchDragStart}
-                    onSearchDragEndExpand={expandDockAfterDrag}
-                    onSmartAdd={handleSmartAdd}
-                  />
-                </div>
+              <div className="flex-1 overflow-hidden relative flex flex-col min-h-0 bg-black/20">
+                <div className="flex-1 min-h-0 flex flex-col relative">
+                  {activeTab === "picker" && (
+                    <InboxCollectionPickerPanel
+                      collections={collections}
+                      lastTargetCollectionId={lastTargetCollectionId}
+                      editingNameId={editingNameId}
+                      tempName={tempName}
+                      onBack={() => setActiveTab("search")}
+                      onPickCollection={handleCollectionPick}
+                      onAddCollection={addCollection}
+                      onStartRename={startRename}
+                      onTempNameChange={setTempName}
+                      onCommitRename={commitRename}
+                      onCancelRename={() => setEditingNameId(null)}
+                    />
+                  )}
 
-                <div
-                  className={`flex-1 min-h-0 ${activeTab === "stash" ? "flex flex-col" : "hidden"}`}
-                >
-                  <InboxStashView
-                    fileInputRef={fileInputRef}
-                    collections={collections}
-                    activeCollectionId={activeCollectionId}
-                    currentItems={currentItems}
-                    isAllView={isAllView}
-                    usedOnBoard={usedOnBoard}
-                    selectedItemIds={selectedItemIds}
-                    interactionState={interactionState}
-                    editingNameId={editingNameId}
-                    tempName={tempName}
-                    onSwitchCollection={switchCollection}
-                    onAddCollection={addCollection}
-                    onStartRename={startRename}
-                    onTempNameChange={setTempName}
-                    onCommitRename={commitRename}
-                    onRequestDeleteCollection={requestDeleteCollection}
-                    onBulkDelete={handleBulkDelete}
-                    onClearSelection={() => setSelectedItemIds(new Set())}
-                    onUploadClick={() => fileInputRef.current?.click()}
-                    onFileChange={onFileInputChange}
-                    onDragStart={handleDragStart}
-                    onDragEndExpand={expandDockAfterDrag}
-                    onItemClick={handleItemClick}
-                    onDeleteItem={handleDeleteItem}
-                    onRecall={handleRecall}
-                  />
+                  <div
+                    className={`flex-1 min-h-0 ${activeTab === "search" ? "flex flex-col" : "hidden"}`}
+                  >
+                    <InboxSearchView
+                      searchQuery={searchQuery}
+                      searchMode={searchMode}
+                      searchResults={searchResults}
+                      usedImageSrcs={usedImageSrcs}
+                      onQueryChange={setSearchQuery}
+                      onModeChange={setSearchMode}
+                      onResultsChange={setSearchResults}
+                      onSearchDragStart={handleSearchDragStart}
+                      onSearchDragEndExpand={expandDockAfterDrag}
+                      onSmartAdd={handleSmartAdd}
+                    />
+                  </div>
+
+                  <div
+                    className={`flex-1 min-h-0 ${activeTab === "stash" ? "flex flex-col" : "hidden"}`}
+                  >
+                    <InboxStashView
+                      fileInputRef={fileInputRef}
+                      collections={collections}
+                      activeCollectionId={activeCollectionId}
+                      currentItems={currentItems}
+                      isAllView={isAllView}
+                      usedOnBoard={usedOnBoard}
+                      selectedItemIds={selectedItemIds}
+                      interactionState={interactionState}
+                      editingNameId={editingNameId}
+                      tempName={tempName}
+                      onSwitchCollection={switchCollection}
+                      onAddCollection={addCollection}
+                      onStartRename={startRename}
+                      onTempNameChange={setTempName}
+                      onCommitRename={commitRename}
+                      onRequestDeleteCollection={requestDeleteCollection}
+                      onBulkDelete={handleBulkDelete}
+                      onClearSelection={() => setSelectedItemIds(new Set())}
+                      onUploadClick={() => fileInputRef.current?.click()}
+                      onFileChange={onFileInputChange}
+                      onItemClick={handleItemClick}
+                      onDeleteItem={handleDeleteItem}
+                      onRecall={handleRecall}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -310,7 +313,7 @@ const DockSurfaceHeader: React.FC<{
   onCollapse: () => void;
 }> = ({ title, onCollapse }) => (
   <div
-    className="h-12 flex items-center justify-between px-5 shrink-0 border-b border-white/10 cursor-pointer select-none"
+    className="h-12 flex items-center justify-between pl-5 pr-2 sm:pr-3 shrink-0 border-b border-white/10 cursor-pointer select-none"
     onClick={onCollapse}
   >
     <span className="text-[15px] font-semibold text-white">{title}</span>

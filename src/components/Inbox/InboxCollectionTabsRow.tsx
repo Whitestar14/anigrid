@@ -98,7 +98,7 @@ export const InboxCollectionTabsRow: React.FC<InboxCollectionTabsRowProps> = ({
                     e.stopPropagation();
                     onStartRename(col.id, col.name);
                   }}
-                  className="text-white/50 hover:text-white p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="text-white/50 hover:text-white p-0.5 transition-colors"
                   title="Rename"
                 >
                   <Edit size={12} />
@@ -114,7 +114,7 @@ export const InboxCollectionTabsRow: React.FC<InboxCollectionTabsRowProps> = ({
                 e.stopPropagation();
                 onRequestDeleteCollection(col);
               }}
-              className="p-0.5 hover:text-red-400 text-white/50 transition-colors ml-auto opacity-0 group-hover:opacity-100"
+              className="p-0.5 hover:text-red-400 text-white/50 transition-colors ml-auto"
               title="Delete Collection"
             >
               <Trash size={12} />

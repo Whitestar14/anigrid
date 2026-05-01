@@ -162,6 +162,7 @@ const ListRow = React.memo(function ListRow({
         ${isDragging ? 'opacity-40 grayscale' : ''}
       `}
       onDrop={handleDrop}
+      onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); e.dataTransfer.dropEffect = 'copy'; }}
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); e.dataTransfer.dropEffect = 'copy'; }}
       onDragLeave={() => setIsDragOver(false)}
       draggable
@@ -269,19 +270,28 @@ const ListRow = React.memo(function ListRow({
                  <span className="text-[10px] uppercase font-bold tracking-wider opacity-50">Add</span>
               </div>
               {/* Popover Menu (Empty State equivalent mapping) */}
-              {isSelected && (
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 animate-in fade-in zoom-in-95">
-                     <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-xl text-[11px] font-medium text-white transition-colors">
-                        Local <Upload size={12} className="text-white/50" />
+              <AnimatePresence>
+                {isSelected && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-40%' }}
+                    animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
+                    exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-40%' }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="absolute top-1/2 left-1/2 w-max min-w-[120px] bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1"
+                  >
+                     <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+                        Local <Upload size={16} className="text-white/50" />
                      </button>
+                     <div className="h-px bg-white/10 mx-2 my-0.5 shrink-0" />
                      <button onClick={(e) => {
                         e.stopPropagation();
                         setIsUrlModalOpen(true);
-                     }} className="flex items-center justify-between p-2 hover:bg-white/10 rounded-xl text-[11px] font-medium text-white transition-colors">
-                        URL <ArrowDownToLine size={12} className="text-white/50" />
+                     }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
+                        URL <ArrowDownToLine size={16} className="text-white/50" />
                      </button>
-                  </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </>
           )}
       </div>

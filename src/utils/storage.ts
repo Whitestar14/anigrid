@@ -1,8 +1,28 @@
-import { set } from 'idb-keyval';
+import { get, set, del } from 'idb-keyval';
+import { StateStorage } from 'zustand/middleware';
 import { GlobalState, TierRow } from '@/types';
 
 const DB_KEY = 'anime-ranker-state';
 const CURRENT_VERSION = 3;
+
+// Custom storage for idb-keyval
+export const idbStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    const value = await get(name);
+    if (!value) return null;
+    // If it's the old format (doesn't have a 'state' wrapper), wrap it
+    if (!value.state && value.ranks) {
+      return JSON.stringify({ state: value, version: value.version || 1 });
+    }
+    return JSON.stringify(value);
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    await set(name, JSON.parse(value));
+  },
+  removeItem: async (name: string): Promise<void> => {
+    await del(name);
+  },
+};
 
 export const saveState = async (state: GlobalState) => {
   try {

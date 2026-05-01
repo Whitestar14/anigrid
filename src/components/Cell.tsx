@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { Plus, X, Upload, Download, Crop, Check, Globe, Search, Trash2 } from 'lucide-react';
 import { CellData, GridStyle } from '@/types';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
@@ -44,11 +45,27 @@ export const Cell = React.memo(function Cell({
 }: CellProps) {
   const cellRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isFileDragOver, setIsFileDragOver] = useState(false);
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [isAdjustDragging, setIsAdjustDragging] = useState(false);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+
+  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
+    id: `cell-drop-${index}`,
+    data: { type: 'cell', index }
+  });
+
+  const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } = useDraggable({
+    id: `cell-drag-${index}`,
+    data: { type: 'cell', index, imageSrc: data.imageSrc },
+    disabled: !data.imageSrc || isAdjusting
+  });
+
+  const setRefs = (node: HTMLDivElement | null) => {
+    cellRef.current = node;
+    setDroppableRef(node);
+    setDraggableRef(node);
+  };
 
   const [zoom, setZoom] = useState(data.zoom || 1);
   const [posX, setPosX] = useState(data.objectPosition ? parseInt(data.objectPosition.split(' ')[0]) : 50);
@@ -56,7 +73,7 @@ export const Cell = React.memo(function Cell({
 
   const handleClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.adjust-controls') || (e.target as HTMLElement).closest('.popover-menu')) return;
-
+    e.stopPropagation();
     onInteract(index);
   };
 
@@ -110,57 +127,30 @@ export const Cell = React.memo(function Cell({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragOver(false);
+    setIsFileDragOver(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
       if (file.type.startsWith('image/')) {
         onUpload(index, file);
       }
-      return;
-    }
-
-    const dragData = e.dataTransfer.getData('application/json');
-    if (dragData) {
-      try {
-        const source = JSON.parse(dragData);
-        if (source.type === 'cell') {
-          if (source.index !== index) {
-            onSwap(source.index, index);
-          }
-        } else if (source.type === 'inbox') {
-          onInboxDrop(source.id, source.originCollectionId, index);
-        } else if (source.type === 'inbox-multi') {
-          if (onInboxDropMulti) {
-            onInboxDropMulti(source.ids, source.originCollectionId, index);
-          } else {
-            onInboxDrop(source.ids[0], source.originCollectionId, index);
-          }
-        } else if (source.type === 'search') {
-          onSearchDrop(source.imageSrc, index);
-        }
-      } catch (err) {
-        console.error("Invalid drag data", err);
-      }
     }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-    e.dataTransfer.dropEffect = 'copy';
-  };
-
-  const handleDragStart = (e: React.DragEvent) => {
-    if (data.imageSrc) {
-      e.dataTransfer.setData('application/json', JSON.stringify({ type: 'cell', index }));
-      e.dataTransfer.effectAllowed = 'copyMove';
-      setTimeout(() => setIsDragging(true), 0);
-    } else {
+    if (e.dataTransfer.types.includes('Files')) {
       e.preventDefault();
+      e.stopPropagation();
+      setIsFileDragOver(true);
+      e.dataTransfer.dropEffect = 'copy';
     }
   };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    setIsFileDragOver(false);
+  };
+
+  const isDragOver = isOver || isFileDragOver;
 
   const roundedClass = styleMode === 'card' ? 'rounded-2xl' : 'rounded-none';
   // If seamless and NOT borderless, show border. If borderless is true, hide it.
@@ -184,7 +174,7 @@ export const Cell = React.memo(function Cell({
 
   return (
     <motion.div
-      ref={cellRef}
+      ref={setRefs}
       layout
       className={`
         relative group/cell transition-all duration-200 ${aspectMap[aspectRatio] || 'aspect-[3/4]'}
@@ -195,11 +185,11 @@ export const Cell = React.memo(function Cell({
       `}
       onClick={handleClick}
       onDrop={handleDrop}
+      onDragEnter={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.stopPropagation(); setIsFileDragOver(true); e.dataTransfer.dropEffect = 'copy'; } }}
       onDragOver={handleDragOver}
-      onDragLeave={() => setIsDragOver(false)}
-      onDragStart={handleDragStart}
-      onDragEnd={() => setIsDragging(false)}
-      draggable={!!data.imageSrc && !isAdjusting}
+      onDragLeave={handleDragLeave}
+      {...attributes}
+      {...listeners}
     >
       <div
         className={`w-full h-full relative overflow-hidden ${roundedClass} ${bgClass} ${outlineClass} ${isDragOver ? 'ring-4 ring-primary bg-primary/20' : ''} ${isSelected ? 'ring-2 ring-primary shadow-xl scale-[0.98]' : ''} ${!data.imageSrc ? 'cursor-pointer hover:bg-hover' : 'cursor-pointer'}`}

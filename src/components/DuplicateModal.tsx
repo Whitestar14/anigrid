@@ -21,7 +21,7 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
     <Modal 
       isOpen={isOpen} 
       onClose={onCancel} 
-      className="max-w-[270px] bg-[#1c1c1e]/90 backdrop-blur-3xl border border-white/10 shadow-2xl rounded-[20px] overflow-hidden"
+      className="max-w-[270px] glass-panel rounded-[20px] overflow-hidden"
       contentClassName="p-0"
     >
       <div className="flex flex-col text-center">

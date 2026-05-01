@@ -3,6 +3,7 @@ import { Upload, ChevronLeft, ChevronRight } from "lucide-react";
 import type { InboxItem, InteractionState } from "@/types";
 import { CuteSlime } from "@/components/EmptyStateVector";
 import { InboxItemCard } from "./InboxItemCard";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface InboxStashGridProps {
   fileInputRef: RefObject<HTMLInputElement | null>;
@@ -116,28 +117,40 @@ export const InboxStashGrid: React.FC<InboxStashGridProps> = ({
                   </span>
                 </button>
               )}
-              {currentItems.map((item) => {
-                const isUsed = usedOnBoard.has(item.imageSrc);
-                const isSelected =
-                  selectedItemIds.has(item.id) ||
-                  (interactionState?.type === "inbox" &&
-                    interactionState.itemId === item.id);
+              <AnimatePresence>
+                {currentItems.map((item) => {
+                  const isUsed = usedOnBoard.has(item.imageSrc);
+                  const isSelected =
+                    selectedItemIds.has(item.id) ||
+                    (interactionState?.type === "inbox" &&
+                      interactionState.itemId === item.id);
 
-                return (
-                  <InboxItemCard
-                    key={item.id}
-                    item={item}
-                    isUsed={isUsed}
-                    isSelected={isSelected}
-                    isAllView={isAllView}
-                    onDragStart={onDragStart}
-                    onDragEnd={onDragEndExpand}
-                    onItemClick={onItemClick}
-                    onDeleteItem={onDeleteItem}
-                    onRecall={onRecall}
-                  />
-                );
-              })}
+                  return (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8, width: 0, marginRight: 0, paddingRight: 0 }}
+                      transition={{ duration: 0.2 }}
+                      key={item.id}
+                      className="shrink-0"
+                    >
+                      <InboxItemCard
+                        key={item.id}
+                        item={item}
+                        isUsed={isUsed}
+                        isSelected={isSelected}
+                        isAllView={isAllView}
+                        onDragStart={onDragStart}
+                        onDragEnd={onDragEndExpand}
+                        onItemClick={onItemClick}
+                        onDeleteItem={onDeleteItem}
+                        onRecall={onRecall}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </>
           )}
         </div>

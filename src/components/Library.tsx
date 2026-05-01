@@ -52,7 +52,7 @@ export const Library: React.FC<ExtendedLibraryProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-2xl bg-[#1c1c1e]/90 backdrop-blur-3xl border border-white/10 shadow-2xl rounded-[32px] overflow-hidden"
+      className="max-w-2xl glass-panel rounded-[32px] overflow-hidden"
       contentClassName="p-0 flex flex-col min-h-0"
     >
         {/* iOS-like Header */}

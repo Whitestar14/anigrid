@@ -142,17 +142,15 @@ export function useInboxController(
 
   const handleItemClick = useCallback(
     (e: React.MouseEvent, itemId: string) => {
-      if (e.shiftKey) {
-        setSelectedItemIds((prev) => {
-          const next = new Set(prev);
-          if (next.has(itemId)) next.delete(itemId);
-          else next.add(itemId);
-          return next;
-        });
-      } else {
-        setSelectedItemIds(new Set([itemId]));
-        onInteract(itemId, isAllView ? "all-images" : activeCollectionId);
-      }
+      // Toggle selection for bulk actions
+      setSelectedItemIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(itemId)) next.delete(itemId);
+        else next.add(itemId);
+        return next;
+      });
+      // Fire interaction event for tap-to-drop functionality
+      onInteract(itemId, isAllView ? "all-images" : activeCollectionId);
     },
     [onInteract, isAllView, activeCollectionId]
   );
@@ -319,9 +317,12 @@ export function useInboxController(
   );
 
   const requestDeleteCollection = useCallback(
-    (col: { id: string; name: string }) => {
-      requestConfirm(`Delete "${col.name}"?`, "All items lost.", () =>
-        deleteCollection(col.id)
+    (col: { id: string; name: string; items: InboxItem[] }) => {
+      const itemCount = col.items ? col.items.length : 0;
+      requestConfirm(
+        `Delete "${col.name}"?`, 
+        `This will permanently delete the collection and its ${itemCount} item${itemCount === 1 ? '' : 's'}. This action cannot be undone.`, 
+        () => deleteCollection(col.id)
       );
     },
     [requestConfirm, deleteCollection]

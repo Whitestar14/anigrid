@@ -21,7 +21,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-[320px] bg-[#1c1c1e]/90 backdrop-blur-3xl border border-white/10 shadow-2xl rounded-[24px] overflow-hidden"
+      className="max-w-[320px] glass-panel rounded-[24px] overflow-hidden"
       contentClassName="p-0"
     >
       <div className="flex flex-col">

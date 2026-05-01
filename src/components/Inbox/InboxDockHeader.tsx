@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, ChevronDown, Globe, Image as ImageIcon } from "lucide-react";
+import { ChevronDown, Globe, Image as ImageIcon } from "lucide-react";
 import type { InboxTab } from "./types";
 
 export interface InboxDockHeaderProps {
@@ -15,14 +15,11 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
 }) => {
   return (
     <div
-      className="h-12 flex items-center justify-between px-5 sm:px-6 select-none shrink-0 border-b border-white/10 cursor-pointer"
+      className="h-12 flex items-center justify-between pl-5 pr-2 sm:pr-3 select-none shrink-0 border-b border-white/10 cursor-pointer"
       onClick={onToggleExpand}
     >
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-[13px] font-medium tracking-wide text-white/50 uppercase">
-          <Box size={15} />
-          <span>Library</span>
-        </div>
+      <div className="flex items-center gap-4">
+        <span className="text-[15px] font-semibold text-white">Library</span>
 
         <div className="flex items-center bg-[#767680]/24 rounded-xl p-1">
           <button

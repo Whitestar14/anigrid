@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { Rank, TierRow, InteractionState, CellData } from "@/types";
 import {
   Plus,
@@ -95,10 +96,31 @@ const TierItem = React.memo(function TierItem({
   aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
 }) {
   const tierRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isDragOver, setIsDragOver] = useState(false);
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [isAdjustDragging, setIsAdjustDragging] = useState(false);
+
+  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
+    id: `tier-drop-${rowId}-${idx}`,
+    data: { type: 'tier-cell', rowId, index: idx }
+  });
+
+  const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } = useDraggable({
+    id: `tier-drag-${item.id}`,
+    data: { type: 'tier-item', rowId, id: item.id, imageSrc: item.imageSrc },
+    disabled: !item.imageSrc || isAdjusting
+  });
+
+  const setRefs = (node: HTMLDivElement | null) => {
+    tierRef.current = node;
+    setDroppableRef(node);
+    if (!isAdjusting && item.imageSrc) {
+      setDraggableRef(node);
+    } else {
+      setDraggableRef(null);
+    }
+  };
+
+  const isDragOver = isOver;
 
   const aspectMap: Record<string, string> = {
     "1:1": "w-24 h-24",
@@ -159,24 +181,13 @@ const TierItem = React.memo(function TierItem({
 
   return (
     <motion.div
+      ref={setRefs}
       layout
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
       transition={{ type: "spring", stiffness: 450, damping: 35 }}
       className={`relative group/item ${isDragging ? "opacity-40 scale-95 grayscale" : ""} ${isDragOver ? "ring-4 ring-primary bg-primary/20 z-20 scale-105 shadow-2xl" : ""}`}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.dataTransfer.dropEffect =
-          e.dataTransfer.effectAllowed === "move" ? "move" : "copy";
-        setIsDragOver(true);
-      }}
-      onDragLeave={() => setIsDragOver(false)}
-      onDrop={(e) => {
-        setIsDragOver(false);
-        handleItemDrop(e, rowId, idx);
-      }}
       onClick={(e) => {
         if (
           (e.target as HTMLElement).closest("button") ||
@@ -212,19 +223,10 @@ const TierItem = React.memo(function TierItem({
           onInteract(rowId, item.id);
         }
       }}
-      draggable={!isAdjusting}
-      onDragStart={(e) => {
-        e.dataTransfer.setData(
-          "application/json",
-          JSON.stringify({ type: "tier-item", rowId: rowId, itemId: item.id }),
-        );
-        e.dataTransfer.effectAllowed = "move";
-        setTimeout(() => setIsDragging(true), 0);
-      }}
-      onDragEnd={() => setIsDragging(false)}
+      {...attributes}
+      {...listeners}
     >
       <div
-        ref={tierRef}
         className={`
                 ${aspectMap[aspectRatio || "3:4"]} relative cursor-grab active:cursor-grabbing overflow-hidden select-none bg-black/20
                 ${interactionState?.type === "tier-item" && interactionState.itemId === item.id ? "opacity-50 ring-2 ring-primary z-10" : ""}
@@ -278,26 +280,26 @@ const TierItem = React.memo(function TierItem({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="popover-menu absolute top-full mt-2 w-32 left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1"
+              className="popover-menu absolute top-full mt-2 w-max min-w-[120px] left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1"
             >
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsAdjusting(true);
                 }}
-                className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors"
+                className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2"
               >
-                Adjust <Crop size={14} className="text-white/50" />
+                Adjust <Crop size={16} className="text-white/50" />
               </button>
-              <div className="h-px bg-white/10 mx-2 my-0.5" />
+              <div className="h-px bg-white/10 mx-2 my-0.5 shrink-0" />
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onMoveToInbox(rowId, idx);
                 }}
-                className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors"
+                className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors gap-2"
               >
-                Remove <X size={14} className="text-red-500/50" />
+                Remove <X size={16} className="text-red-500/50" />
               </button>
             </motion.div>
           )}
@@ -305,6 +307,23 @@ const TierItem = React.memo(function TierItem({
     </motion.div>
   );
 });
+
+const TierRowWrapper: React.FC<{ rowId: string; children: React.ReactNode; defaultClassName: string; activeDropRowId: string | null; onClick: () => void }> = ({ rowId, children, defaultClassName, activeDropRowId, onClick }) => {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `tier-row-body-${rowId}`,
+    data: { type: 'tier-cell', rowId, index: -1 } // -1 indicates end of row
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`${defaultClassName} ${isOver ? "bg-primary/20 ring-inset ring-2 ring-primary shadow-inner" : ""}`}
+      onClick={onClick}
+    >
+      {children}
+    </div>
+  );
+};
 
 export const TierListView: React.FC<TierListViewProps> = ({
   rank,
@@ -526,14 +545,10 @@ export const TierListView: React.FC<TierListViewProps> = ({
           </div>
 
           {/* 2. Content (Middle) - Compact Layout */}
-          <div
-            className={`
-                relative flex-1 flex flex-wrap content-start items-start min-h-[6rem] transition-all duration-200
-                ${activeDropRowId === row.id ? "bg-primary/20 ring-inset ring-2 ring-primary shadow-inner" : "bg-surface"}
-            `}
-            onDragOver={(e) => handleDragOver(e, row.id)}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDropOnRow(e, row.id)}
+          <TierRowWrapper
+            rowId={row.id}
+            defaultClassName="relative flex-1 flex flex-wrap content-start items-start min-h-[6rem] transition-all duration-200 bg-surface"
+            activeDropRowId={activeDropRowId}
             onClick={() => handleRowClick(row.id)}
           >
             <AnimatePresence>
@@ -564,7 +579,7 @@ export const TierListView: React.FC<TierListViewProps> = ({
 
             {/* Invisible Filler */}
             <div className="flex-1 min-h-[6rem]" />
-          </div>
+          </TierRowWrapper>
 
           {/* 3. Controls (Right) */}
           <div className="w-10 sm:w-16 bg-surface shrink-0 flex flex-col items-center justify-between py-1 border-l border-border export-hidden px-1">

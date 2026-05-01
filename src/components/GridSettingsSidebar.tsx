@@ -30,52 +30,7 @@ export interface GridSettingsSidebarProps {
   requestConfirm: (title: string, message: string, action: () => void) => void;
 }
 
-/**
- * iOS-style grouped list card — automatically inserts inset dividers between children.
- * Each child is typically a <button> or <label> row.
- */
-const SettingButtonGroup: React.FC<{ children: React.ReactNode; className?: string }> = ({
-  children,
-  className = "",
-}) => {
-  const childrenArray = React.Children.toArray(children).filter(Boolean);
-  return (
-    <div className={`flex flex-col bg-[#2c2c2e] rounded-2xl mx-4 overflow-hidden ${className}`}>
-      {childrenArray.map((child, idx) => (
-        <React.Fragment key={idx}>
-          {child}
-          {idx < childrenArray.length - 1 && (
-            <div className="h-px bg-[#3a3a3c] ml-[3.25rem]" />
-          )}
-        </React.Fragment>
-      ))}
-    </div>
-  );
-};
-
-/** A single row inside a SettingButtonGroup — icon + label + optional right element */
-const SettingRow: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  iconBg?: string;
-  onClick?: () => void;
-  right?: React.ReactNode;
-  destructive?: boolean;
-  className?: string;
-}> = ({ icon, label, iconBg = "bg-primary/20 text-primary", onClick, right, destructive, className = "" }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`flex items-center gap-3 px-4 py-3 w-full text-left hover:bg-white/5 transition-colors ${destructive ? "text-[#ff453a]" : "text-white"
-      } ${className}`}
-  >
-    <div className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${iconBg}`}>
-      {icon}
-    </div>
-    <span className="flex-1 text-[15px]">{label}</span>
-    {right}
-  </button>
-);
+import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 const GRID_BG_COLORS = [
   "transparent",
   "#ffffff",
@@ -150,15 +105,15 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
       <aside
         className={`
-           border-r border-border bg-surface/90 backdrop-blur-3xl shadow-2xl flex shrink-0 z-40
+           border-r border-border glass flex shrink-0 z-40
            fixed top-14 bottom-0 left-0 md:static overflow-hidden
          `}
         style={{
           width: isOpen ? "20rem" : "0",
           transform: isOpen ? "translateX(0)" : "translateX(-100%)",
           transition: [
-            "width 300ms cubic-bezier(0.32,0.72,0,1)",
-            "transform 300ms cubic-bezier(0.32,0.72,0,1)",
+            "width 200ms cubic-bezier(0.32,0.72,0,1)",
+            "transform 200ms cubic-bezier(0.32,0.72,0,1)",
             "opacity 200ms ease",
           ].join(", "),
           opacity: isOpen ? 1 : 0,
@@ -516,19 +471,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                   Data Actions
                 </span>
 
-                <SettingButtonGroup>
-                  <SettingRow
-                    icon={<Save size={16} />}
-                    label="Backup"
-                    iconBg="bg-primary/20 text-primary"
-                    onClick={handleExportJson}
-                  />
-                  <SettingRow
-                    icon={<Upload size={16} />}
-                    label="Restore"
-                    iconBg="bg-primary/20 text-primary"
-                    onClick={() => jsonInputRef.current?.click()}
-                  />
+                <SettingButtonGroup className="mx-4">
                   <SettingRow
                     icon={<Trash2 size={16} />}
                     label={`Clear ${projectType === "tierlist" ? "Tiers" : "Grid"}`}

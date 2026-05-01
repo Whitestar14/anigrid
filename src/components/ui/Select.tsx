@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { cn } from '@/utils';
 import { ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface SelectOption {
   label: string;
@@ -60,30 +61,39 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
           </button>
       )}
 
-      {isOpen && (
-        <div className={cn("absolute z-30 mt-2 overflow-hidden bg-[#18181b]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200",
-            dropdownClassName || "w-full",
-            alignOffset === 'right' ? "right-0" : "left-0"
-        )}>
-          <ul className="max-h-60 overflow-auto py-1">
-            {options.map((option) => (
-              <li
-                key={option.value}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
-                className={cn(
-                  "relative cursor-pointer select-none py-2 pl-3 pr-9 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors",
-                  value === option.value && "bg-primary/20 text-primary font-medium hover:bg-primary/30"
-                )}
-              >
-                <span className="block truncate">{option.label}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -5, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className={cn("absolute z-50 mt-2 overflow-hidden bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 p-1 rounded-2xl shadow-2xl",
+              dropdownClassName || "w-full min-w-[140px]",
+              alignOffset === 'right' ? "right-0" : "left-0"
+          )}>
+            <ul className="max-h-60 overflow-auto flex flex-col">
+              {options.map((option, idx) => (
+                <React.Fragment key={option.value}>
+                  <li
+                    onClick={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors cursor-pointer",
+                      value === option.value && "bg-white/5"
+                    )}
+                  >
+                    <span className="block truncate">{option.label}</span>
+                  </li>
+                  {idx < options.length - 1 && <div className="h-px bg-white/10 mx-2 my-0.5 shrink-0" />}
+                </React.Fragment>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
