@@ -1,5 +1,5 @@
 import React from "react";
-import { useDroppable } from "@dnd-kit/core";
+import { useDroppable, useDndMonitor } from "@dnd-kit/core";
 import { Library, Settings2, ChevronDown } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { useInboxController } from "@/hooks/useInboxController";
@@ -57,10 +57,8 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
     setSelectedItemIds,
     isDragOver,
     setIsDragOver,
-    handleDragStart: handleDragStartBase,
     handleItemClick,
     handleBulkDelete,
-    handleSearchDragStart: handleSearchDragStartBase,
     handleSmartAdd,
     handleDeleteItem,
     handleDrop,
@@ -69,7 +67,6 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
     handleCollectionPick,
     requestDeleteCollection,
     onFileInputChange,
-    expandDockAfterDrag,
     handleRecall,
     setIsDraggingFromDock,
     isDraggingFromDock,
@@ -100,22 +97,32 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
     };
   }, [isDraggingFromDock, setIsExpanded]);
 
-  // Wrap drag handlers to also honour autoclose
-  const handleDragStart = React.useCallback(
-    (e: React.DragEvent, id: string) => {
-      handleDragStartBase(e, id);
-      setIsDraggingFromDock(true);
-    },
-    [handleDragStartBase, setIsDraggingFromDock],
-  );
+  const dockRef = React.useRef<HTMLDivElement>(null);
+  const setDockRefs = React.useCallback((node: HTMLDivElement | null) => {
+    dockRef.current = node;
+    setDroppableRef(node);
+  }, [setDroppableRef]);
 
-  const handleSearchDragStart = React.useCallback(
-    (e: React.DragEvent, src: string) => {
-      handleSearchDragStartBase(e, src);
-      setIsDraggingFromDock(true);
-    },
-    [handleSearchDragStartBase, setIsDraggingFromDock],
-  );
+  useDndMonitor({
+    onDragMove(event) {
+      if (isDraggingFromDockRef.current && isExpanded) {
+        if (!dockRef.current) return;
+        const rect = dockRef.current.getBoundingClientRect();
+        const y = event.active.rect.current.translated?.top;
+        const x = event.active.rect.current.translated?.left;
+        
+        if (y !== undefined && x !== undefined) {
+           if (y < rect.top || y >= rect.bottom || x < rect.left || x >= rect.right) {
+              const isMobile = window.innerWidth < 768;
+              if (isMobile || autoCloseDockDesktop) {
+                setIsExpanded(false);
+              }
+           }
+        }
+      }
+    }
+  });
+
 
   const commitRename = (colId: string) => {
     if (tempName.trim()) renameCollection(colId, tempName);
@@ -146,9 +153,9 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
       }}
     >
       <div
-        ref={setDroppableRef}
+        ref={setDockRefs}
         className={`
-          w-full overflow-hidden flex flex-col
+          relative w-full overflow-hidden flex flex-col
           transition-all duration-240 ease-[cubic-bezier(0.32,0.72,0,1)]
           ${isExpanded ? glassPanel : collapsedPanel}
           ${isDragOver || isDndOver ? "ring-2 ring-blue-500 ring-inset" : ""}
@@ -157,26 +164,6 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
           height: isExpanded ? "28rem" : "3.5rem",
           // Keep border-radius constant — avoids the weird morph
           borderRadius: DOCK_RADIUS,
-        }}
-        onDragOver={handleDragOver}
-        onDragLeave={(e) => {
-          setIsDragOver(false);
-          // INTENT-BASED CLOSING: Only collapse if we are dragging an item OUT of the dock
-          if (isDraggingFromDock) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            // Check if mouse is actually outside the dock's bounds
-            if (
-              e.clientY < rect.top ||
-              e.clientY >= rect.bottom ||
-              e.clientX < rect.left ||
-              e.clientX >= rect.right
-            ) {
-              const isMobile = window.innerWidth < 768;
-              if (isMobile || autoCloseDockDesktop) {
-                setIsExpanded(false);
-              }
-            }
-          }
         }}
         onDrop={handleDrop}
       >
@@ -262,8 +249,6 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
                       onQueryChange={setSearchQuery}
                       onModeChange={setSearchMode}
                       onResultsChange={setSearchResults}
-                      onSearchDragStart={handleSearchDragStart}
-                      onSearchDragEndExpand={expandDockAfterDrag}
                       onSmartAdd={handleSmartAdd}
                     />
                   </div>
@@ -313,7 +298,7 @@ const DockSurfaceHeader: React.FC<{
   onCollapse: () => void;
 }> = ({ title, onCollapse }) => (
   <div
-    className="h-12 flex items-center justify-between pl-5 pr-2 sm:pr-3 shrink-0 border-b border-white/10 cursor-pointer select-none"
+    className="h-12 flex items-center justify-between pl-5 pr-1 sm:pr-2 shrink-0 border-b border-white/10 cursor-pointer select-none"
     onClick={onCollapse}
   >
     <span className="text-[15px] font-semibold text-white">{title}</span>

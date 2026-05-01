@@ -100,7 +100,7 @@ export const InboxCollectionPickerPanel: React.FC<
                       e.stopPropagation();
                       onStartRename(col.id, col.name);
                     }}
-                    className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all"
+                    className="absolute top-2 right-2 p-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all"
                   >
                     <Edit2 size={12} />
                   </button>

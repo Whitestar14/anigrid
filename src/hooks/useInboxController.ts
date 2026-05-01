@@ -124,21 +124,7 @@ export function useInboxController(
       window.removeEventListener(OPEN_SEARCH_EVENT, handleOpenSearch);
   }, []);
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent, id: string) => {
-      const idsToDrag = selectedItemIds.has(id)
-        ? Array.from(selectedItemIds)
-        : [id];
-      writeInboxMultiDragData(
-        e,
-        idsToDrag,
-        isAllView ? "all" : activeCollectionId
-      );
-      // Flag that drag originated from dock so it can auto-reopen after drop
-      setIsDraggingFromDock(true);
-    },
-    [selectedItemIds, isAllView, activeCollectionId]
-  );
+
 
   const handleItemClick = useCallback(
     (e: React.MouseEvent, itemId: string) => {
@@ -169,14 +155,7 @@ export function useInboxController(
     );
   }, [selectedItemIds, removeInboxItem, addToast, requestConfirm]);
 
-  const handleSearchDragStart = useCallback(
-    (e: React.DragEvent, imageSrc: string) => {
-      writeSearchDragData(e, imageSrc);
-      // Flag that drag originated from dock so it can auto-reopen after drop
-      setIsDraggingFromDock(true);
-    },
-    []
-  );
+
 
   const handleSmartAdd = useCallback(
     (imageSrc: string) => {
@@ -293,10 +272,6 @@ export function useInboxController(
 
   const toggleExpand = useCallback(() => setIsExpanded((v) => !v), []);
 
-  const expandDockAfterDrag = useCallback(() => {
-    scheduleDockExpand(setIsExpanded);
-  }, []);
-
   const handleCollectionPick = useCallback(
     (colId: string) => {
       if (!pendingPickerImage) return;
@@ -380,10 +355,8 @@ export function useInboxController(
     setSelectedItemIds,
     isDragOver,
     setIsDragOver,
-    handleDragStart,
     handleItemClick,
     handleBulkDelete,
-    handleSearchDragStart,
     handleSmartAdd,
     handleDeleteItem,
     handleRecall,
@@ -393,7 +366,6 @@ export function useInboxController(
     handleCollectionPick,
     requestDeleteCollection,
     onFileInputChange,
-    expandDockAfterDrag,
     setIsDraggingFromDock,
     isDraggingFromDock,
   };

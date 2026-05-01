@@ -157,8 +157,8 @@ const ListRow = React.memo(function ListRow({
         flex items-center gap-4 transition-all duration-200
         ${rankStyle === 'card' ? 'p-3 bg-[#2c2c2e] rounded-2xl' : 'p-3 bg-transparent hover:bg-white/[0.02]'}
         ${rankStyle === 'seamless' && borderless ? 'border-none' : rankStyle === 'seamless' ? 'border-b border-white/5' : ''}
-        ${isDragOver ? 'ring-2 ring-primary bg-primary/10 z-20' : ''}
-        ${isSelected ? 'bg-primary/5' : ''}
+        ${isDragOver ? 'ring-2 ring-primary bg-primary/10 z-[60] relative' : ''}
+        ${isSelected ? 'bg-primary/5 z-50 relative' : 'z-10 relative'}
         ${isDragging ? 'opacity-40 grayscale' : ''}
       `}
       onDrop={handleDrop}

@@ -40,7 +40,7 @@ export const InboxCollectionTabsRow: React.FC<InboxCollectionTabsRowProps> = ({
         }
       }}
       className={`
-                                      flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-lg transition-all shrink-0
+                                      flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-lg shrink-0
                                       ${activeCollectionId === "all-images" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white hover:bg-white/10"}
                                     `}
     >
@@ -67,7 +67,7 @@ export const InboxCollectionTabsRow: React.FC<InboxCollectionTabsRowProps> = ({
             }
           }}
           className={`
-                                        group relative flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-lg transition-all min-w-[100px] justify-between shrink-0
+                                        group relative flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-lg min-w-[100px] justify-between shrink-0
                                         ${
                                           isActive
                                             ? "bg-[#636366] text-white shadow-sm"

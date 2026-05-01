@@ -53,7 +53,7 @@ const TierHeader: React.FC<{
 
     return (
         <div
-            className="flex items-center justify-center shrink-0 w-24 sm:w-32 rounded-xl border border-black/10 shadow-sm relative group overflow-hidden transition-all hover:shadow-md"
+            className="flex items-center justify-center shrink-0 w-24 sm:w-32 rounded-xl outline outline-black/10 shadow-sm relative group overflow-hidden transition-all hover:shadow-md"
             style={{ backgroundColor: color }}
             onClick={() => setIsEditing(true)}
         >
@@ -134,10 +134,11 @@ export const GridView: React.FC<GridViewProps> = ({
                       <motion.div
                         layout
                         className="grid"
-                        style={{
+                        animate={{
                             gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
                             gap: `${rank.gap ?? 0}px`,
                         }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                       >
                           {rowCells.map((cell) => {
                              const globalIndex = rank.cells.indexOf(cell);
@@ -175,10 +176,11 @@ export const GridView: React.FC<GridViewProps> = ({
     <motion.div
       layout
       className="grid"
-      style={{
+      animate={{
         gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
         gap: `${rank.gap ?? 0}px`,
       }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
       {rank.cells.map((cell, index) => (
         <Cell

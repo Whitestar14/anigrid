@@ -2,6 +2,7 @@ import { StateCreator } from "zustand";
 import { AppState } from "../useStore";
 import { TierRow, ProjectType, GridConfig, RankMode, CellData, InboxItem } from "@/types";
 import { checkAndRescueImages } from "@/utils/storeUtils";
+import { createBlankRank } from "@/utils/storage";
 
 export interface RankSlice {
   updateActiveRank: (updates: Partial<AppState["ranks"][string]>) => void;
@@ -604,38 +605,10 @@ export const createRankSlice: StateCreator<
     }),
   handleNewRank: (type) =>
     set((state) => {
-      const newId = `rank-${Date.now()}`;
-      const newRank = {
-        id: newId,
-        title: type === "tierlist" ? "My Tier List" : "My Ranking",
-        type: type,
-        mode: type === "tierlist" ? "tier" : "grid",
-        config: { rows: 3, cols: 3 },
-        cells: Array.from({ length: 9 }).map((_, i) => ({
-          id: `cell-${i}`,
-          imageSrc: null,
-          position: i,
-        })),
-        style: "seamless",
-        showNumbers: true,
-        showTitle: true,
-        showDate: true,
-        gap: 0,
-        backgroundColor: "transparent",
-        tierRows: [
-          { id: "tier-s", label: "S", color: "#ff7f7f", items: [] },
-          { id: "tier-a", label: "A", color: "#ffbf7f", items: [] },
-          { id: "tier-b", label: "B", color: "#ffdf7f", items: [] },
-          { id: "tier-c", label: "C", color: "#ffff7f", items: [] },
-          { id: "tier-d", label: "D", color: "#bfff7f", items: [] },
-          { id: "tier-f", label: "F", color: "#7fffff", items: [] },
-        ],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
+      const newRank = createBlankRank(type);
       return {
-        activeRankId: newId,
-        ranks: { ...state.ranks, [newId]: newRank as any },
+        activeRankId: newRank.id,
+        ranks: { ...state.ranks, [newRank.id]: newRank as any },
       };
     }),
   handleDeleteRank: (id) =>
@@ -644,32 +617,10 @@ export const createRankSlice: StateCreator<
       delete newRanks[id];
       const remainingIds = Object.keys(newRanks);
       if (remainingIds.length === 0) {
-        const newId = `rank-${Date.now()}`;
+        const newRank = createBlankRank("ranking");
         return {
-          activeRankId: newId,
-          ranks: {
-            [newId]: {
-              id: newId,
-              title: "My Ranking",
-              type: "ranking",
-              mode: "grid",
-              config: { rows: 3, cols: 3 },
-              cells: Array.from({ length: 9 }).map((_, i) => ({
-                id: `cell-${i}`,
-                imageSrc: null,
-                position: i,
-              })),
-              style: "seamless",
-              showNumbers: true,
-              showTitle: true,
-              showDate: true,
-              gap: 0,
-              backgroundColor: "transparent",
-              tierRows: [],
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-            } as any,
-          },
+          activeRankId: newRank.id,
+          ranks: { [newRank.id]: newRank as any },
         };
       }
       return {

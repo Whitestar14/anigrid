@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDraggable } from '@dnd-kit/core';
 import { Search, Loader2, AlertCircle, Plus, Check, RefreshCw, WifiOff } from 'lucide-react';
 import { JikanResult } from '@/types';
 import { Input } from '@/components/ui/Input';
@@ -11,10 +12,8 @@ interface SearchPanelProps {
   onModeChange: (m: 'anime' | 'characters') => void;
   results: JikanResult[];
   onResultsChange: (results: JikanResult[]) => void;
-  onDragStart: (e: React.DragEvent, imageSrc: string) => void;
-  onDragEnd: () => void;
   onAdd: (imageSrc: string) => void;
-  usedImageSrcs: Set<string>; // New prop for feedback
+  usedImageSrcs: Set<string>;
 }
 
 const SearchItem: React.FC<{
@@ -22,25 +21,20 @@ const SearchItem: React.FC<{
   imgSrc: string;
   label: string;
   isAdded: boolean;
-  onDragStart: (e: React.DragEvent, imgSrc: string) => void;
-  onDragEnd: () => void;
   onAdd: (imgSrc: string) => void;
-}> = ({ _item, imgSrc, label, isAdded, onDragStart, onDragEnd, onAdd }) => {
-  const [isDragging, setIsDragging] = useState(false);
+}> = ({ imgSrc, label, isAdded, onAdd }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `search-${imgSrc}`,
+    data: { type: 'search-item', imageSrc: imgSrc },
+  });
 
   return (
     <div
-      draggable
-      onDragStart={(e) => {
-        onDragStart(e, imgSrc);
-        setTimeout(() => setIsDragging(true), 0);
-      }}
-      onDragEnd={() => {
-        setIsDragging(false);
-        onDragEnd();
-      }}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       className={`
-        group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-white/10 bg-[#2c2c2e] cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-500 transition-all shadow-md duration-200 ease-out
+        group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-white/10 bg-[#2c2c2e] cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-500 transition-all shadow-md duration-200 ease-out touch-none
         ${isAdded ? 'opacity-80' : ''}
         ${isDragging ? 'opacity-50 scale-95 ring-2 ring-green-500 drop-shadow-lg' : ''}
       `}
@@ -87,8 +81,6 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
   onModeChange,
   results,
   onResultsChange,
-  onDragStart,
-  onDragEnd,
   onAdd,
   usedImageSrcs
 }) => {
@@ -205,8 +197,6 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                    imgSrc={imgSrc}
                    label={label}
                    isAdded={isAdded}
-                   onDragStart={onDragStart}
-                   onDragEnd={onDragEnd}
                    onAdd={onAdd}
                  />
                );

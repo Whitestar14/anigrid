@@ -8,14 +8,13 @@ import { motion, AnimatePresence } from "framer-motion";
 export interface InboxStashGridProps {
   fileInputRef: RefObject<HTMLInputElement | null>;
   currentItems: InboxItem[];
+  activeCollectionId: string;
   isAllView: boolean;
   usedOnBoard: Set<string>;
   selectedItemIds: Set<string>;
   interactionState: InteractionState;
   onUploadClick: () => void;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onDragStart: (e: React.DragEvent, id: string) => void;
-  onDragEndExpand: () => void;
   onItemClick: (e: React.MouseEvent, itemId: string) => void;
   onDeleteItem: (item: InboxItem) => void;
   onRecall: (imageSrc: string) => void;
@@ -24,14 +23,13 @@ export interface InboxStashGridProps {
 export const InboxStashGrid: React.FC<InboxStashGridProps> = ({
   fileInputRef,
   currentItems,
+  activeCollectionId,
   isAllView,
   usedOnBoard,
   selectedItemIds,
   interactionState,
   onUploadClick,
   onFileChange,
-  onDragStart,
-  onDragEndExpand,
   onItemClick,
   onDeleteItem,
   onRecall,
@@ -141,8 +139,7 @@ export const InboxStashGrid: React.FC<InboxStashGridProps> = ({
                         isUsed={isUsed}
                         isSelected={isSelected}
                         isAllView={isAllView}
-                        onDragStart={onDragStart}
-                        onDragEnd={onDragEndExpand}
+                        collectionId={isAllView ? "all-images" : activeCollectionId}
                         onItemClick={onItemClick}
                         onDeleteItem={onDeleteItem}
                         onRecall={onRecall}

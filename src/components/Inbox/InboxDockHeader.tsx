@@ -15,7 +15,7 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
 }) => {
   return (
     <div
-      className="h-12 flex items-center justify-between pl-5 pr-2 sm:pr-3 select-none shrink-0 border-b border-white/10 cursor-pointer"
+      className="h-12 flex items-center justify-between pl-5 pr-1 sm:pr-2 select-none shrink-0 border-b border-white/10 cursor-pointer"
       onClick={onToggleExpand}
     >
       <div className="flex items-center gap-4">
@@ -30,7 +30,7 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
               ${activeTab === "stash" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}
             `}
           >
-            <ImageIcon size={13} /> Stash
+            stash
           </button>
           <button
             type="button"
@@ -40,7 +40,7 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
               ${activeTab === "search" || activeTab === "picker" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}
             `}
           >
-            <Globe size={13} /> Search
+            search
           </button>
         </div>
       </div>

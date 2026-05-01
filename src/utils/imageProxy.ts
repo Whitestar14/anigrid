@@ -3,7 +3,7 @@
  */
 
 const PROXY_URL =
-  import.meta.env.VITE_IMAGE_PROXY_URL || "http://localhost:5000/proxy/image";
+  (import.meta as any).env.VITE_IMAGE_PROXY_URL || "http://localhost:5000/proxy/image";
 
 export const getProxiedImageUrl = (externalUrl: string): string => {
   if (

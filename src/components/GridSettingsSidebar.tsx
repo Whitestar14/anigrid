@@ -130,35 +130,25 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
           >
             <div className="flex flex-col gap-8 py-6 w-80">
               {/* Header Section: Project Type */}
-              <div className="flex items-center justify-between gap-4 p-4 bg-[#2c2c2e] rounded-2xl mx-4">
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`p-3 rounded-xl ${projectType === "tierlist" ? "bg-purple-500/20 text-purple-500" : "bg-primary/20 text-primary"}`}
-                  >
-                    {projectType === "tierlist" ? (
-                      <Layers size={24} />
-                    ) : (
-                      <LayoutGrid size={24} />
-                    )}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-medium text-white/50 uppercase tracking-wide">
-                      Project Type
-                    </span>
-                    <span className="text-lg font-semibold text-white leading-tight tracking-tight">
-                      {projectType === "tierlist"
-                        ? "Tier List"
-                        : "Ranking Grid"}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors md:hidden"
-                  title="Close Settings"
-                >
-                  <X size={20} />
-                </button>
+              <div className="mx-4">
+                <SettingButtonGroup>
+                  <SettingRow
+                    asLabel
+                    icon={projectType === "tierlist" ? <Layers size={18} /> : <LayoutGrid size={18} />}
+                    iconBg={projectType === "tierlist" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"}
+                    label={projectType === "tierlist" ? "Tier List" : "Ranking Grid"}
+                    sublabel="Project Type"
+                    right={
+                      <button
+                        onClick={onClose}
+                        className="p-1 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors md:hidden"
+                        title="Close Settings"
+                      >
+                        <X size={16} />
+                      </button>
+                    }
+                  />
+                </SettingButtonGroup>
               </div>
 
               {/* Section: Mode (Only for Ranking Type) */}

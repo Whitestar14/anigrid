@@ -155,7 +155,7 @@ export const Cell = React.memo(function Cell({
   const roundedClass = styleMode === 'card' ? 'rounded-2xl' : 'rounded-none';
   // If seamless and NOT borderless, show border. If borderless is true, hide it.
   const outlineClass = styleMode === 'seamless' && !borderless && !isDragOver && !isSelected ? 'outline outline-1 outline-border -outline-offset-1' : '';
-  const bgClass = styleMode === 'card' ? 'bg-surface shadow-sm border border-white/5' : 'bg-surface';
+  const bgClass = styleMode === 'card' ? 'bg-surface shadow-sm outline outline-white/5' : 'bg-surface';
 
   const align = data.alignment || 'center';
   const objectPosStyle: React.CSSProperties = {
@@ -175,7 +175,7 @@ export const Cell = React.memo(function Cell({
   return (
     <motion.div
       ref={setRefs}
-      layout
+      layout={!isDragging}
       className={`
         relative group/cell transition-all duration-200 ${aspectMap[aspectRatio] || 'aspect-[3/4]'}
         ${roundedClass}

@@ -6,6 +6,7 @@ import { getProxiedImageUrl } from "@/utils/imageProxy";
 
 export interface InboxItemCardProps {
   item: InboxItem;
+  collectionId: string;
   isUsed: boolean;
   isSelected: boolean;
   isAllView: boolean;
@@ -16,6 +17,7 @@ export interface InboxItemCardProps {
 
 export const InboxItemCard: React.FC<InboxItemCardProps> = ({
   item,
+  collectionId,
   isUsed,
   isSelected,
   isAllView,
@@ -25,7 +27,7 @@ export const InboxItemCard: React.FC<InboxItemCardProps> = ({
 }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `inbox-item-${item.id}`,
-    data: { type: 'inbox-item', id: item.id, collectionId: item.collectionId, imageSrc: item.imageSrc },
+    data: { type: 'inbox-item', id: item.id, collectionId, imageSrc: item.imageSrc },
   });
 
   return (

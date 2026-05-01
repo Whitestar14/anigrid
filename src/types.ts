@@ -84,6 +84,7 @@ export interface GlobalState {
     collections: InboxCollection[];
     activeCollectionId: string;
     lastTargetCollectionId?: string;
+    isDraggingFromDock: boolean;
   };
   preferences: {
     skipDuplicateWarning: boolean;
