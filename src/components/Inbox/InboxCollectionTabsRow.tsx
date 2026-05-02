@@ -16,7 +16,7 @@ export interface InboxCollectionTabsRowProps {
   onRequestDeleteCollection: (col: InboxCollection) => void;
 }
 
-export const InboxCollectionTabsRow: React.FC<InboxCollectionTabsRowProps> = ({
+export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
   collections,
   activeCollectionId,
   editingNameId,
@@ -134,4 +134,4 @@ export const InboxCollectionTabsRow: React.FC<InboxCollectionTabsRowProps> = ({
       <Plus size={16} />
     </motion.button>
   </>
-);
+));

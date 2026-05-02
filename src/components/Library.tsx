@@ -115,6 +115,7 @@ export const Library: React.FC<ExtendedLibraryProps> = ({
                      className={index !== sortedRanks.length - 1 ? 'border-b border-white/10' : ''}
                    >
                      <SettingRow
+                       as="div"
                        onClick={() => {
                            if (editingId !== rank.id) {
                                onSelectRank(rank.id);

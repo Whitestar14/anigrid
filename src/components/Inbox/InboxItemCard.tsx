@@ -15,7 +15,7 @@ export interface InboxItemCardProps {
   onRecall: (imageSrc: string) => void;
 }
 
-export const InboxItemCard: React.FC<InboxItemCardProps> = ({
+export const InboxItemCard = React.memo<InboxItemCardProps>(({
   item,
   collectionId,
   isUsed,
@@ -91,4 +91,4 @@ export const InboxItemCard: React.FC<InboxItemCardProps> = ({
       )}
     </div>
   );
-};
+});

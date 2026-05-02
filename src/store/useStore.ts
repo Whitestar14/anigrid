@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { temporal } from "zundo";
-import { idbStorage, createDefaultState, migrateState } from "@/utils/storage";
+import { idbStorage, createDefaultState } from "@/utils/storage";
 import { GlobalState } from "@/types";
 import { createGlobalSlice, GlobalSlice } from "./slices/globalSlice";
 import { createRankSlice, RankSlice } from "./slices/rankSlice";
@@ -25,12 +25,7 @@ export const useStore = create<AppState>()(
         name: "anime-ranker-state",
         storage: createJSONStorage(() => idbStorage),
         version: 3,
-        migrate: (persistedState: any, version: number) => {
-          if (version < 3) {
-            return migrateState(persistedState) as AppState;
-          }
-          return persistedState as AppState;
-        },
+        migrate: (persistedState: any) => persistedState as AppState,
       }
     ),
     {

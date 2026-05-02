@@ -24,18 +24,24 @@ export const SettingRow: React.FC<{
   label: React.ReactNode;
   sublabel?: React.ReactNode;
   iconBg?: string;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   right?: React.ReactNode;
   destructive?: boolean;
   className?: string;
   asLabel?: boolean;
-}> = ({ icon, label, sublabel, iconBg = "bg-primary/20 text-primary", onClick, right, destructive, className = "", asLabel }) => {
-  const Component = asLabel ? "label" : onClick ? "button" : "div";
+  as?: "div" | "button" | "label";
+}> = ({ icon, label, sublabel, iconBg = "bg-primary/20 text-primary", onClick, right, destructive, className = "", asLabel, as }) => {
+  const Component = as || (asLabel ? "label" : onClick ? "button" : "div");
+  const isBtn = Component === "button";
+  const isClickable = !!onClick || asLabel;
+
   return (
     <Component
-      type={Component === "button" ? "button" : undefined}
+      type={isBtn ? "button" : undefined}
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 w-full text-left transition-colors ${onClick || asLabel ? "hover:bg-white/5 cursor-pointer" : ""
+      role={!isBtn && onClick ? "button" : undefined}
+      tabIndex={!isBtn && onClick ? 0 : undefined}
+      className={`flex items-center gap-3 px-4 py-3 w-full text-left transition-colors ${isClickable ? "hover:bg-white/5 cursor-pointer" : ""
         } ${destructive ? "text-[#ff453a]" : "text-white"} ${className}`}
     >
       {icon && (

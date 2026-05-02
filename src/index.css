@@ -62,6 +62,8 @@ body {
   overflow: hidden;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 ::selection {
@@ -69,10 +71,18 @@ body {
   color: white;
 }
 
+/* Re-enable selection for inputs and explicit selectable text */
+input,
+textarea,
+[contenteditable="true"],
+.selectable {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 button,
 a {
   -webkit-touch-callout: none;
-  user-select: none;
 }
 
 ::-webkit-scrollbar {

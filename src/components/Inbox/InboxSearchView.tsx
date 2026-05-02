@@ -11,6 +11,7 @@ export interface InboxSearchViewProps {
   onModeChange: (m: "anime" | "characters") => void;
   onResultsChange: (r: JikanResult[]) => void;
   onSmartAdd: (imageSrc: string) => void;
+  autoFocus?: boolean;
 }
 
 export const InboxSearchView: React.FC<InboxSearchViewProps> = ({
@@ -22,6 +23,7 @@ export const InboxSearchView: React.FC<InboxSearchViewProps> = ({
   onModeChange,
   onResultsChange,
   onSmartAdd,
+  autoFocus
 }) => (
   <div className="flex flex-1 min-h-0 flex-col p-4">
     <SearchPanel
@@ -33,6 +35,7 @@ export const InboxSearchView: React.FC<InboxSearchViewProps> = ({
       onResultsChange={onResultsChange}
       onAdd={onSmartAdd}
       usedImageSrcs={usedImageSrcs}
+      autoFocus={autoFocus}
     />
   </div>
 );

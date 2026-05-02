@@ -20,7 +20,7 @@ export interface InboxStashGridProps {
   onRecall: (imageSrc: string) => void;
 }
 
-export const InboxStashGrid: React.FC<InboxStashGridProps> = ({
+export const InboxStashGrid = React.memo<InboxStashGridProps>(({
   fileInputRef,
   currentItems,
   activeCollectionId,
@@ -38,23 +38,22 @@ export const InboxStashGrid: React.FC<InboxStashGridProps> = ({
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
 
-  const checkScroll = () => {
+  const checkScroll = React.useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
     setShowLeft(scrollLeft > 20);
     setShowRight(scrollLeft < scrollWidth - clientWidth - 20);
-  };
+  }, []);
 
   useEffect(() => {
     checkScroll();
-    // Use a small delay to ensure DOM is settled
-    const timer = setTimeout(checkScroll, 100);
+    const timer = setTimeout(checkScroll, 150);
     window.addEventListener("resize", checkScroll);
     return () => {
       window.removeEventListener("resize", checkScroll);
       clearTimeout(timer);
     };
-  }, [currentItems]);
+  }, [currentItems, checkScroll]);
 
   const handleScroll = (dir: "left" | "right") => {
     if (!scrollRef.current) return;
@@ -115,12 +114,12 @@ export const InboxStashGrid: React.FC<InboxStashGridProps> = ({
                   </span>
                 </button>
               )}
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {currentItems.map((item) => {
                   const isUsed = usedOnBoard.has(item.imageSrc);
                   const isSelected =
                     selectedItemIds.has(item.id) ||
-                    (interactionState?.type === "inbox" &&
+                    (interactionState?.type === "inbox-item" &&
                       interactionState.itemId === item.id);
 
                   return (
@@ -128,13 +127,12 @@ export const InboxStashGrid: React.FC<InboxStashGridProps> = ({
                       layout
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8, width: 0, marginRight: 0, paddingRight: 0 }}
-                      transition={{ duration: 0.2 }}
+                      exit={{ opacity: 0, scale: 0.8, width: 0, marginRight: 0 }}
+                      transition={{ duration: 0.15 }}
                       key={item.id}
                       className="shrink-0"
                     >
                       <InboxItemCard
-                        key={item.id}
                         item={item}
                         isUsed={isUsed}
                         isSelected={isSelected}
@@ -181,4 +179,4 @@ export const InboxStashGrid: React.FC<InboxStashGridProps> = ({
       )}
     </div>
   );
-};
+});

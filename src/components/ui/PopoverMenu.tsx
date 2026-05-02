@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { LucideIcon } from 'lucide-react';
 
@@ -15,6 +16,7 @@ interface PopoverMenuProps {
   actions: PopoverAction[];
   className?: string;
   align?: 'center' | 'top' | 'bottom';
+  triggerPoint?: { x: number; y: number } | null;
 }
 
 export const PopoverMenu: React.FC<PopoverMenuProps> = ({
@@ -22,20 +24,85 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
   onClose,
   actions,
   className = "",
-  align = 'center'
+  align = 'center',
+  triggerPoint = null
 }) => {
-  return (
+  const isFixed = !!triggerPoint;
+  const menuRef = React.useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = React.useState<{ x: number; y: number; translateY: number } | null>(null);
+
+  // Measure and adjust position once mounted
+  React.useEffect(() => {
+    if (isOpen && triggerPoint && menuRef.current) {
+      // Use a small delay to ensure the browser has layouted the element
+      const timeout = setTimeout(() => {
+        if (!menuRef.current) return;
+        
+        const rect = menuRef.current.getBoundingClientRect();
+        const padding = 16;
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+
+        let x = triggerPoint.x;
+        let y = triggerPoint.y;
+        let translateY = -100; // Default: show above cursor
+
+        // Horizontal Constraint
+        const halfW = rect.width / 2;
+        if (x - halfW < padding) {
+          x = halfW + padding;
+        } else if (x + halfW > winW - padding) {
+          x = winW - halfW - padding;
+        }
+
+        // Vertical Constraint
+        // distanceToTop = triggerPoint.y
+        if (y - rect.height - 40 < padding) {
+          // If too close to top, show below cursor
+          y = triggerPoint.y + 20;
+          translateY = 0;
+        } else {
+          // Normal: show above cursor
+          y = triggerPoint.y - 10;
+          translateY = -100;
+        }
+
+        setCoords({ x, y, translateY });
+      }, 0);
+      
+      return () => clearTimeout(timeout);
+    } else if (!isOpen) {
+      setCoords(null);
+    }
+  }, [isOpen, triggerPoint]);
+
+  const style: React.CSSProperties = isFixed ? {
+    position: 'fixed',
+    left: coords?.x ?? triggerPoint?.x,
+    top: coords?.y ?? triggerPoint?.y,
+    transform: `translate(-50%, ${coords?.translateY ?? -50}%)`,
+    opacity: coords ? 1 : 0,
+    pointerEvents: coords ? 'auto' : 'none',
+    zIndex: 150,
+  } : {};
+
+  const content = (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          className={`popover-menu absolute w-max min-w-[160px] left-1/2 -translate-x-1/2 glass-panel shadow-2xl rounded-2xl z-[100] flex flex-col p-1.5 ${
-            align === 'top' ? 'bottom-full mb-2' : 
-            align === 'bottom' ? 'top-full mt-2' : 
-            'top-1/2 -translate-y-1/2'
+          ref={menuRef}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: coords ? 1 : 0, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.12 }}
+          style={style}
+          data-position-mode="portal"
+          className={`popover-menu w-max min-w-[160px] glass-panel shadow-2xl rounded-2xl flex flex-col p-1.5 ${
+            isFixed ? '' : 'absolute left-1/2 -translate-x-1/2 ' + (
+              align === 'top' ? 'bottom-full mb-2' : 
+              align === 'bottom' ? 'top-full mt-2' : 
+              'top-1/2 -translate-y-1/2'
+            )
           } ${className}`}
         >
           {actions.map((action, i) => (
@@ -60,4 +127,10 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
       )}
     </AnimatePresence>
   );
+
+  if (isFixed) {
+    return createPortal(content, document.body);
+  }
+
+  return content;
 };

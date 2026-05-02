@@ -10,10 +10,6 @@ export const idbStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     const value = await get(name);
     if (!value) return null;
-    // If it's the old format (doesn't have a 'state' wrapper), wrap it
-    if (!value.state && value.ranks) {
-      return JSON.stringify({ state: value, version: value.version || 1 });
-    }
     return JSON.stringify(value);
   },
   setItem: async (name: string, value: string): Promise<void> => {
@@ -90,58 +86,7 @@ export const createDefaultState = (): GlobalState => {
   };
 };
 
-export const migrateState = (data: any): GlobalState | null => {
-  if (!data) return null;
 
-  // Migration logic
-  const ranks = data.ranks || {};
-  Object.values(ranks).forEach((rank: any) => {
-    // Ensure tierRows exists
-    if (!rank.tierRows) {
-      rank.tierRows = createDefaultTierRows();
-    }
-
-    // Basic property checks
-    if (typeof rank.showTitle === 'undefined') rank.showTitle = true;
-    if (typeof rank.showDate === 'undefined') rank.showDate = true;
-    if (typeof rank.gap === 'undefined') rank.gap = rank.style === 'card' ? 16 : 0;
-    if (typeof rank.backgroundColor === 'undefined') rank.backgroundColor = 'transparent';
-    if (typeof rank.mode === 'undefined') rank.mode = 'grid';
-
-    // V3 Migration: Assign type based on mode
-    if (!rank.type) {
-      rank.type = rank.mode === 'tier' ? 'tierlist' : 'ranking';
-    }
-  });
-
-  if (!data.theme) {
-    data.theme = {
-      accentColor: '#0a84ff',
-      paletteId: 'ios-dark',
-      isDark: true
-    };
-  }
-
-  if (!data.preferences) {
-    data.preferences = {
-      skipDuplicateWarning: false,
-      reduceGlassEffects: false,
-      autoCloseDockOnDragDesktop: false,
-    };
-  } else {
-    if (typeof data.preferences.reduceGlassEffects !== 'boolean') {
-      data.preferences.reduceGlassEffects = false;
-    }
-    if (typeof data.preferences.autoCloseDockOnDragDesktop !== 'boolean') {
-      data.preferences.autoCloseDockOnDragDesktop = false;
-    }
-  }
-
-  return {
-    ...data,
-    version: CURRENT_VERSION
-  } as GlobalState;
-};
 
 export const exportStateToJson = (state: GlobalState) => {
   const dataStr = JSON.stringify(state);

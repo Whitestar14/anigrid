@@ -19,7 +19,7 @@ import {
 import { ColorPicker } from '@/components/ui/ColorPicker';
 import { useStore } from "@/store/useStore";
 import { Slider } from "@/components/ui/Slider";
-import { exportStateToJson, migrateState } from "@/utils/storage";
+import { exportStateToJson } from "@/utils/storage";
 import { useShallow } from "zustand/react/shallow";
 
 export interface GridSettingsSidebarProps {
@@ -82,8 +82,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
     const text = await file.text();
     try {
       const json = JSON.parse(text);
-      const migrated = migrateState(json);
-      if (migrated) useStore.getState().importState(migrated);
+      if (json) useStore.getState().importState(json);
     } catch (e) {
       console.error("Failed to import JSON", e);
       alert("Invalid JSON file");
@@ -133,7 +132,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
               <div className="mx-4">
                 <SettingButtonGroup>
                   <SettingRow
-                    asLabel
+                    as="div"
                     icon={projectType === "tierlist" ? <Layers size={18} /> : <LayoutGrid size={18} />}
                     iconBg={projectType === "tierlist" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"}
                     label={projectType === "tierlist" ? "Tier List" : "Ranking Grid"}

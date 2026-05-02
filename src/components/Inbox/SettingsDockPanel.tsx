@@ -4,7 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import { Toggle } from "@/components/ui/Toggle";
 import { ColorPicker } from "@/components/ui/ColorPicker";
 import { Save, Upload, ShieldAlert, Palette, Layers, Minimize2 } from "lucide-react";
-import { exportStateToJson, migrateState } from "@/utils/storage";
+import { exportStateToJson } from "@/utils/storage";
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 
 export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, message: string, onConfirm: () => void) => void }> = ({ requestConfirm }) => {
@@ -27,8 +27,7 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
     const text = await file.text();
     try {
       const json = JSON.parse(text);
-      const migrated = migrateState(json);
-      if (migrated) useStore.getState().importState(migrated);
+      if (json) useStore.getState().importState(json);
     } catch (e) {
       console.error("Failed to import JSON", e);
       alert("Invalid JSON file");
@@ -37,7 +36,7 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-6">
-      
+
       <div className="flex flex-col gap-2 relative">
         <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-2">
           Appearance
@@ -104,7 +103,17 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
             iconBg="bg-orange-500/20 text-orange-400"
             label="Restore Data"
             sublabel="Import a previously exported JSON backup file."
-            onClick={() => jsonInputRef.current?.click()}
+            onClick={() => {
+              if (requestConfirm) {
+                requestConfirm(
+                  "Restore Backup?",
+                  "This will overwrite all current ranks, images, and collections with the data from your backup file. This cannot be undone.",
+                  () => jsonInputRef.current?.click()
+                );
+              } else {
+                jsonInputRef.current?.click();
+              }
+            }}
           />
           <SettingRow
             icon={<ShieldAlert size={16} />}
@@ -115,7 +124,7 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
             onClick={() => {
               if (requestConfirm) {
                 requestConfirm(
-                  "Wipe ALL App Data?",
+                  "Wipe All App Data?",
                   "This will delete everything including all ranks, collections, and preferences. It cannot be undone.",
                   () => {
                     localStorage.removeItem("anime-ranker-state");
@@ -141,7 +150,7 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
           }
         }}
       />
-      
+
       <div className="h-4" />
     </div>
   );

@@ -41,6 +41,7 @@ const ListRow = React.memo(function ListRow({
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+  const [localClickPoint, setLocalClickPoint] = useState<{ x: number; y: number } | null>(null);
 
   const borderRadius = activeRank?.borderRadius ?? 12;
 
@@ -128,9 +129,11 @@ const ListRow = React.memo(function ListRow({
         ${isDragging ? 'opacity-20 grayscale z-0' : 'z-10'}
         ${isSelected ? 'bg-primary/5 ring-1 ring-primary/20 shadow-lg' : ''}
       `}
-      onClick={() => {
+      onClick={(e) => {
         if (isAdjusting) return;
         
+        const point = { x: e.clientX, y: e.clientY };
+        setLocalClickPoint(point);
         const current = useStore.getState().interactionState;
         
         // Cell -> Cell Swap
@@ -138,8 +141,10 @@ const ListRow = React.memo(function ListRow({
           if (current.index !== index) {
             useStore.getState().handleSwapCells(current.index, index);
             setInteractionState(null);
+            setLocalClickPoint(null);
           } else {
             setInteractionState(null);
+            setLocalClickPoint(null);
           }
           return;
         }
@@ -148,6 +153,15 @@ const ListRow = React.memo(function ListRow({
         if (current?.type === 'inbox-item') {
           useStore.getState().handleInboxDrop(current.id, current.collectionId, index);
           setInteractionState(null);
+          setLocalClickPoint(null);
+          return;
+        }
+
+        // Multi-Inbox -> Cell Drop
+        if (current?.type === 'inbox-multi') {
+          useStore.getState().handleInboxDropMulti(current.itemIds, current.collectionId, index);
+          setInteractionState(null);
+          setLocalClickPoint(null);
           return;
         }
 
@@ -155,6 +169,7 @@ const ListRow = React.memo(function ListRow({
         if (current?.type === 'search') {
           useStore.getState().handleSearchDrop(current.imageSrc, index);
           setInteractionState(null);
+          setLocalClickPoint(null);
           return;
         }
 
@@ -222,8 +237,9 @@ const ListRow = React.memo(function ListRow({
 
           <PopoverMenu
             isOpen={isSelected && !isAdjusting}
-            onClose={() => setInteractionState(null)}
+            onClose={() => { setInteractionState(null); setLocalClickPoint(null); }}
             actions={actions}
+            triggerPoint={localClickPoint}
             align={data.imageSrc ? 'center' : 'bottom'}
             className={data.imageSrc ? 'mt-[-10px]' : ''}
           />

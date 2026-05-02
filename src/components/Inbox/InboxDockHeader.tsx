@@ -30,6 +30,7 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
               ${activeTab === "stash" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}
             `}
           >
+            <ImageIcon size={14} />
             stash
           </button>
           <button
@@ -40,6 +41,7 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
               ${activeTab === "search" || activeTab === "picker" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}
             `}
           >
+            <Globe size={14} />
             search
           </button>
         </div>

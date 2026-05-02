@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { Plus, X, Upload, Download, Crop, Check, Globe, Search, Trash2 } from 'lucide-react';
+import { Plus, X, Upload, Download, Crop, Check, Globe, Search, Trash2, ArrowDownToLine } from 'lucide-react';
 import { CellData, GridStyle } from '@/types';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
 import { ASPECT_MAP } from '@/utils/ui';
@@ -23,9 +23,10 @@ interface CellProps {
   onSwap: (fromIndex: number, toIndex: number) => void;
   onInboxDrop: (itemId: string, collectionId: string, toIndex: number) => void;
   onInboxDropMulti?: (itemIds: string[], collectionId: string, toIndex: number) => void;
+  onMoveToInbox?: (index: number) => void;
   onSearchDrop: (imageSrc: string, toIndex: number) => void;
   onDownloadSingle: (index: number) => void;
-  onInteract: (index: number) => void;
+  onInteract: (index: number, point?: { x: number; y: number } | null) => void;
   onUpdateCell: (index: number, data: Partial<CellData>) => void;
 }
 
@@ -44,7 +45,8 @@ export const Cell = React.memo(function Cell({
   onSearchDrop,
   onDownloadSingle,
   onInteract,
-  onUpdateCell
+  onUpdateCell,
+  onMoveToInbox
 }: CellProps) {
   const data = useStore(selectCellByIndex(index));
   const activeRank = useStore(selectActiveRank);
@@ -54,6 +56,7 @@ export const Cell = React.memo(function Cell({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isFileDragOver, setIsFileDragOver] = useState(false);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+  const [localClickPoint, setLocalClickPoint] = useState<{ x: number; y: number } | null>(null);
 
   const borderRadius = activeRank?.borderRadius ?? 12;
 
@@ -99,12 +102,15 @@ export const Cell = React.memo(function Cell({
   const handleClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.popover-menu') || (e.target as HTMLElement).closest('.adjust-controls')) return;
     e.stopPropagation();
-    onInteract(index);
+    const point = { x: e.clientX, y: e.clientY };
+    setLocalClickPoint(point);
+    onInteract(index, point);
   };
 
   const actions = data.imageSrc ? [
     { label: 'Replace', icon: Upload, onClick: () => fileInputRef.current?.click() },
     { label: 'Crop & Adjust', icon: Crop, onClick: startAdjusting },
+    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => onMoveToInbox?.(index) },
     { label: 'Download', icon: Download, onClick: () => onDownloadSingle(index) },
     { label: 'Remove', icon: Trash2, onClick: () => onClear(index), variant: 'danger' as const },
   ] : [
@@ -119,8 +125,10 @@ export const Cell = React.memo(function Cell({
       layout
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
+      {...attributes}
+      {...listeners}
       className={`
-        relative group/cell select-none cursor-pointer
+        relative group/cell select-none cursor-pointer touch-none
         ${ASPECT_MAP[aspectRatio] || 'aspect-[3/4]'}
         ${isDragging ? 'z-50' : 'z-0'}
       `}
@@ -134,8 +142,6 @@ export const Cell = React.memo(function Cell({
       }}
     >
       <div
-        {...attributes}
-        {...listeners}
         className={`
           w-full h-full overflow-hidden transition-all duration-300 relative
           ${borderless ? '' : 'border border-white/10 shadow-lg'}
@@ -193,9 +199,10 @@ export const Cell = React.memo(function Cell({
 
         <PopoverMenu
           isOpen={isSelected && !isAdjusting}
-          onClose={() => onInteract(-1)}
+          onClose={() => { onInteract(-1); setLocalClickPoint(null); }}
           actions={actions}
-          className="mt-[-20px]"
+          triggerPoint={localClickPoint}
+          className={localClickPoint ? "" : "mt-[-20px]"}
         />
       </div>
 

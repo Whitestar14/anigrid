@@ -108,20 +108,16 @@ const CustomDragOverlay = () => {
 
 /* ─── Provider ─────────────────────────────────────────────────────── */
 export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [_activeId, setActiveId] = useState<string | null>(null);
-
   const pointerSensor = useSensor(PointerSensor, {
-    activationConstraint: { distance: 8 },
+    activationConstraint: { distance: 3 },
   });
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: { delay: 200, tolerance: 8 },
+    activationConstraint: { delay: 150, tolerance: 8 },
   });
   const sensors = useSensors(pointerSensor, touchSensor);
 
   /* ── onDragStart ────────────────────────────────────────────────── */
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-
     const activeType = event.active.data.current?.type;
     if (activeType === DRAG_TYPE.INBOX_ITEM || activeType === DRAG_TYPE.SEARCH_ITEM) {
       useStore.getState().setIsDraggingFromDock(true);
@@ -130,7 +126,6 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
 
   /* ── onDragEnd ──────────────────────────────────────────────────── */
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    setActiveId(null);
     const wasDockDrag = useStore.getState().inbox.isDraggingFromDock;
     useStore.getState().setIsDraggingFromDock(false);
 
@@ -247,12 +242,18 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
     }
   }, []);
 
+  /* ── onDragCancel ────────────────────────────────────────────────── */
+  const handleDragCancel = useCallback(() => {
+    useStore.getState().setIsDraggingFromDock(false);
+  }, []);
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       {children}
       <DragOverlay dropAnimation={null}>

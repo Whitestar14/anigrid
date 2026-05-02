@@ -40,6 +40,7 @@ const TierItem = React.memo(function TierItem({
   const tierRef = useRef<HTMLDivElement>(null);
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [isAdjustDragging, setIsAdjustDragging] = useState(false);
+  const [localClickPoint, setLocalClickPoint] = useState<{ x: number; y: number } | null>(null);
 
   const { isOver, setNodeRef: setDroppableRef } = useDroppable({
     id: `tier-drop-${rowId}-${idx}`,
@@ -129,12 +130,15 @@ const TierItem = React.memo(function TierItem({
         if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest(".adjust-controls")) return;
         e.stopPropagation();
 
+        const point = { x: e.clientX, y: e.clientY };
+        setLocalClickPoint(point);
         const current = useStore.getState().interactionState;
 
         // Inbox -> Tier
         if (current?.type === "inbox-item") {
           onInboxDrop(current.id, current.collectionId, rowId, idx);
           setInteractionState(null);
+          setLocalClickPoint(null);
           return;
         } 
         
@@ -142,6 +146,7 @@ const TierItem = React.memo(function TierItem({
         if (current?.type === "inbox-multi") {
           onInboxDropMulti(current.itemIds, current.collectionId, rowId, idx);
           setInteractionState(null);
+          setLocalClickPoint(null);
           return;
         } 
 
@@ -150,8 +155,10 @@ const TierItem = React.memo(function TierItem({
           if (current.itemId !== item.id) {
             onInternalMove(current.rowId, current.itemId, rowId, idx);
             setInteractionState(null);
+            setLocalClickPoint(null);
           } else {
             setInteractionState(null);
+            setLocalClickPoint(null);
           }
           return;
         } 
@@ -160,6 +167,7 @@ const TierItem = React.memo(function TierItem({
         if (current?.type === "search") {
           onSearchDrop(current.imageSrc, rowId, idx);
           setInteractionState(null);
+          setLocalClickPoint(null);
           return;
         }
 
@@ -171,6 +179,7 @@ const TierItem = React.memo(function TierItem({
             onSearchDrop(cell.imageSrc, rowId, idx);
             useStore.getState().handleCellClear(current.index);
             setInteractionState(null);
+            setLocalClickPoint(null);
           }
           return;
         }
@@ -196,14 +205,17 @@ const TierItem = React.memo(function TierItem({
           </div>
         )}
       </div>
-      <AnimatePresence>
         {interactionState?.type === "tier-item" && interactionState.itemId === item.id && !isAdjusting && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute top-full mt-2 w-max bg-[#2c2c2e] border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1">
-            <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }} className="p-3 hover:bg-white/10 rounded-xl text-white text-[13px] flex items-center justify-between gap-2">Adjust <Crop size={16} /></button>
-            <button onClick={(e) => { e.stopPropagation(); onMoveToInbox(rowId, idx); setInteractionState(null); }} className="p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] flex items-center justify-between gap-2">Remove <X size={16} /></button>
-          </motion.div>
+          <PopoverMenu
+            isOpen={true}
+            onClose={() => { setInteractionState(null); setLocalClickPoint(null); }}
+            triggerPoint={localClickPoint}
+            actions={[
+              { label: 'Adjust', icon: Crop, onClick: () => setIsAdjusting(true) },
+              { label: 'Remove', icon: X, onClick: () => onMoveToInbox(rowId, idx), variant: 'danger' }
+            ]}
+          />
         )}
-      </AnimatePresence>
     </motion.div>
   );
 });

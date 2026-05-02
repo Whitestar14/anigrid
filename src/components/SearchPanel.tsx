@@ -14,15 +14,16 @@ interface SearchPanelProps {
   onResultsChange: (results: JikanResult[]) => void;
   onAdd: (imageSrc: string) => void;
   usedImageSrcs: Set<string>;
+  autoFocus?: boolean;
 }
 
-const SearchItem: React.FC<{
+const SearchItem = React.memo<{
   item: any;
   imgSrc: string;
   label: string;
   isAdded: boolean;
   onAdd: (imgSrc: string) => void;
-}> = ({ imgSrc, label, isAdded, onAdd }) => {
+}>(({ imgSrc, label, isAdded, onAdd }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `search-${imgSrc}`,
     data: { type: 'search-item', imageSrc: imgSrc },
@@ -72,7 +73,7 @@ const SearchItem: React.FC<{
       </div>
     </div>
   );
-};
+});
 
 export const SearchPanel: React.FC<SearchPanelProps> = ({
   query,
@@ -82,10 +83,18 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
   results,
   onResultsChange,
   onAdd,
-  usedImageSrcs
+  usedImageSrcs,
+  autoFocus
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ message: string; isNetwork?: boolean } | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [autoFocus]);
 
   // Debounce search
   useEffect(() => {
@@ -138,6 +147,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
       <div className="flex items-center gap-4 mb-6">
         <div className="flex-1">
           <Input
+            ref={inputRef}
             icon={<Search size={16} className="text-white/50" />}
             type="text"
             value={query}

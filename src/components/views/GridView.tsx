@@ -77,6 +77,7 @@ export const GridView: React.FC = () => {
     const rank = useStore(selectActiveRank);
     const cells = useStore(selectCells);
     const interactionState = useStore(s => s.interactionState);
+    const [triggerPoint, setTriggerPoint] = React.useState<{ x: number; y: number } | null>(null);
 
     // Actions
     const handleCellUpload = useStore(s => s.handleCellUpload);
@@ -86,12 +87,14 @@ export const GridView: React.FC = () => {
     const handleInboxDropMulti = useStore(s => s.handleInboxDropMulti);
     const handleSearchDrop = useStore(s => s.handleSearchDrop);
     const handleUpdateCell = useStore(s => s.handleUpdateCell);
+    const handleMoveToInbox = useStore(s => s.handleMoveToInbox);
     const setInteractionState = useStore(s => s.setInteractionState);
-    const onInteract = React.useCallback((index: number) => {
+    const onInteract = React.useCallback((index: number, point?: { x: number; y: number } | null) => {
         const current = useStore.getState().interactionState;
         
         if (index === -1) {
             setInteractionState(null);
+            setTriggerPoint(null);
             return;
         }
 
@@ -100,8 +103,10 @@ export const GridView: React.FC = () => {
             if (current.index !== index) {
                 handleSwapCells(current.index, index);
                 setInteractionState(null);
+                setTriggerPoint(null);
             } else {
                 setInteractionState(null);
+                setTriggerPoint(null);
             }
             return;
         }
@@ -110,6 +115,15 @@ export const GridView: React.FC = () => {
         if (current?.type === 'inbox-item') {
             handleInboxDrop(current.id, current.collectionId, index);
             setInteractionState(null);
+            setTriggerPoint(null);
+            return;
+        }
+
+        // Multi-Inbox -> Cell Drop
+        if (current?.type === 'inbox-multi') {
+            handleInboxDropMulti(current.itemIds, current.collectionId, index);
+            setInteractionState(null);
+            setTriggerPoint(null);
             return;
         }
 
@@ -117,11 +131,13 @@ export const GridView: React.FC = () => {
         if (current?.type === 'search') {
             handleSearchDrop(current.imageSrc, index);
             setInteractionState(null);
+            setTriggerPoint(null);
             return;
         }
 
         setInteractionState({ type: 'cell', index });
-    }, [setInteractionState, handleSwapCells, handleInboxDrop, handleSearchDrop]);
+        if (point) setTriggerPoint(point);
+    }, [setInteractionState, handleSwapCells, handleInboxDrop, handleSearchDrop, handleInboxDropMulti]);
 
     if (!rank) return null;
 
@@ -184,6 +200,7 @@ export const GridView: React.FC = () => {
                                         onDownloadSingle={() => { }}
                                         onInteract={onInteract}
                                         onUpdateCell={handleUpdateCell}
+                                        onMoveToInbox={handleMoveToInbox}
                                         borderless={rank.borderless}
                                         aspectRatio={rank.aspectRatio}
                                     />
@@ -230,6 +247,7 @@ export const GridView: React.FC = () => {
                     onDownloadSingle={() => { }}
                     onInteract={onInteract}
                     onUpdateCell={handleUpdateCell}
+                    onMoveToInbox={handleMoveToInbox}
                     borderless={rank.borderless}
                     aspectRatio={rank.aspectRatio}
                 />
