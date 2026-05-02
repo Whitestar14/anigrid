@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
 import { temporal } from "zundo";
 import { idbStorage, createDefaultState, migrateState } from "@/utils/storage";
 import { GlobalState } from "@/types";
@@ -14,12 +15,12 @@ const initialDefaultState = createDefaultState();
 export const useStore = create<AppState>()(
   temporal(
     persist(
-      (set, get, api) => ({
+      immer((set, get, api) => ({
         ...initialDefaultState,
         ...createGlobalSlice(set as any, get as any, api as any),
         ...createRankSlice(set as any, get as any, api as any),
         ...createInboxSlice(set as any, get as any, api as any),
-      }),
+      })),
       {
         name: "anime-ranker-state",
         storage: createJSONStorage(() => idbStorage),

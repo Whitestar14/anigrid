@@ -21,3 +21,37 @@ export const checkAndRescueImages = (
   });
   return rescueItems;
 };
+export const findInboxItem = (inbox: GlobalState['inbox'], itemId: string, sourceColId: string): InboxItem | undefined => {
+  const collections = inbox.collections;
+  if (sourceColId === "all" || sourceColId === "all-images") {
+    for (const col of collections) {
+      const item = col.items.find((i) => i.id === itemId);
+      if (item) return item;
+    }
+  } else {
+    return collections.find((c) => c.id === sourceColId)?.items.find((i) => i.id === itemId);
+  }
+  return undefined;
+};
+
+export const findInboxItems = (inbox: GlobalState['inbox'], itemIds: string[], sourceColId: string): InboxItem[] => {
+  if (sourceColId === "all" || sourceColId === "all-images") {
+    return inbox.collections.flatMap((c) => c.items).filter((i) => itemIds.includes(i.id));
+  } else {
+    const col = inbox.collections.find((c) => c.id === sourceColId);
+    return col ? col.items.filter((i) => itemIds.includes(i.id)) : [];
+  }
+};
+export const ensureCells = (cells: CellData[], toIndex: number) => {
+  if (toIndex >= cells.length) {
+    const toAdd = toIndex - cells.length + 1;
+    const startIdx = cells.length;
+    for (let i = 0; i < toAdd; i++) {
+      cells.push({
+        id: `cell-${startIdx + i}-${Date.now()}`,
+        imageSrc: null,
+        position: startIdx + i,
+      });
+    }
+  }
+};

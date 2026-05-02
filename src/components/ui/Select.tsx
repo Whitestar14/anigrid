@@ -39,7 +39,7 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
   return (
     <div className={cn("relative w-full", className)} ref={containerRef}>
       {customTrigger ? (
-         <div onClick={() => setIsOpen(!isOpen)} className="cursor-pointer">
+         <div onClick={() => setIsOpen(!isOpen)} className="cursor-pointer flex justify-center items-center">
              {customTrigger}
          </div>
       ) : (

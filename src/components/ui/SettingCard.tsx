@@ -6,12 +6,12 @@ export const SettingButtonGroup: React.FC<{ children: React.ReactNode; className
 }) => {
   const childrenArray = React.Children.toArray(children).filter(Boolean);
   return (
-    <div className={`flex flex-col flex-shrink-0 bg-white/5 border border-white/10 rounded-2xl overflow-hidden ${className}`}>
+    <div className={`flex flex-col flex-shrink-0 bg-white/5 border border border-white/10 rounded-2xl overflow-hidden ${className}`}>
       {childrenArray.map((child, idx) => (
         <React.Fragment key={idx}>
           {child}
           {idx < childrenArray.length - 1 && (
-            <div className="h-px bg-white/10 ml-4" />
+            <div className="h-px bg-white/10" />
           )}
         </React.Fragment>
       ))}
@@ -35,9 +35,8 @@ export const SettingRow: React.FC<{
     <Component
       type={Component === "button" ? "button" : undefined}
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 w-full text-left transition-colors ${
-        onClick || asLabel ? "hover:bg-white/5 cursor-pointer" : ""
-      } ${destructive ? "text-[#ff453a]" : "text-white"} ${className}`}
+      className={`flex items-center gap-3 px-4 py-3 w-full text-left transition-colors ${onClick || asLabel ? "hover:bg-white/5 cursor-pointer" : ""
+        } ${destructive ? "text-[#ff453a]" : "text-white"} ${className}`}
     >
       {icon && (
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>

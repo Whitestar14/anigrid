@@ -41,15 +41,14 @@
   --color-hover: rgba(255, 255, 255, 0.1);
   --color-overlay: rgba(0, 0, 0, 0.6);
 
-  /* ── Z-index stacking system ────────────────────────────── */
-  /* Dropdowns/popovers within panels    */
   --z-dropdown: 30;
-  /* Sidebar + dock                      */
   --z-dock: 40;
-  /* Modals (above dock)                 */
   --z-modal: 100;
-  /* Toasts (above everything)           */
   --z-toast: 200;
+  --glass-bg: rgba(28, 28, 30, 0.75);
+  --glass-blur: 40px;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
 /* Typography */
@@ -94,23 +93,16 @@ a {
   background: var(--color-muted);
 }
 
-/* Glass reduction: strip backdrop-filter and ensure solid backgrounds */
-html[data-reduce-glass] *,
 html[data-reduce-glass] {
+  --glass-bg: var(--color-surface);
+  --glass-blur: 0px;
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-shadow: none;
+}
+
+html[data-reduce-glass] * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-}
-
-html[data-reduce-glass] .bg-\[\#18181b\]\/90,
-html[data-reduce-glass] .bg-\[\#2c2c2e\]\/95,
-html[data-reduce-glass] .bg-\[\#1c1c1e\]\/90,
-html[data-reduce-glass] .bg-surface\/90,
-html[data-reduce-glass] .bg-surface\/80 {
-  background-color: var(--color-surface) !important;
-}
-
-html[data-reduce-glass] .bg-background\/80 {
-  background-color: var(--color-background) !important;
 }
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -124,9 +116,16 @@ html[data-reduce-glass] .bg-background\/80 {
 
 @layer utilities {
   .glass {
-    @apply bg-surface/75 backdrop-blur-3xl border border-white/5 shadow-2xl;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
   }
+
   .glass-panel {
-    @apply bg-surface/60 backdrop-blur-2xl border border-white/5 shadow-xl;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(calc(var(--glass-blur) * 0.75));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
   }
 }

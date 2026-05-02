@@ -296,7 +296,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
                           <div className="flex flex-col gap-2">
                             <div className="flex justify-between text-[13px] font-medium text-white/70 mb-1">
-                              <span>Spacing</span>
+                              <span>Gap</span>
                               <span className="text-white">{gap}px</span>
                             </div>
                             <Slider
@@ -310,6 +310,8 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                             />
                           </div>
 
+
+
                           <div className="h-px bg-white/10 -mx-4"></div>
 
                           <div className="flex items-center justify-between">
@@ -318,7 +320,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                             </span>
                             <div className="flex bg-[#767680]/24 p-1 rounded-xl">
                               <button
-                                onClick={() => updateActiveRank({ style: "seamless" })}
+                                onClick={() => updateActiveRank({ style: "seamless", borderRadius: 0 })}
                                 title="Seamless"
                                 className={`p-1.5 rounded-lg transition-colors ${style === "seamless" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
                               >
@@ -333,6 +335,8 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                               </button>
                             </div>
                           </div>
+
+
 
                           {style === "seamless" && (
                             <>

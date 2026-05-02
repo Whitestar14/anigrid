@@ -58,6 +58,7 @@ export interface Rank {
   borderless?: boolean;
   aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
   cellWidth?: number;
+  borderRadius?: number;
   gap: number;
   backgroundColor: string;
 

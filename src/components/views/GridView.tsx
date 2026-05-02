@@ -1,33 +1,19 @@
-import React, { useState } from 'react';
-import { Rank, CellData, InteractionState, TierData } from '@/types';
+import React from 'react';
+import { CellData, TierData } from '@/types';
 import { Cell } from '@/components/Cell';
 import { Palette } from 'lucide-react';
 import { motion } from 'motion/react';
-
-interface GridViewProps {
-  rank: Rank;
-  onUpload: (index: number, file: File) => void;
-  onClear: (index: number) => void;
-  onSwap: (fromIndex: number, toIndex: number) => void;
-  onInboxDrop: (itemId: string, collectionId: string, toIndex: number) => void;
-  onInboxDropMulti: (itemIds: string[], collectionId: string, toIndex: number) => void;
-  onSearchDrop: (imageSrc: string, toIndex: number) => void;
-  onDownloadSingle: (index: number) => void;
-  // Interaction
-  interactionState: InteractionState;
-  onInteract: (index: number) => void;
-  onUpdateCell: (index: number, data: Partial<CellData>) => void;
-  onUpdateTier?: (rowIndex: number, data: TierData) => void;
-}
+import { useStore } from '@/store/useStore';
+import { selectActiveRank, selectCells } from '@/store/selectors';
 
 const TIER_PRESETS = [
-    { label: 'S', color: '#ff7f7f' }, // Red
-    { label: 'A', color: '#ffbf7f' }, // Orange
-    { label: 'B', color: '#ffdf7f' }, // Yellow
-    { label: 'C', color: '#ffff7f' }, // Light Yellow
-    { label: 'D', color: '#bfff7f' }, // Greenish
-    { label: 'E', color: '#7fff7f' }, // Green
-    { label: 'F', color: '#7fffff' }, // Blue
+    { label: 'S', color: '#ff7f7f' },
+    { label: 'A', color: '#ffbf7f' },
+    { label: 'B', color: '#ffdf7f' },
+    { label: 'C', color: '#ffff7f' },
+    { label: 'D', color: '#bfff7f' },
+    { label: 'E', color: '#7fff7f' },
+    { label: 'F', color: '#7fffff' },
 ];
 
 const TierHeader: React.FC<{
@@ -35,17 +21,13 @@ const TierHeader: React.FC<{
     data?: TierData;
     onUpdate: (data: TierData) => void
 }> = ({ index, data, onUpdate }) => {
-    const [isEditing, setIsEditing] = useState(false);
-
-    // Default values if no data exists yet
+    const [isEditing, setIsEditing] = React.useState(false);
     const label = data?.label || TIER_PRESETS[Math.min(index, TIER_PRESETS.length - 1)].label;
     const color = data?.color || TIER_PRESETS[Math.min(index, TIER_PRESETS.length - 1)].color;
-
-    const [tempLabel, setTempLabel] = useState(label);
+    const [tempLabel, setTempLabel] = React.useState(label);
 
     const handleColorCycle = (e: React.MouseEvent) => {
         e.stopPropagation();
-        // Find current color index
         const currIdx = TIER_PRESETS.findIndex(p => p.color === color);
         const nextIdx = (currIdx + 1) % TIER_PRESETS.length;
         onUpdate({ label, color: TIER_PRESETS[nextIdx].color });
@@ -80,8 +62,6 @@ const TierHeader: React.FC<{
                     {label}
                 </span>
             )}
-
-            {/* Color Cycle Button (Hidden until hover) */}
             <button
                 onClick={handleColorCycle}
                 className="absolute bottom-1 right-1 p-1.5 bg-white/40 hover:bg-white/80 rounded-full text-black/60 hover:text-black opacity-0 group-hover:opacity-100 transition-all export-hidden"
@@ -93,116 +73,167 @@ const TierHeader: React.FC<{
     );
 };
 
-export const GridView: React.FC<GridViewProps> = ({
-  rank,
-  onUpload,
-  onClear,
-  onSwap,
-  onInboxDrop,
-  onInboxDropMulti,
-  onSearchDrop,
-  onDownloadSingle,
-  interactionState,
-  onInteract,
-  onUpdateCell,
-  onUpdateTier
-}) => {
-  const cols = rank.config.cols;
-  const showTiers = rank.showTiers;
+export const GridView: React.FC = () => {
+    const rank = useStore(selectActiveRank);
+    const cells = useStore(selectCells);
+    const interactionState = useStore(s => s.interactionState);
 
-  // Chunk cells into rows for Tier View
-  const rows = [];
-  if (showTiers) {
-      for (let i = 0; i < rank.cells.length; i += cols) {
-          rows.push(rank.cells.slice(i, i + cols));
-      }
-  }
+    // Actions
+    const handleCellUpload = useStore(s => s.handleCellUpload);
+    const handleCellClear = useStore(s => s.handleCellClear);
+    const handleSwapCells = useStore(s => s.handleSwapCells);
+    const handleInboxDrop = useStore(s => s.handleInboxDrop);
+    const handleInboxDropMulti = useStore(s => s.handleInboxDropMulti);
+    const handleSearchDrop = useStore(s => s.handleSearchDrop);
+    const handleUpdateCell = useStore(s => s.handleUpdateCell);
+    const setInteractionState = useStore(s => s.setInteractionState);
+    const onInteract = React.useCallback((index: number) => {
+        const current = useStore.getState().interactionState;
+        
+        if (index === -1) {
+            setInteractionState(null);
+            return;
+        }
 
-  if (showTiers) {
-      return (
-          <div className="flex flex-col" style={{ gap: `${rank.gap ?? 0}px` }}>
-              {rows.map((rowCells, rowIndex) => (
-                  <motion.div layout key={rowIndex} className="flex" style={{ gap: `${rank.gap ?? 0}px` }}>
-                      {/* Tier Header */}
-                      <TierHeader
-                        index={rowIndex}
-                        data={rank.tiers?.[rowIndex]}
-                        onUpdate={(d) => onUpdateTier && onUpdateTier(rowIndex, d)}
-                      />
- 
-                      {/* Grid Row */}
-                      <motion.div
-                        layout
-                        className="grid"
-                        animate={{
-                            gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
-                            gap: `${rank.gap ?? 0}px`,
-                        }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                      >
-                          {rowCells.map((cell) => {
-                             const globalIndex = rank.cells.indexOf(cell);
- 
-                             return (
-                                <Cell
-                                  key={cell.id}
-                                  index={globalIndex}
-                                  data={cell}
-                                  styleMode={rank.style}
-                                  showRankNumber={rank.showNumbers ?? true}
-                                  isSelected={interactionState?.type === 'cell' && interactionState.index === globalIndex}
-                                  onUpload={onUpload}
-                                  onClear={onClear}
-                                  onSwap={onSwap}
-                                  onInboxDrop={onInboxDrop}
-                                  onSearchDrop={onSearchDrop}
-                                  onDownloadSingle={onDownloadSingle}
-                                  onInteract={onInteract}
-                                  onUpdateCell={onUpdateCell}
-                                  borderless={rank.borderless}
-                                  aspectRatio={rank.aspectRatio}
-                                />
-                             );
-                          })}
-                      </motion.div>
-                  </motion.div>
-              ))}
-          </div>
-      );
-  }
+        // Cell -> Cell Swap
+        if (current?.type === 'cell') {
+            if (current.index !== index) {
+                handleSwapCells(current.index, index);
+                setInteractionState(null);
+            } else {
+                setInteractionState(null);
+            }
+            return;
+        }
 
-  // Standard Grid View
-  return (
-    <motion.div
-      layout
-      className="grid"
-      animate={{
-        gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
-        gap: `${rank.gap ?? 0}px`,
-      }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-    >
-      {rank.cells.map((cell, index) => (
-        <Cell
-          key={cell.id}
-          index={index}
-          data={cell}
-          styleMode={rank.style}
-          showRankNumber={rank.showNumbers ?? true}
-          isSelected={interactionState?.type === 'cell' && interactionState.index === index}
-          onUpload={onUpload}
-          onClear={onClear}
-          onSwap={onSwap}
-          onInboxDrop={onInboxDrop}
-          onInboxDropMulti={onInboxDropMulti}
-          onSearchDrop={onSearchDrop}
-          onDownloadSingle={onDownloadSingle}
-          onInteract={onInteract}
-          onUpdateCell={onUpdateCell}
-          borderless={rank.borderless}
-          aspectRatio={rank.aspectRatio}
-        />
-      ))}
-    </motion.div>
-  );
+        // Inbox -> Cell Drop
+        if (current?.type === 'inbox-item') {
+            handleInboxDrop(current.id, current.collectionId, index);
+            setInteractionState(null);
+            return;
+        }
+
+        // Search -> Cell Drop
+        if (current?.type === 'search') {
+            handleSearchDrop(current.imageSrc, index);
+            setInteractionState(null);
+            return;
+        }
+
+        setInteractionState({ type: 'cell', index });
+    }, [setInteractionState, handleSwapCells, handleInboxDrop, handleSearchDrop]);
+
+    if (!rank) return null;
+
+    const cols = rank.config.cols;
+    const showTiers = rank.showTiers;
+
+    // Chunk cells into rows for Tier View
+    const rows = [];
+    if (showTiers) {
+        for (let i = 0; i < cells.length; i += cols) {
+            rows.push(cells.slice(i, i + cols));
+        }
+    }
+
+    if (showTiers) {
+        return (
+            <div className="flex flex-col" style={{ gap: `${rank.gap ?? 0}px` }}>
+                {rows.map((rowCells, rowIndex) => (
+                    <motion.div layout key={rowIndex} className="flex" style={{ gap: `${rank.gap ?? 0}px` }}>
+                        <TierHeader
+                            index={rowIndex}
+                            data={rank.tierRows?.[rowIndex]}
+                            onUpdate={(d) => {
+                                const newRows = [...(rank.tierRows || [])];
+                                newRows[rowIndex] = { ...newRows[rowIndex], ...d };
+                                useStore.getState().handleUpdateTierRows(newRows);
+                            }}
+                        />
+                        <motion.div
+                            layout
+                            className="grid"
+                            animate={{
+                                gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
+                                gap: `${rank.gap ?? 0}px`,
+                            }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        >
+                            {rowCells.map((cell) => {
+                                const globalIndex = cells.indexOf(cell);
+                                return (
+                                    <Cell
+                                        key={cell.id}
+                                        index={globalIndex}
+                                        styleMode={rank.style}
+                                        showRankNumber={rank.showNumbers ?? true}
+                                        isSelected={interactionState?.type === 'cell' && interactionState.index === globalIndex}
+                                        onUpload={(idx, file) => {
+                                            const reader = new FileReader();
+                                            reader.onload = (e) => {
+                                                if (e.target?.result) {
+                                                    handleCellUpload(idx, e.target.result as string);
+                                                }
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }}
+                                        onClear={handleCellClear}
+                                        onSwap={handleSwapCells}
+                                        onInboxDrop={handleInboxDrop}
+                                        onSearchDrop={handleSearchDrop}
+                                        onDownloadSingle={() => { }}
+                                        onInteract={onInteract}
+                                        onUpdateCell={handleUpdateCell}
+                                        borderless={rank.borderless}
+                                        aspectRatio={rank.aspectRatio}
+                                    />
+                                );
+                            })}
+                        </motion.div>
+                    </motion.div>
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <motion.div
+            layout
+            className="grid"
+            animate={{
+                gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
+                gap: `${rank.gap ?? 0}px`,
+            }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        >
+            {cells.map((cell, index) => (
+                <Cell
+                    key={cell.id}
+                    index={index}
+                    styleMode={rank.style}
+                    showRankNumber={rank.showNumbers ?? true}
+                    isSelected={interactionState?.type === 'cell' && interactionState.index === index}
+                    onUpload={(idx, file) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            if (e.target?.result) {
+                                handleCellUpload(idx, e.target.result as string);
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    }}
+                    onClear={handleCellClear}
+                    onSwap={handleSwapCells}
+                    onInboxDrop={handleInboxDrop}
+                    onInboxDropMulti={handleInboxDropMulti}
+                    onSearchDrop={handleSearchDrop}
+                    onDownloadSingle={() => { }}
+                    onInteract={onInteract}
+                    onUpdateCell={handleUpdateCell}
+                    borderless={rank.borderless}
+                    aspectRatio={rank.aspectRatio}
+                />
+            ))}
+        </motion.div>
+    );
 };

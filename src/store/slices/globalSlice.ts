@@ -25,7 +25,7 @@ export interface GlobalSlice {
 
 export const createGlobalSlice: StateCreator<
   AppState,
-  [["zustand/temporal", unknown]],
+  [["zustand/temporal", unknown], ["zustand/immer", never]],
   [],
   GlobalSlice
 > = (set, get) => ({
@@ -37,9 +37,9 @@ export const createGlobalSlice: StateCreator<
   },
   setInteractionState: (state) => set({ interactionState: state }),
   setDuplicateModalConfig: (config) =>
-    set((state) => ({
-      duplicateModalConfig: { ...state.duplicateModalConfig, ...config },
-    })),
+    set((state) => {
+      Object.assign(state.duplicateModalConfig, config);
+    }),
   checkDuplicateAndProceed: (imageSrc, action) => {
     const state = get();
     const activeRank = state.ranks[state.activeRankId];
@@ -60,12 +60,10 @@ export const createGlobalSlice: StateCreator<
     }
 
     if (isDuplicate) {
-      set({
-        duplicateModalConfig: {
-          isOpen: true,
-          imageSrc,
-          actionToExecute: action,
-        },
+      set((draft) => {
+        draft.duplicateModalConfig.isOpen = true;
+        draft.duplicateModalConfig.imageSrc = imageSrc;
+        draft.duplicateModalConfig.actionToExecute = action;
       });
     } else {
       action();
@@ -77,112 +75,67 @@ export const createGlobalSlice: StateCreator<
     if (state.duplicateModalConfig.actionToExecute) {
       state.duplicateModalConfig.actionToExecute();
     }
-    if (dontAskAgain) {
-      set((s) => ({
-        preferences: { ...s.preferences, skipDuplicateWarning: true },
-      }));
-    }
-    set({
-      duplicateModalConfig: {
-        isOpen: false,
-        imageSrc: null,
-        actionToExecute: null,
-      },
+    
+    set((draft) => {
+      if (dontAskAgain) {
+        draft.preferences.skipDuplicateWarning = true;
+      }
+      draft.duplicateModalConfig.isOpen = false;
+      draft.duplicateModalConfig.imageSrc = null;
+      draft.duplicateModalConfig.actionToExecute = null;
     });
   },
 
   updateGlobalTheme: (themeUpdates) =>
-    set((state) => ({
-      theme: { ...state.theme!, ...themeUpdates },
-    })),
+    set((state) => {
+      if (state.theme) Object.assign(state.theme, themeUpdates);
+    }),
 
   handleClearAll: () =>
     set((state) => {
       const activeRank = state.ranks[state.activeRankId];
-      if (!activeRank) return state;
+      if (!activeRank) return;
 
       const targetColId =
         state.inbox.activeCollectionId === "all-images"
           ? state.inbox.collections[0].id
           : state.inbox.activeCollectionId;
-      let newInbox = state.inbox;
+
+      const col = state.inbox.collections.find((c) => c.id === targetColId);
 
       if (activeRank.type === "tierlist") {
         const allItems = activeRank.tierRows.flatMap((r) => r.items);
         const rescued = checkAndRescueImages(allItems, state, targetColId);
-        if (rescued.length > 0) {
-          newInbox = {
-            ...state.inbox,
-            collections: state.inbox.collections.map((c) =>
-              c.id === targetColId
-                ? { ...c, items: [...c.items, ...rescued] }
-                : c
-            ),
-          };
+        if (col && rescued.length > 0) {
+          col.items.push(...rescued);
         }
-        const newRows = activeRank.tierRows.map((r) => ({
-          ...r,
-          items: [],
-        }));
-        return {
-          inbox: newInbox,
-          ranks: {
-            ...state.ranks,
-            [state.activeRankId]: {
-              ...activeRank,
-              tierRows: newRows,
-              updatedAt: Date.now(),
-            },
-          },
-        };
+        activeRank.tierRows.forEach((r) => {
+          r.items = [];
+        });
       } else {
-        const cellsWithImages = activeRank.cells.filter(
-          (c) => c.imageSrc
-        );
-        const rescued = checkAndRescueImages(
-          cellsWithImages,
-          state,
-          targetColId
-        );
-        if (rescued.length > 0) {
-          newInbox = {
-            ...state.inbox,
-            collections: state.inbox.collections.map((c) =>
-              c.id === targetColId
-                ? { ...c, items: [...c.items, ...rescued] }
-                : c
-            ),
-          };
+        const cellsWithImages = activeRank.cells.filter((c) => c.imageSrc);
+        const rescued = checkAndRescueImages(cellsWithImages, state, targetColId);
+        if (col && rescued.length > 0) {
+          col.items.push(...rescued);
         }
-        const newCells = activeRank.cells.map((c) => ({
-          ...c,
-          imageSrc: null,
-          textLabel: undefined,
-          rating: undefined,
-        }));
-        return {
-          inbox: newInbox,
-          ranks: {
-            ...state.ranks,
-            [state.activeRankId]: {
-              ...activeRank,
-              cells: newCells,
-              updatedAt: Date.now(),
-            },
-          },
-        };
+        activeRank.cells.forEach((c) => {
+          c.imageSrc = null;
+          c.textLabel = undefined;
+          c.rating = undefined;
+        });
       }
+      activeRank.updatedAt = Date.now();
     }),
 
   importState: (newState) => set(() => newState),
 
   updatePreferences: (p) =>
-    set((state) => ({
-      preferences: { ...state.preferences, ...p },
-    })),
+    set((state) => {
+      Object.assign(state.preferences, p);
+    }),
 
   setSkipDuplicateWarning: (skip) =>
-    set((state) => ({
-      preferences: { ...state.preferences, skipDuplicateWarning: skip },
-    })),
+    set((state) => {
+      state.preferences.skipDuplicateWarning = skip;
+    }),
 });

@@ -13,6 +13,9 @@ import {
 } from '@dnd-kit/core';
 import { useStore } from '@/store/useStore';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
+import { selectActiveRank } from '@/store/selectors';
+import { LIST_ASPECT_MAP, ASPECT_MAP } from '@/utils/ui';
+import { Star } from 'lucide-react';
 
 /* ─── drag type constants ──────────────────────────────────────────── */
 export const DRAG_TYPE = {
@@ -31,15 +34,70 @@ export const DROP_TYPE = {
 /* ─── Overlay ──────────────────────────────────────────────────────── */
 const CustomDragOverlay = () => {
   const { active } = useDndContext();
-  if (!active?.data.current?.imageSrc) return null;
+  const rank = useStore(selectActiveRank);
+  if (!active?.data.current?.imageSrc || !rank) return null;
+
+  const data = active.data.current;
+  const rankStyle = rank.style || 'card';
+
+  if (data.isRow) {
+    return (
+      <div 
+        className={`
+          flex items-center gap-4 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 pointer-events-none
+          ${rankStyle === 'card' ? 'bg-surface rounded-2xl' : 'bg-[#1c1c1e]'}
+        `}
+        style={{ width: data.width || '100%', opacity: 0.9 }}
+      >
+        <div className={`shrink-0 overflow-hidden border border-white/5 ${LIST_ASPECT_MAP[rank.aspectRatio || '3:4']}`}>
+          <img
+            src={getProxiedImageUrl(data.imageSrc)}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-white font-bold text-lg sm:text-xl truncate">
+            {data.textLabel || ''}
+          </div>
+          {data.rating && (
+            <div className="flex items-center gap-1 text-xs font-bold text-yellow-500/80">
+              <Star size={10} className="fill-yellow-500" />
+              <span>{data.rating}/10</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (data.type === DRAG_TYPE.TIER_ITEM) {
+    return (
+      <div
+        className="overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-lg pointer-events-none border border-white/20 bg-[#1c1c1e]"
+        style={{ 
+          width: data.width || 96, 
+          height: data.height || 128,
+          opacity: 0.9
+        }}
+      >
+        <img
+          src={getProxiedImageUrl(data.imageSrc)}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
 
   return (
     <div
-      className="overflow-hidden shadow-2xl opacity-80 rounded-xl pointer-events-none"
-      style={{ width: 96, height: 128 }}
+      className={`overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-xl pointer-events-none border border-white/20 ${ASPECT_MAP[rank.aspectRatio || '3:4']}`}
+      style={{ 
+        width: data.width || 120, 
+        opacity: 0.9
+      }}
     >
       <img
-        src={getProxiedImageUrl(active.data.current.imageSrc)}
+        src={getProxiedImageUrl(data.imageSrc)}
         alt="Drag Overlay"
         className="w-full h-full object-cover"
         referrerPolicy="no-referrer"
@@ -107,7 +165,11 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
       const fromIdx = active.data.current?.index;
       const toIdx = over.data.current?.index;
       if (fromIdx !== undefined && toIdx !== undefined && fromIdx !== toIdx) {
-        store.handleSwapCells(fromIdx, toIdx);
+        if (active.data.current?.isRow) {
+          store.handleReorderCells(fromIdx, toIdx);
+        } else {
+          store.handleSwapCells(fromIdx, toIdx);
+        }
       }
     }
 

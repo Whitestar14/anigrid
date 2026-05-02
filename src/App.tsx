@@ -15,37 +15,26 @@ import { readFileAsDataURL, downloadGrid } from "@/utils/imageUtils";
 import { cleanupOldCache } from "@/utils/imageCache";
 import { THEME_PALETTES, getContrastColor } from "@/theme/palettes";
 import { Edit2, Heart, Zap } from "lucide-react";
-import { useBoardCellInteraction } from "@/hooks/useBoardCellInteraction";
+import { 
+  selectTheme, 
+  selectActiveRankId, 
+  selectActiveRank, 
+  selectRanks, 
+  selectPreferences 
+} from "@/store/selectors";
 
 export const App: React.FC = () => {
   const addToast = useToast();
-  const onBoardCellInteract = useBoardCellInteraction();
-  const theme = useStore((s) => s.theme);
-  const reduceGlassEffects = useStore(
-    (s) => s.preferences.reduceGlassEffects ?? false,
-  );
-  const activeRankId = useStore((s) => s.activeRankId);
-  const activeRank = useStore((s) => s.ranks[s.activeRankId]);
-  const ranks = useStore((s) => s.ranks);
+  const theme = useStore(selectTheme);
+  const preferences = useStore(selectPreferences);
+  const reduceGlassEffects = preferences.reduceGlassEffects ?? false;
+  const activeRankId = useStore(selectActiveRankId);
+  const activeRank = useStore(selectActiveRank);
+  const ranks = useStore(selectRanks);
   const interactionState = useStore((s) => s.interactionState);
   const duplicateModalConfig = useStore((s) => s.duplicateModalConfig);
   const setInteractionState = useStore((s) => s.setInteractionState);
   const updateActiveRank = useStore((s) => s.updateActiveRank);
-  const handleUpdateTierRows = useStore((s) => s.handleUpdateTierRows);
-  const handleInboxDropToTier = useStore((s) => s.handleInboxDropToTier);
-  const handleInboxDropToTierMulti = useStore(
-    (s) => s.handleInboxDropToTierMulti,
-  );
-  const handleSearchDropToTier = useStore((s) => s.handleSearchDropToTier);
-  const handleTierMoveToInbox = useStore((s) => s.handleTierMoveToInbox);
-  const handleInternalTierMove = useStore((s) => s.handleInternalTierMove);
-  const handleCellClear = useStore((s) => s.handleCellClear);
-  const handleSwapCells = useStore((s) => s.handleSwapCells);
-  const handleInboxDrop = useStore((s) => s.handleInboxDrop);
-  const handleInboxDropMulti = useStore((s) => s.handleInboxDropMulti);
-  const handleSearchDrop = useStore((s) => s.handleSearchDrop);
-  const handleMoveToInbox = useStore((s) => s.handleMoveToInbox);
-  const handleUpdateCell = useStore((s) => s.handleUpdateCell);
   const setActiveRankId = useStore((s) => s.setActiveRankId);
   const handleDeleteRank = useStore((s) => s.handleDeleteRank);
   const handleNewRank = useStore((s) => s.handleNewRank);
@@ -73,17 +62,6 @@ export const App: React.FC = () => {
 
   const gridRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
-
-  // Wrapper functions to handle File → DataURL conversion
-  const handleCellUploadWithConversion = async (index: number, file: File) => {
-    try {
-      const dataUrl = await readFileAsDataURL(file);
-      useStore.getState().handleCellUpload(index, dataUrl);
-    } catch (error) {
-      console.error("Failed to upload image:", error);
-      addToast("error", "Failed to upload image");
-    }
-  };
 
   useEffect(() => {
     if (window.innerWidth >= 1024) {
@@ -251,7 +229,6 @@ export const App: React.FC = () => {
           st.handleCellClear(st.interactionState.index);
           st.setInteractionState(null);
         }
-        // For Tier Item delete
         if (st.interactionState?.type === "tier-item" && rank) {
           st.handleTierItemRemove(
             st.interactionState.rowId,
@@ -289,51 +266,20 @@ export const App: React.FC = () => {
             <div className="w-3 h-3 bg-primary rounded-full animate-bounce delay-0"></div>
           </div>
           <div className="bg-surface border border-border rounded-lg flex items-center justify-center aspect-square">
-            <Heart
-              size={20}
-              className="text-primary fill-primary animate-pulse delay-75"
-            />
+            <Heart size={20} className="text-primary fill-primary animate-pulse delay-75" />
           </div>
           <div className="bg-surface border border-border rounded-lg flex items-center justify-center aspect-square">
-            <Zap
-              size={20}
-              className="text-text fill-text animate-pulse delay-150"
-            />
+            <Zap size={20} className="text-text fill-text animate-pulse delay-150" />
           </div>
           <div className="bg-primary rounded-[12px] animate-pulse delay-200 aspect-square"></div>
         </div>
-        <span className="text-muted font-bold tracking-widest text-xs mt-4">
-          ANIGRID
-        </span>
+        <span className="text-muted font-bold tracking-widest text-xs mt-4">ANIGRID</span>
       </div>
     );
 
   const textColor = getContrastColor(activeRank.backgroundColor);
-
-  // Responsive padding logic: Less padding on mobile for tier lists to maximize width
-  const mainPadding =
-    activeRank.type === "tierlist" ? "p-2 md:p-8" : "p-4 md:p-8";
-  // Inner container padding: Default to 0 for Tier Lists on mobile to go edge-to-edge
-  const containerPadding =
-    activeRank.type === "tierlist"
-      ? window.innerWidth < 768
-        ? "0px"
-        : "32px"
-      : activeRank.style === "card"
-        ? "32px"
-        : "16px";
-
-  const handleCellDownload = async (index: number) => {
-    const cell = activeRank.cells[index];
-    if (!cell || !cell.imageSrc) return;
-
-    const link = document.createElement("a");
-    link.href = cell.imageSrc;
-    link.download = `${activeRank.title}-cell-${index + 1}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const mainPadding = activeRank.type === "tierlist" ? "p-2 md:p-8" : "p-4 md:p-8";
+  const containerPadding = activeRank.type === "tierlist" ? (window.innerWidth < 768 ? "0px" : "32px") : (activeRank.style === "card" ? "32px" : "16px");
 
   return (
     <div className="h-[100dvh] bg-background text-text font-sans selection:bg-primary/30 flex flex-col overflow-hidden relative">
@@ -351,18 +297,10 @@ export const App: React.FC = () => {
         onExportImage={async (fmt, qualityScale) => {
           if (gridRef.current) {
             try {
-              await downloadGrid(
-                gridRef.current,
-                activeRank.title,
-                fmt,
-                qualityScale,
-              );
+              await downloadGrid(gridRef.current, activeRank.title, fmt, qualityScale);
               addToast("success", `Exported as ${fmt.toUpperCase()}`);
             } catch (error) {
-              addToast(
-                "error",
-                error instanceof Error ? error.message : "Export failed",
-              );
+              addToast("error", error instanceof Error ? error.message : "Export failed");
             }
           }
         }}
@@ -397,13 +335,7 @@ export const App: React.FC = () => {
         isOpen={duplicateModalConfig.isOpen}
         imageSrc={duplicateModalConfig.imageSrc}
         onConfirm={handleDuplicateConfirm}
-        onCancel={() =>
-          setDuplicateModalConfig({
-            isOpen: false,
-            imageSrc: null,
-            actionToExecute: null,
-          })
-        }
+        onCancel={() => setDuplicateModalConfig({ isOpen: false, imageSrc: null, actionToExecute: null })}
       />
 
       <div className="flex flex-1 overflow-hidden pt-14">
@@ -417,26 +349,16 @@ export const App: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 relative bg-background">
           <main
             className={`flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center ${mainPadding} pb-40`}
-            onClick={() =>
-              interactionState && setInteractionState(null)
-            }
+            onClick={() => interactionState && setInteractionState(null)}
           >
             <div
               ref={gridRef}
               className="relative transition-all duration-200 shadow-2xl"
               style={{
                 width: "fit-content",
-                minWidth:
-                  activeRank.mode === "list"
-                    ? "100%"
-                    : activeRank.type === "tierlist"
-                      ? "98%"
-                      : "auto",
+                minWidth: activeRank.mode === "list" ? "100%" : (activeRank.type === "tierlist" ? "98%" : "auto"),
                 maxWidth: activeRank.type === "tierlist" ? "1200px" : "none",
-                backgroundColor:
-                  activeRank.backgroundColor === "transparent"
-                    ? ""
-                    : activeRank.backgroundColor,
+                backgroundColor: activeRank.backgroundColor === "transparent" ? "" : activeRank.backgroundColor,
                 padding: containerPadding,
               }}
               onClick={(e) => {
@@ -454,20 +376,14 @@ export const App: React.FC = () => {
                       onChange={(e) => setTempTitle(e.target.value)}
                       onBlur={() => {
                         setIsEditingTitle(false);
-                        if (
-                          tempTitle.trim() &&
-                          tempTitle !== activeRank.title
-                        ) {
+                        if (tempTitle.trim() && tempTitle !== activeRank.title) {
                           updateActiveRank({ title: tempTitle });
                         }
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           setIsEditingTitle(false);
-                          if (
-                            tempTitle.trim() &&
-                            tempTitle !== activeRank.title
-                          ) {
+                          if (tempTitle.trim() && tempTitle !== activeRank.title) {
                             updateActiveRank({ title: tempTitle });
                           }
                         }
@@ -487,98 +403,18 @@ export const App: React.FC = () => {
                       style={{ color: textColor }}
                     >
                       {activeRank.title}
-                      <Edit2
-                        size={20}
-                        className="text-muted opacity-0 group-hover/title:opacity-100 transition-opacity"
-                      />
+                      <Edit2 size={20} className="text-muted opacity-0 group-hover/title:opacity-100 transition-opacity" />
                     </h1>
                   )}
                 </div>
               )}
 
-              {activeRank.type === "tierlist" ? (
-                <TierListView
-                  rank={activeRank}
-                  onUpdateTierRows={handleUpdateTierRows}
-                  onInboxDrop={(itemId, colId, rowId, idx) => {
-                    handleInboxDropToTier(itemId, colId, rowId, idx);
-                    setInteractionState(null);
-                  }}
-                  onInboxDropMulti={(itemIds, colId, rowId, idx) => {
-                    handleInboxDropToTierMulti(
-                      itemIds,
-                      colId,
-                      rowId,
-                      idx,
-                    );
-                    setInteractionState(null);
-                  }}
-                  onSearchDrop={(imageSrc, rowId, idx) => {
-                    handleSearchDropToTier(imageSrc, rowId, idx);
-                    setInteractionState(null);
-                  }}
-                  onMoveToInbox={handleTierMoveToInbox}
-                  interactionState={interactionState}
-                  onInteract={(rowId, itemId) =>
-                    setInteractionState({
-                      type: "tier-item",
-                      rowId,
-                      itemId,
-                    })
-                  }
-                  onInternalMove={(srcRow, srcItem, tgtRow, tgtIdx) => {
-                    handleInternalTierMove(
-                      srcRow,
-                      srcItem,
-                      tgtRow,
-                      tgtIdx,
-                    );
-                    setInteractionState(null);
-                  }}
-                />
-              ) : activeRank.mode === "list" ? (
-                <ListView
-                  rank={activeRank}
-                  onUpload={handleCellUploadWithConversion}
-                  onClear={handleCellClear}
-                  onSwap={handleSwapCells}
-                  onInboxDrop={handleInboxDrop}
-                  onInboxDropMulti={handleInboxDropMulti}
-                  onSearchDrop={handleSearchDrop}
-                  onMoveToInbox={handleMoveToInbox}
-                  onUpdateCell={handleUpdateCell}
-                  interactionState={interactionState}
-                  onInteract={onBoardCellInteract}
-                />
-              ) : (
-                <GridView
-                  rank={activeRank}
-                  onUpload={handleCellUploadWithConversion}
-                  onClear={handleCellClear}
-                  onSwap={handleSwapCells}
-                  onInboxDrop={handleInboxDrop}
-                  onInboxDropMulti={handleInboxDropMulti}
-                  onSearchDrop={handleSearchDrop}
-                  onDownloadSingle={handleCellDownload}
-                  onUpdateCell={handleUpdateCell}
-                  interactionState={interactionState}
-                  onInteract={onBoardCellInteract}
-                />
-              )}
+              {activeRank.type === "tierlist" ? <TierListView /> : activeRank.mode === "list" ? <ListView /> : <GridView />}
 
               <div className="flex justify-between items-end opacity-30 px-2 mt-8 pt-4 border-t border-white/5">
-                <div
-                  className="text-[10px] font-mono font-bold tracking-widest uppercase"
-                  style={{ color: textColor }}
-                >
-                  AniGrid
-                </div>
-
+                <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>AniGrid</div>
                 {activeRank.showDate !== false && (
-                  <div
-                    className="text-[10px] font-mono font-bold tracking-widest uppercase"
-                    style={{ color: textColor }}
-                  >
+                  <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>
                     {new Date().toLocaleDateString()}
                   </div>
                 )}

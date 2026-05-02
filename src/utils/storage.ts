@@ -1,6 +1,6 @@
 import { get, set, del } from 'idb-keyval';
 import { StateStorage } from 'zustand/middleware';
-import { GlobalState, TierRow } from '@/types';
+import { GlobalState, TierRow, Rank, ProjectType } from '@/types';
 
 
 const CURRENT_VERSION = 3;

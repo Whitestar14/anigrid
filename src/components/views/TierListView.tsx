@@ -1,7 +1,7 @@
-import React, { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { Rank, TierRow, InteractionState, CellData } from "@/types";
+import { TierRow, CellData } from "@/types";
 import {
   Plus,
   X,
@@ -10,91 +10,33 @@ import {
   Edit2,
   Crop,
   Check,
+  Settings
 } from "lucide-react";
 import { getProxiedImageUrl } from "@/utils/imageProxy";
+import { TIER_ASPECT_MAP } from "@/utils/ui";
 import { Select } from "@/components/ui/Select";
-import { Settings } from "lucide-react";
-
-interface TierListViewProps {
-  rank: Rank;
-  onUpdateTierRows: (rows: TierRow[]) => void;
-  onInboxDrop: (
-    itemId: string,
-    collectionId: string,
-    rowId: string,
-    itemIndex: number,
-  ) => void;
-  onInboxDropMulti: (
-    itemIds: string[],
-    collectionId: string,
-    rowId: string,
-    itemIndex: number,
-  ) => void;
-  onSearchDrop: (imageSrc: string, rowId: string, itemIndex: number) => void;
-  onMoveToInbox: (rowId: string, itemIndex: number) => void;
-  // Interaction
-  interactionState: InteractionState;
-  onInteract: (rowId: string, itemId: string) => void;
-  onInternalMove: (
-    sourceRowId: string,
-    sourceItemId: string,
-    targetRowId: string,
-    targetIndex: number,
-  ) => void;
-}
+import { useStore } from "@/store/useStore";
+import { selectTierItem, selectActiveRank } from "@/store/selectors";
 
 const TierItem = React.memo(function TierItem({
-  item,
   rowId,
   idx,
-  interactionState,
-  onInteract,
-  onMoveToInbox,
-  handleItemDrop,
-  onUpdateItem,
-  onInboxDrop,
-  onInboxDropMulti,
-  onInternalMove,
-  onSearchDrop,
   aspectRatio,
 }: {
-  item: CellData;
   rowId: string;
   idx: number;
-  interactionState: InteractionState;
-  onInteract: (rowId: string, itemId: string) => void;
-  onMoveToInbox: (rowId: string, itemIndex: number) => void;
-  handleItemDrop: (
-    e: React.DragEvent,
-    targetRowId: string,
-    targetIndex: number,
-  ) => void;
-  onUpdateItem: (
-    rowId: string,
-    itemId: string,
-    updates: Partial<CellData>,
-  ) => void;
-  onInboxDrop: (
-    itemId: string,
-    collectionId: string,
-    rowId: string,
-    itemIndex: number,
-  ) => void;
-  onInboxDropMulti: (
-    itemIds: string[],
-    collectionId: string,
-    rowId: string,
-    itemIndex: number,
-  ) => void;
-  onInternalMove: (
-    sourceRowId: string,
-    sourceItemId: string,
-    targetRowId: string,
-    targetIndex: number,
-  ) => void;
-  onSearchDrop: (imageSrc: string, rowId: string, itemIndex: number) => void;
-  aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
+  aspectRatio: string;
 }) {
+  const item = useStore(selectTierItem(rowId, idx));
+  const interactionState = useStore(s => s.interactionState);
+  const setInteractionState = useStore(s => s.setInteractionState);
+  const onMoveToInbox = useStore(s => s.handleTierMoveToInbox);
+  const onInboxDrop = useStore(s => s.handleInboxDropToTier);
+  const onInboxDropMulti = useStore(s => s.handleInboxDropToTierMulti);
+  const onInternalMove = useStore(s => s.handleInternalTierMove);
+  const onSearchDrop = useStore(s => s.handleSearchDropToTier);
+  const onUpdateItem = useStore(s => s.handleUpdateCell); // This might need a specialized tier update if types differ
+
   const tierRef = useRef<HTMLDivElement>(null);
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [isAdjustDragging, setIsAdjustDragging] = useState(false);
@@ -105,48 +47,37 @@ const TierItem = React.memo(function TierItem({
   });
 
   const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } = useDraggable({
-    id: `tier-drag-${item.id}`,
-    data: { type: 'tier-item', rowId, id: item.id, imageSrc: item.imageSrc },
-    disabled: !item.imageSrc || isAdjusting
+    id: `tier-drag-${item?.id || `temp-${rowId}-${idx}`}`,
+    data: {
+      type: 'tier-item',
+      rowId,
+      id: item?.id,
+      imageSrc: item?.imageSrc,
+      width: tierRef.current?.offsetWidth,
+      aspectRatio: aspectRatio.replace(':', '/')
+    },
+    disabled: !item?.imageSrc || isAdjusting
   });
 
   const setRefs = (node: HTMLDivElement | null) => {
     tierRef.current = node;
     setDroppableRef(node);
-    if (!isAdjusting && item.imageSrc) {
+    if (!isAdjusting && item?.imageSrc) {
       setDraggableRef(node);
     } else {
       setDraggableRef(null);
     }
   };
 
-  const isDragOver = isOver;
-
-  const aspectMap: Record<string, string> = {
-    "1:1": "w-24 h-24",
-    "3:4": "w-24 h-32",
-    "4:3": "w-32 h-24",
-    "16:9": "w-[136px] h-20",
-    "9:16": "w-20 h-32",
-  };
-
-  const [zoom, setZoom] = useState(item.zoom || 1);
+  const [zoom, setZoom] = useState(item?.zoom || 1);
   const [posX, setPosX] = useState(
-    item.objectPosition ? parseInt(item.objectPosition.split(" ")[0]) : 50,
+    item?.objectPosition ? parseInt(item.objectPosition.split(" ")[0]) : 50,
   );
   const [posY, setPosY] = useState(
-    item.objectPosition ? parseInt(item.objectPosition.split(" ")[1]) : 50,
+    item?.objectPosition ? parseInt(item.objectPosition.split(" ")[1]) : 50,
   );
 
-  const objectPosStyle: React.CSSProperties = {
-    objectPosition: isAdjusting
-      ? `${posX}% ${posY}%`
-      : item.objectPosition || "center",
-    transform: `scale(${isAdjusting ? zoom : item.zoom || 1})`,
-    transformOrigin: "center",
-  };
-
-  React.useEffect(() => {
+  useEffect(() => {
     const handleMouseUp = () => setIsAdjustDragging(false);
     const handleMouseMove = (e: MouseEvent) => {
       if (!isAdjustDragging || !tierRef.current) return;
@@ -175,9 +106,16 @@ const TierItem = React.memo(function TierItem({
 
   const saveAdjustments = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onUpdateItem(rowId, item.id, { zoom, objectPosition: `${posX}% ${posY}%` });
     setIsAdjusting(false);
   };
+
+  const objectPosStyle: React.CSSProperties = {
+    objectPosition: isAdjusting ? `${posX}% ${posY}%` : item?.objectPosition || "center",
+    transform: `scale(${isAdjusting ? zoom : item?.zoom || 1})`,
+    transformOrigin: "center",
+  };
+
+  if (!item) return null;
 
   return (
     <motion.div
@@ -186,455 +124,203 @@ const TierItem = React.memo(function TierItem({
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ type: "spring", stiffness: 450, damping: 35 }}
-      className={`relative group/item ${isDragging ? "opacity-40 scale-95 grayscale" : ""} ${isDragOver ? "ring-4 ring-primary bg-primary/20 z-20 scale-105 shadow-2xl" : ""}`}
+      className={`relative group/item ${isDragging ? "opacity-40 scale-95 grayscale" : ""} ${isOver ? "ring-4 ring-primary bg-primary/20 z-20 scale-105 shadow-2xl" : ""}`}
       onClick={(e) => {
-        if (
-          (e.target as HTMLElement).closest("button") ||
-          (e.target as HTMLElement).closest(".adjust-controls") ||
-          (e.target as HTMLElement).closest(".popover-menu")
-        )
-          return;
+        if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest(".adjust-controls")) return;
         e.stopPropagation();
-        if (interactionState?.type === "inbox") {
-          onInboxDrop(
-            interactionState.itemId,
-            interactionState.collectionId,
-            rowId,
-            idx,
-          );
-        } else if (interactionState?.type === "inbox-multi") {
-          onInboxDropMulti(
-            interactionState.itemIds,
-            interactionState.collectionId,
-            rowId,
-            idx,
-          );
-        } else if (interactionState?.type === "tier-item") {
-          onInternalMove(
-            interactionState.rowId,
-            interactionState.itemId,
-            rowId,
-            idx,
-          );
-        } else if (interactionState?.type === "search") {
-          onSearchDrop(interactionState.imageSrc, rowId, idx);
-        } else {
-          onInteract(rowId, item.id);
+
+        const current = useStore.getState().interactionState;
+
+        // Inbox -> Tier
+        if (current?.type === "inbox-item") {
+          onInboxDrop(current.id, current.collectionId, rowId, idx);
+          setInteractionState(null);
+          return;
+        } 
+        
+        // Multi-Inbox -> Tier
+        if (current?.type === "inbox-multi") {
+          onInboxDropMulti(current.itemIds, current.collectionId, rowId, idx);
+          setInteractionState(null);
+          return;
+        } 
+
+        // Internal Tier Move
+        if (current?.type === "tier-item") {
+          if (current.itemId !== item.id) {
+            onInternalMove(current.rowId, current.itemId, rowId, idx);
+            setInteractionState(null);
+          } else {
+            setInteractionState(null);
+          }
+          return;
+        } 
+
+        // Search -> Tier
+        if (current?.type === "search") {
+          onSearchDrop(current.imageSrc, rowId, idx);
+          setInteractionState(null);
+          return;
         }
+
+        // Grid Cell -> Tier
+        if (current?.type === "cell") {
+          const cells = useStore.getState().ranks[useStore.getState().activeRankId]?.cells;
+          const cell = cells?.[current.index];
+          if (cell?.imageSrc) {
+            onSearchDrop(cell.imageSrc, rowId, idx);
+            useStore.getState().handleCellClear(current.index);
+            setInteractionState(null);
+          }
+          return;
+        }
+
+        setInteractionState({ type: "tier-item", rowId, itemId: item.id });
       }}
       {...attributes}
       {...listeners}
     >
-      <div
-        className={`
-                ${aspectMap[aspectRatio || "3:4"]} relative cursor-grab active:cursor-grabbing overflow-hidden select-none bg-black/20
-                ${interactionState?.type === "tier-item" && interactionState.itemId === item.id ? "opacity-50 ring-2 ring-primary z-10" : ""}
-            `}
-      >
+      <div className={`${TIER_ASPECT_MAP[aspectRatio || "3:4"]} relative cursor-grab active:cursor-grabbing overflow-hidden select-none bg-black/20`}>
         <img
           src={getProxiedImageUrl(item.imageSrc!)}
           className="w-full h-full object-cover pointer-events-none transition-all duration-200"
           style={objectPosStyle}
-          referrerPolicy="no-referrer"
         />
-
-        {/* Adjust Controls */}
         {isAdjusting && (
-          <div
-            className="export-hidden adjust-controls absolute inset-0 bg-black/20 hover:bg-black/10 backdrop-blur-[1px] flex flex-col items-center justify-between p-1 z-30 cursor-move transition-colors"
-            onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
-            onWheel={handleWheel}
-          >
-            <div className="bg-black/60 text-white text-[8px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md border border-white/10 pointer-events-none mt-1 shadow-lg text-center leading-tight">
-              Drag to Pan<br />Scroll to Zoom
-            </div>
+          <div className="absolute inset-0 bg-black/20 flex flex-col items-center justify-between p-1 z-30" onMouseDown={() => setIsAdjustDragging(true)} onWheel={handleWheel}>
+            <div className="bg-black/60 text-white text-[8px] uppercase font-bold px-2 py-0.5 rounded-full">Adjust Mode</div>
             <div className="flex gap-1 mb-1">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAdjusting(false);
-                }}
-                className="p-1.5 bg-black/60 backdrop-blur-md hover:bg-white/20 text-white rounded-full transition-colors border border-white/10 shadow-lg"
-              >
-                <X size={12} />
-              </button>
-              <button
-                onClick={saveAdjustments}
-                className="p-1.5 bg-primary hover:bg-primary/80 text-white rounded-full transition-colors shadow-lg"
-              >
-                <Check size={12} />
-              </button>
+              <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }} className="p-1.5 bg-black/60 rounded-full text-white"><X size={12} /></button>
+              <button onClick={saveAdjustments} className="p-1.5 bg-primary rounded-full text-white"><Check size={12} /></button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Popover Menu */}
       <AnimatePresence>
-        {interactionState?.type === "tier-item" &&
-          interactionState.itemId === item.id &&
-          !isAdjusting && (
-            <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="popover-menu absolute top-full mt-2 w-max min-w-[120px] left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1"
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAdjusting(true);
-                }}
-                className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2"
-              >
-                Adjust <Crop size={16} className="text-white/50" />
-              </button>
-              <div className="h-px bg-white/10 mx-2 my-0.5 shrink-0" />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveToInbox(rowId, idx);
-                }}
-                className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors gap-2"
-              >
-                Remove <X size={16} className="text-red-500/50" />
-              </button>
-            </motion.div>
-          )}
+        {interactionState?.type === "tier-item" && interactionState.itemId === item.id && !isAdjusting && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute top-full mt-2 w-max bg-[#2c2c2e] border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1">
+            <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }} className="p-3 hover:bg-white/10 rounded-xl text-white text-[13px] flex items-center justify-between gap-2">Adjust <Crop size={16} /></button>
+            <button onClick={(e) => { e.stopPropagation(); onMoveToInbox(rowId, idx); setInteractionState(null); }} className="p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] flex items-center justify-between gap-2">Remove <X size={16} /></button>
+          </motion.div>
+        )}
       </AnimatePresence>
     </motion.div>
   );
 });
 
-const TierRowWrapper: React.FC<{ rowId: string; children: React.ReactNode; defaultClassName: string; activeDropRowId: string | null; onClick: () => void }> = ({ rowId, children, defaultClassName, activeDropRowId, onClick }) => {
+const TierRowWrapper: React.FC<{ rowId: string; children: React.ReactNode; onClick: () => void }> = ({ rowId, children, onClick }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: `tier-row-body-${rowId}`,
-    data: { type: 'tier-cell', rowId, index: -1 } // -1 indicates end of row
+    data: { type: 'tier-cell', rowId, index: -1 }
   });
-
   return (
-    <div
-      ref={setNodeRef}
-      className={`${defaultClassName} ${isOver ? "bg-primary/20 ring-inset ring-2 ring-primary shadow-inner" : ""}`}
-      onClick={onClick}
-    >
+    <div ref={setNodeRef} className={`relative flex-1 flex flex-wrap content-start items-start min-h-[6rem] transition-all bg-surface ${isOver ? "bg-primary/20 ring-inset ring-2 ring-primary" : ""}`} onClick={onClick}>
       {children}
     </div>
   );
 };
 
-export const TierListView: React.FC<TierListViewProps> = ({
-  rank,
-  onUpdateTierRows,
-  onInboxDrop,
-  onInboxDropMulti,
-  onSearchDrop,
-  onMoveToInbox,
-  interactionState,
-  onInteract,
-  onInternalMove,
-}) => {
+export const TierListView: React.FC = () => {
+  const rank = useStore(selectActiveRank);
+  const interactionState = useStore(s => s.interactionState);
+  const setInteractionState = useStore(s => s.setInteractionState);
+  const handleUpdateTierRows = useStore(s => s.handleUpdateTierRows);
+  const handleInboxDropToTier = useStore(s => s.handleInboxDropToTier);
+  const handleInboxDropToTierMulti = useStore(s => s.handleInboxDropToTierMulti);
+  const handleInternalTierMove = useStore(s => s.handleInternalTierMove);
+
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
-  const [activeDropRowId, setActiveDropRowId] = useState<string | null>(null);
+
+  if (!rank) return null;
 
   const handleUpdateRow = (rowId: string, updates: Partial<TierRow>) => {
-    const newRows = rank.tierRows.map((r) =>
-      r.id === rowId ? { ...r, ...updates } : r,
-    );
-    onUpdateTierRows(newRows);
+    const newRows = rank.tierRows.map((r) => r.id === rowId ? { ...r, ...updates } : r);
+    handleUpdateTierRows(newRows);
   };
 
   const handleMoveRow = (index: number, direction: "up" | "down") => {
     const newRows = [...rank.tierRows];
-    if (direction === "up" && index > 0) {
-      [newRows[index], newRows[index - 1]] = [
-        newRows[index - 1],
-        newRows[index],
-      ];
-    } else if (direction === "down" && index < newRows.length - 1) {
-      [newRows[index], newRows[index + 1]] = [
-        newRows[index + 1],
-        newRows[index],
-      ];
-    }
-    onUpdateTierRows(newRows);
+    if (direction === "up" && index > 0) [newRows[index], newRows[index - 1]] = [newRows[index - 1], newRows[index]];
+    else if (direction === "down" && index < newRows.length - 1) [newRows[index], newRows[index + 1]] = [newRows[index + 1], newRows[index]];
+    handleUpdateTierRows(newRows);
   };
 
   const handleDeleteRow = (index: number) => {
     const newRows = rank.tierRows.filter((_, i) => i !== index);
-    onUpdateTierRows(newRows);
-  };
-
-  const handleClearRow = (rowId: string) => {
-    const newRows = rank.tierRows.map((r) =>
-      r.id === rowId ? { ...r, items: [] } : r,
-    );
-    onUpdateTierRows(newRows);
+    handleUpdateTierRows(newRows);
   };
 
   const handleAddRow = () => {
-    const newRow: TierRow = {
-      id: `tier-${Date.now()}`,
-      label: "NEW",
-      color: "#334155",
-      items: [],
-    };
-    onUpdateTierRows([...rank.tierRows, newRow]);
-  };
-
-  const handleRowClick = (rowId: string) => {
-    if (!interactionState) return;
-
-    // If dropping from inbox to empty space in row -> Append to end (index -1)
-    if (interactionState.type === "inbox") {
-      onInboxDrop(
-        interactionState.itemId,
-        interactionState.collectionId,
-        rowId,
-        -1,
-      );
-    } else if (interactionState.type === "inbox-multi") {
-      onInboxDropMulti(
-        interactionState.itemIds,
-        interactionState.collectionId,
-        rowId,
-        -1,
-      );
-    } else if (interactionState.type === "tier-item") {
-      onInternalMove(
-        interactionState.rowId,
-        interactionState.itemId,
-        rowId,
-        -1,
-      );
-    }
-  };
-
-  // Drag & Drop Handlers
-  const handleDragOver = (e: React.DragEvent, rowId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect =
-      e.dataTransfer.effectAllowed === "move" ? "move" : "copy";
-    if (activeDropRowId !== rowId) setActiveDropRowId(rowId);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setActiveDropRowId(null);
-  };
-
-  const handleDropOnRow = (e: React.DragEvent, rowId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setActiveDropRowId(null);
-
-    const dataStr = e.dataTransfer.getData("application/json");
-    if (!dataStr) return;
-
-    try {
-      const data = JSON.parse(dataStr);
-      const targetRow = rank.tierRows.find((r) => r.id === rowId);
-      const targetIndex = targetRow ? targetRow.items.length : 0;
-
-      if (data.type === "inbox") {
-        onInboxDrop(data.id, data.originCollectionId, rowId, targetIndex);
-      } else if (data.type === "inbox-multi") {
-        onInboxDropMulti(data.ids, data.originCollectionId, rowId, targetIndex);
-      } else if (data.type === "search") {
-        onSearchDrop(data.imageSrc, rowId, targetIndex);
-      } else if (data.type === "tier-item") {
-        onInternalMove(data.rowId, data.itemId, rowId, targetIndex);
-      }
-    } catch { }
-  };
-
-  const handleItemDrop = (
-    e: React.DragEvent,
-    targetRowId: string,
-    targetIndex: number,
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setActiveDropRowId(null);
-
-    const dataStr = e.dataTransfer.getData("application/json");
-    if (!dataStr) return;
-    try {
-      const data = JSON.parse(dataStr);
-      if (data.type === "inbox") {
-        onInboxDrop(data.id, data.originCollectionId, targetRowId, targetIndex);
-      } else if (data.type === "inbox-multi") {
-        onInboxDropMulti(
-          data.ids,
-          data.originCollectionId,
-          targetRowId,
-          targetIndex,
-        );
-      } else if (data.type === "search") {
-        onSearchDrop(data.imageSrc, targetRowId, targetIndex);
-      } else if (data.type === "tier-item") {
-        onInternalMove(data.rowId, data.itemId, targetRowId, targetIndex);
-      }
-    } catch { }
-  };
-
-  const handleUpdateItem = (
-    rowId: string,
-    itemId: string,
-    updates: Partial<CellData>,
-  ) => {
-    const newRows = rank.tierRows.map((r) => {
-      if (r.id === rowId) {
-        return {
-          ...r,
-          items: r.items.map((item) =>
-            item.id === itemId ? { ...item, ...updates } : item,
-          ),
-        };
-      }
-      return r;
-    });
-    onUpdateTierRows(newRows);
+    const newRow: TierRow = { id: `tier-${Date.now()}`, label: "NEW", color: "#334155", items: [] };
+    handleUpdateTierRows([...rank.tierRows, newRow]);
   };
 
   return (
     <div className="flex flex-col w-full max-w-6xl mx-auto pb-20 border-b border-border">
       {rank.tierRows.map((row, rowIndex) => (
-        <div
-          key={row.id}
-          className="flex min-h-[6rem] border-t border-border bg-surface"
-        >
-          {/* 1. Header (Left) */}
-          <div
-            className="w-24 sm:w-32 flex items-center justify-center p-2 shrink-0 relative border-r border-border cursor-text group/label"
-            style={{ backgroundColor: row.color }}
-            onClick={() => setEditingLabelId(row.id)}
-          >
+        <div key={row.id} className="flex min-h-[6rem] border-t border-border bg-surface">
+          <div className="w-24 sm:w-32 flex items-center justify-center p-2 shrink-0 relative border-r border-border cursor-text group/label" style={{ backgroundColor: row.color }} onClick={() => setEditingLabelId(row.id)}>
             {editingLabelId === row.id ? (
-              <textarea
-                autoFocus
-                value={row.label}
-                onChange={(e) =>
-                  handleUpdateRow(row.id, { label: e.target.value })
-                }
-                onBlur={() => setEditingLabelId(null)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    setEditingLabelId(null);
-                  }
-                }}
-                className="w-full h-full bg-transparent text-center text-black/80 font-black font-sans text-xl sm:text-2xl resize-none outline-none flex items-center justify-center overflow-hidden placeholder:text-black/30"
-                style={{ lineHeight: "1.2" }}
-                placeholder="Label"
-              />
+              <textarea autoFocus value={row.label} onChange={(e) => handleUpdateRow(row.id, { label: e.target.value })} onBlur={() => setEditingLabelId(null)} className="w-full h-full bg-transparent text-center text-black/80 font-black text-xl resize-none outline-none overflow-hidden" />
             ) : (
-              <span className="text-center text-black/80 font-black font-sans text-xl sm:text-2xl break-words leading-tight w-full select-none">
-                {row.label}
-              </span>
-            )}
-
-            {editingLabelId !== row.id && (
-              <div className="absolute top-1 right-1 opacity-0 group-hover/label:opacity-50">
-                <Edit2 size={10} className="text-black" />
-              </div>
+              <span className="text-center text-black/80 font-black text-xl break-words leading-tight w-full select-none">{row.label}</span>
             )}
           </div>
-
-          {/* 2. Content (Middle) - Compact Layout */}
-          <TierRowWrapper
-            rowId={row.id}
-            defaultClassName="relative flex-1 flex flex-wrap content-start items-start min-h-[6rem] transition-all duration-200 bg-surface"
-            activeDropRowId={activeDropRowId}
-            onClick={() => handleRowClick(row.id)}
-          >
+          <TierRowWrapper rowId={row.id} onClick={() => {
+            const current = useStore.getState().interactionState;
+            if (!current) return;
+            
+            if (current.type === "inbox-item") {
+              handleInboxDropToTier(current.id, current.collectionId, row.id, -1);
+            } else if (current.type === "inbox-multi") {
+              handleInboxDropToTierMulti(current.itemIds, current.collectionId, row.id, -1);
+            } else if (current.type === "tier-item") {
+              handleInternalTierMove(current.rowId, current.itemId, row.id, -1);
+            } else if (current.type === "search") {
+              handleSearchDropToTier(current.imageSrc, row.id, -1);
+            } else if (current.type === "cell") {
+              const cells = useStore.getState().ranks[useStore.getState().activeRankId]?.cells;
+              const cell = cells?.[current.index];
+              if (cell?.imageSrc) {
+                handleSearchDropToTier(cell.imageSrc, row.id, -1);
+                useStore.getState().handleCellClear(current.index);
+              }
+            }
+            setInteractionState(null);
+          }}>
             <AnimatePresence>
               {row.items.map((item, idx) => (
-                <TierItem
-                  key={item.id}
-                  item={item}
-                  rowId={row.id}
-                  idx={idx}
-                  interactionState={interactionState}
-                  onInteract={onInteract}
-                  onMoveToInbox={onMoveToInbox}
-                  handleItemDrop={handleItemDrop}
-                  onUpdateItem={handleUpdateItem}
-                  onInboxDrop={onInboxDrop}
-                  onInboxDropMulti={onInboxDropMulti}
-                  onInternalMove={onInternalMove}
-                  onSearchDrop={onSearchDrop}
-                />
+                <TierItem key={item.id} rowId={row.id} idx={idx} aspectRatio={rank.aspectRatio || "3:4"} />
               ))}
             </AnimatePresence>
-
-            {row.items.length === 0 && activeDropRowId !== row.id && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none export-hidden">
-                <span className="text-white/20 text-sm font-medium border-2 border-dashed border-white/10 px-4 py-2 rounded-xl">Drop items here</span>
+            {row.items.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className="text-white/20 text-[10px] font-black uppercase tracking-widest border-2 border-dashed border-white/5 px-4 py-2 rounded-xl">
+                  Drop here
+                </span>
               </div>
             )}
-
-            {/* Invisible Filler */}
-            <div className="flex-1 min-h-[6rem]" />
           </TierRowWrapper>
-
-          {/* 3. Controls (Right) */}
-          <div className="w-10 sm:w-16 bg-surface shrink-0 flex flex-col items-center justify-between py-1 border-l border-border export-hidden px-1">
-            <Select
-              value=""
-              onChange={(val) => {
-                if (val === 'clear') handleClearRow(row.id);
-                if (val === 'delete') handleDeleteRow(rowIndex);
-              }}
-              options={[
-                { label: "Clear Images", value: "clear" },
-                { label: "Delete Row", value: "delete" }
-              ]}
-              customTrigger={
-                <button className="p-1 text-muted hover:text-text transition-colors mt-1" title="Settings">
-                  <Settings size={18} />
-                </button>
-              }
-              alignOffset="right"
-              dropdownClassName="w-48"
-              className="w-auto flex justify-center"
-            />
-
+          <div className="w-10 sm:w-16 bg-surface shrink-0 flex flex-col items-center justify-between py-1 border-l border-border">
+            <Select value="" onChange={(val) => { if (val === 'clear') handleUpdateRow(row.id, { items: [] }); if (val === 'delete') handleDeleteRow(rowIndex); }} options={[{ label: "Clear Images", value: "clear" }, { label: "Delete Row", value: "delete" }]} customTrigger={
+              <button className="w-8 h-8 flex items-center justify-center text-muted hover:text-text hover:bg-white/5 rounded-full transition-colors mt-1">
+                <Settings size={18} />
+              </button>
+            } alignOffset="right" dropdownClassName="w-48" />
             <div className="flex flex-col gap-1">
-              <button
-                onClick={() => handleMoveRow(rowIndex, "up")}
-                disabled={rowIndex === 0}
-                className="p-1 text-muted hover:text-text disabled:opacity-30 disabled:hover:text-muted transition-colors"
-              >
-                <ChevronUp size={18} />
-              </button>
-              <button
-                onClick={() => handleMoveRow(rowIndex, "down")}
-                disabled={rowIndex === rank.tierRows.length - 1}
-                className="p-1 text-muted hover:text-text disabled:opacity-30 disabled:hover:text-muted transition-colors"
-              >
-                <ChevronDown size={18} />
-              </button>
+              <button onClick={() => handleMoveRow(rowIndex, "up")} disabled={rowIndex === 0} className="p-1 text-muted hover:text-text disabled:opacity-30"><ChevronUp size={18} /></button>
+              <button onClick={() => handleMoveRow(rowIndex, "down")} disabled={rowIndex === rank.tierRows.length - 1} className="p-1 text-muted hover:text-text disabled:opacity-30"><ChevronDown size={18} /></button>
             </div>
           </div>
         </div>
       ))}
-
-      {/* Add Row Button */}
-      <div className="bg-surface p-4 sm:p-6 flex flex-col justify-center export-hidden border-t border-border">
-        <button
-          onClick={handleAddRow}
-          className="flex items-center justify-center gap-3 w-full sm:w-auto self-center px-8 py-4 bg-[#2c2c2e] hover:bg-[#3a3a3c] text-white/70 hover:text-white border border-dashed border-white/20 hover:border-white/40 rounded-[20px] transition-all font-semibold text-[15px] shadow-sm hover:shadow-lg"
-        >
-          <div className="p-1 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
-            <Plus size={18} strokeWidth={2.5} />
-          </div>
-          <span className="tracking-wide">Add New Tier</span>
-        </button>
-      </div>
+      <button 
+        onClick={handleAddRow} 
+        className="w-full flex min-h-[4rem] items-center justify-center gap-3 bg-surface hover:bg-white/[0.02] text-white/20 hover:text-white/40 border-t border-border transition-all group/add-row"
+      >
+        <Plus size={24} className="group-hover/add-row:scale-110 transition-transform" />
+        <span className="text-sm font-black uppercase tracking-[0.2em]">Add New Tier</span>
+      </button>
     </div>
   );
 };

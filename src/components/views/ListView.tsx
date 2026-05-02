@@ -1,354 +1,270 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Rank, CellData, InteractionState } from '@/types';
-import { Upload, X, ArrowDownToLine, Plus, Star, Move, Check } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Upload, X, ArrowDownToLine, Plus, Star, Move, Check, GripVertical, Globe, Trash2 } from 'lucide-react';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
 import { UrlInputModal } from '@/components/ui/UrlInputModal';
 import { motion, AnimatePresence } from 'motion/react';
-
-interface ListViewProps {
-  rank: Rank;
-  onUpload: (index: number, file: File) => void;
-  onClear: (index: number) => void;
-  onSwap: (fromIndex: number, toIndex: number) => void;
-  onInboxDrop: (itemId: string, collectionId: string, toIndex: number) => void;
-  onInboxDropMulti: (itemIds: string[], collectionId: string, toIndex: number) => void;
-  onSearchDrop: (imageSrc: string, toIndex: number) => void;
-  onMoveToInbox: (index: number) => void;
-  onUpdateCell: (index: number, data: Partial<CellData>) => void;
-  // Interaction
-  interactionState: InteractionState;
-  onInteract: (index: number) => void;
-}
+import { useStore } from '@/store/useStore';
+import { selectCellByIndex, selectActiveRank, selectCells } from '@/store/selectors';
+import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { PopoverMenu } from '@/components/ui/PopoverMenu';
+import { usePanZoom } from '@/hooks/usePanZoom';
+import { LIST_ASPECT_MAP } from '@/utils/ui';
 
 interface ListRowProps {
   index: number;
-  data: CellData;
   rankStyle: 'seamless' | 'card';
   borderless: boolean;
   aspectRatio: string;
   showNumbers: boolean;
-  onUpload: (index: number, file: File) => void;
-  onClear: (index: number) => void;
-  onSwap: (fromIndex: number, toIndex: number) => void;
-  onInboxDrop: (itemId: string, collectionId: string, toIndex: number) => void;
-  onInboxDropMulti: (itemIds: string[], collectionId: string, toIndex: number) => void;
-  onSearchDrop: (imageSrc: string, toIndex: number) => void;
-  onMoveToInbox: (index: number) => void;
-  onUpdateCell: (index: number, data: Partial<CellData>) => void;
-  isSelected: boolean;
-  onInteract: (index: number) => void;
 }
 
 const ListRow = React.memo(function ListRow({
   index,
-  data,
   rankStyle,
   borderless,
   aspectRatio,
   showNumbers,
-  onUpload,
-  onClear,
-  onSwap,
-  onInboxDrop,
-  onInboxDropMulti,
-  onSearchDrop,
-  onMoveToInbox,
-  onUpdateCell,
-  isSelected,
-  onInteract
 }: ListRowProps) {
-  const listRef = useRef<HTMLDivElement>(null);
+  const data = useStore(selectCellByIndex(index));
+  const activeRank = useStore(selectActiveRank);
+  const interactionState = useStore(s => s.interactionState);
+  const isSelected = interactionState?.type === 'cell' && interactionState.index === index;
+  
+  const handleCellClear = useStore(s => s.handleCellClear);
+  const handleUpdateCell = useStore(s => s.handleUpdateCell);
+  const handleMoveToInbox = useStore(s => s.handleMoveToInbox);
+  const setInteractionState = useStore(s => s.setInteractionState);
+  const handleCellUpload = useStore(s => s.handleCellUpload);
+
+  const rowRef = useRef<HTMLDivElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
 
-  const [isAdjusting, setIsAdjusting] = useState(false);
-  const [isAdjustDragging, setIsAdjustDragging] = useState(false);
-  const [zoom, setZoom] = useState(data.zoom || 1);
-  const [posX, setPosX] = useState(data.objectPosition ? parseInt(data.objectPosition.split(' ')[0]) : 50);
-  const [posY, setPosY] = useState(data.objectPosition ? parseInt(data.objectPosition.split(' ')[1]) : 50);
+  const borderRadius = activeRank?.borderRadius ?? 12;
 
-  useEffect(() => {
-    const handleMouseUp = () => setIsAdjustDragging(false);
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isAdjustDragging || !listRef.current) return;
-      const rect = listRef.current.getBoundingClientRect();
-      const percentX = (e.movementX / rect.width) * 100 / zoom;
-      const percentY = (e.movementY / rect.height) * 100 / zoom;
-      setPosX(prev => Math.min(Math.max(0, prev - percentX), 100));
-      setPosY(prev => Math.min(Math.max(0, prev - percentY), 100));
-    };
-    if (isAdjustDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isAdjustDragging, zoom]);
+  const {
+    isAdjusting,
+    setIsAdjustDragging,
+    zoom,
+    posX,
+    posY,
+    handleWheel,
+    startAdjusting,
+    stopAdjusting,
+    saveAdjustments
+  } = usePanZoom(
+    { zoom: data?.zoom, posX: data?.objectPosition ? parseInt(data.objectPosition.split(' ')[0]) : 50, posY: data?.objectPosition ? parseInt(data.objectPosition.split(' ')[1]) : 50 },
+    imageContainerRef,
+    (state) => handleUpdateCell(index, { zoom: state.zoom, objectPosition: `${state.posX}% ${state.posY}%` })
+  );
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!isAdjusting) return;
-    e.stopPropagation();
-    const newZoom = Math.min(Math.max(1, zoom - (e.deltaY * 0.005)), 4);
-    setZoom(newZoom);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: data?.id || `cell-${index}`,
+    data: { 
+      type: 'cell', 
+      index, 
+      imageSrc: data?.imageSrc,
+      textLabel: data?.textLabel,
+      width: rowRef.current?.offsetWidth,
+      isRow: true 
+    },
+    disabled: isAdjusting
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
   };
 
-  const saveAdjustments = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onUpdateCell(index, { zoom, objectPosition: `${posX}% ${posY}%` });
-    setIsAdjusting(false);
-  };
+  if (!data) return null;
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      if (file.type.startsWith('image/')) {
-        onUpload(index, file);
-      }
-      return;
-    }
 
-    const dragData = e.dataTransfer.getData('application/json');
-    if (dragData) {
-      try {
-        const source = JSON.parse(dragData);
-        if (source.type === 'cell') {
-          if (source.index !== index) onSwap(source.index, index);
-        } else if (source.type === 'inbox') {
-          onInboxDrop(source.id, source.originCollectionId, index);
-        } else if (source.type === 'inbox-multi') {
-          onInboxDropMulti(source.ids, source.originCollectionId, index);
-        } else if (source.type === 'search') {
-          onSearchDrop(source.imageSrc, index);
-        }
-      } catch {}
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (event.target?.result) {
+                handleCellUpload(index, event.target.result as string);
+                setInteractionState(null);
+            }
+        };
+        reader.readAsDataURL(file);
     }
   };
 
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'cell', index }));
-    e.dataTransfer.effectAllowed = 'copyMove';
-    setTimeout(() => setIsDragging(true), 0);
-  };
-
-  const aspectMap: Record<string, string> = {
-    '1:1': 'aspect-square w-20',
-    '3:4': 'aspect-[3/4] w-16 sm:w-20',
-    '4:3': 'aspect-[4/3] w-24 sm:w-28',
-    '16:9': 'aspect-video w-28 sm:w-32',
-    '9:16': 'aspect-[9/16] w-14 sm:w-16'
-  };
+  const actions = data.imageSrc ? [
+    { label: 'Replace', icon: Upload, onClick: () => fileInputRef.current?.click() },
+    { label: 'Crop & Adjust', icon: Move, onClick: startAdjusting },
+    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => handleMoveToInbox(index) },
+    { label: 'Remove', icon: Trash2, onClick: () => handleCellClear(index), variant: 'danger' as const },
+  ] : [
+    { label: 'Local File', icon: Upload, onClick: () => fileInputRef.current?.click() },
+    { label: 'From URL', icon: Globe, onClick: () => setIsUrlModalOpen(true) },
+  ];
 
   return (
     <motion.div
+      ref={(node) => {
+        setNodeRef(node);
+        (rowRef as any).current = node;
+      }}
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: "spring", stiffness: 450, damping: 35 }}
+      style={style}
       className={`
-        flex items-center gap-4 transition-all duration-200
-        ${rankStyle === 'card' ? 'p-3 bg-[#2c2c2e] rounded-2xl' : 'p-3 bg-transparent hover:bg-white/[0.02]'}
+        group relative flex items-center gap-4
+        ${rankStyle === 'card' ? 'p-3 bg-surface rounded-2xl' : 'p-3 bg-transparent hover:bg-white/[0.02]'}
         ${rankStyle === 'seamless' && borderless ? 'border-none' : rankStyle === 'seamless' ? 'border-b border-white/5' : ''}
-        ${isDragOver ? 'ring-2 ring-primary bg-primary/10 z-[60] relative' : ''}
-        ${isSelected ? 'bg-primary/5 z-50 relative' : 'z-10 relative'}
-        ${isDragging ? 'opacity-40 grayscale' : ''}
+        ${isDragging ? 'opacity-20 grayscale z-0' : 'z-10'}
+        ${isSelected ? 'bg-primary/5 ring-1 ring-primary/20 shadow-lg' : ''}
       `}
-      onDrop={handleDrop}
-      onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); e.dataTransfer.dropEffect = 'copy'; }}
-      onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); e.dataTransfer.dropEffect = 'copy'; }}
-      onDragLeave={() => setIsDragOver(false)}
-      draggable
-      onDragStart={handleDragStart as any}
-      onDragEnd={() => setIsDragging(false)}
-    >
-      {/* 1. Rank Number */}
-      {showNumbers && (
-        <div className="w-8 sm:w-12 shrink-0 text-center flex flex-col items-center justify-center">
-          <span className="text-xl sm:text-2xl font-black text-white/20 group-hover:text-primary transition-colors leading-none">
-            #{index + 1}
-          </span>
-        </div>
-      )}
+      onClick={() => {
+        if (isAdjusting) return;
+        
+        const current = useStore.getState().interactionState;
+        
+        // Cell -> Cell Swap
+        if (current?.type === 'cell') {
+          if (current.index !== index) {
+            useStore.getState().handleSwapCells(current.index, index);
+            setInteractionState(null);
+          } else {
+            setInteractionState(null);
+          }
+          return;
+        }
 
-      {/* 2. Image Thumb uses Cell.tsx for full features */}
-      <div
-        ref={listRef}
-        className={`relative shrink-0 ${aspectMap[aspectRatio] || 'aspect-[3/4] w-16 sm:w-20'}`}
-      >
-          {data.imageSrc ? (
-            <>
-              <div
-                 className={`w-full h-full relative cursor-pointer group/image rounded-lg overflow-hidden border border-white/5 shadow-sm transition-transform ${isSelected && !isAdjusting ? 'scale-[1.02] ring-2 ring-primary' : 'hover:scale-[1.02]'}`}
-                 onClick={() => {
-                     if (!isAdjusting) onInteract(index);
-                 }}
-              >
-                  <img
-                      src={getProxiedImageUrl(data.imageSrc)}
-                      alt=""
-                      className="w-full h-full object-cover pointer-events-none transition-all duration-200"
-                      style={{
-                          objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || 'center'),
-                          transform: `scale(${isAdjusting ? zoom : (data.zoom || 1)})`,
-                          transformOrigin: 'center'
-                      }}
-                      referrerPolicy="no-referrer"
-                  />
-  
-                  {/* Adjust Controls */}
-                  {isAdjusting && (
-                    <div
-                      className="export-hidden adjust-controls absolute inset-0 bg-black/20 hover:bg-black/10 backdrop-blur-[1px] flex flex-col items-center justify-between p-1 z-30 cursor-move transition-colors"
-                      onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
-                      onWheel={handleWheel}
-                    >
-                      <div className="bg-black/60 text-white text-[8px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md border border-white/10 pointer-events-none mt-1 shadow-lg text-center leading-tight">
-                         Pan/Zoom
-                      </div>
-                      <div className="flex gap-1 mb-1">
-                        <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(false); }} className="p-1.5 bg-black/60 backdrop-blur-md hover:bg-white/20 text-white rounded-full transition-colors border border-white/10 shadow-lg">
-                          <X size={12} />
-                        </button>
-                        <button onClick={saveAdjustments} className="p-1.5 bg-primary hover:bg-primary/80 text-white rounded-full transition-colors shadow-lg">
-                          <Check size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-              </div>
-              {/* Popover Menu (Filled State) */}
-              <AnimatePresence>
-                {isSelected && !isAdjusting && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="popover-menu absolute top-0 w-max min-w-[140px] left-1/2 -translate-x-1/2 bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1 mt-[-10px]"
-                  >
-                     <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                        Replace <Upload size={16} className="text-white/50" />
-                     </button>
-                     <div className="h-px bg-white/10 mx-2 my-0.5" />
-                     <button onClick={(e) => { e.stopPropagation(); setIsAdjusting(true); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                        Crop & Adjust <Move size={16} className="text-white/50" />
-                     </button>
-                     <div className="h-px bg-white/10 mx-2 my-0.5" />
-                     <button onClick={(e) => { e.stopPropagation(); onMoveToInbox(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                        To Inbox <ArrowDownToLine size={16} className="text-white/50" />
-                     </button>
-                     <div className="h-px bg-white/10 mx-2 my-0.5" />
-                     <button onClick={(e) => { e.stopPropagation(); onClear(index); onInteract(-1); }} className="flex items-center justify-between p-3 hover:bg-red-500/20 text-red-500 rounded-xl text-[13px] font-medium transition-colors gap-2">
-                        Remove <X size={16} className="text-red-500/50" />
-                     </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          ) : (
-            <>
-              <div
-                 onClick={() => onInteract(index)}
-                 className="w-full h-full bg-black/40 rounded-lg border border-white/5 shadow-sm flex flex-col items-center justify-center text-muted hover:text-white transition-colors gap-1 cursor-pointer"
-              >
-                 <input
-                    type="file" ref={fileInputRef} className="hidden" accept="image/*"
-                    onChange={(e) => {
-                        if (e.target.files?.[0]) onUpload(index, e.target.files[0]);
-                        onInteract(-1); // Deselect on upload
-                    }}
-                 />
-                 <Plus size={20} className="opacity-50" />
-                 <span className="text-[10px] uppercase font-bold tracking-wider opacity-50">Add</span>
-              </div>
-              {/* Popover Menu (Empty State equivalent mapping) */}
-              <AnimatePresence>
-                {isSelected && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, x: '-50%', y: '-40%' }}
-                    animate={{ opacity: 1, scale: 1, x: '-50%', y: '-50%' }}
-                    exit={{ opacity: 0, scale: 0.95, x: '-50%', y: '-40%' }}
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute top-1/2 left-1/2 w-max min-w-[120px] bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl z-[100] flex flex-col p-1"
-                  >
-                     <button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                        Local <Upload size={16} className="text-white/50" />
-                     </button>
-                     <div className="h-px bg-white/10 mx-2 my-0.5 shrink-0" />
-                     <button onClick={(e) => {
-                        e.stopPropagation();
-                        setIsUrlModalOpen(true);
-                     }} className="flex items-center justify-between p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors gap-2">
-                        URL <ArrowDownToLine size={16} className="text-white/50" />
-                     </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          )}
+        // Inbox -> Cell Drop
+        if (current?.type === 'inbox-item') {
+          useStore.getState().handleInboxDrop(current.id, current.collectionId, index);
+          setInteractionState(null);
+          return;
+        }
+
+        // Search -> Cell Drop
+        if (current?.type === 'search') {
+          useStore.getState().handleSearchDrop(current.imageSrc, index);
+          setInteractionState(null);
+          return;
+        }
+
+        setInteractionState({ type: 'cell', index });
+      }}
+      {...attributes}
+      {...listeners}
+    >
+      <div className="flex items-center gap-2 shrink-0">
+        <GripVertical size={16} className="text-white/10 group-hover:text-white/30 transition-colors" />
+        {showNumbers && (
+          <div className="w-8 sm:w-12 shrink-0 text-center">
+            <span className="text-xl sm:text-2xl font-black text-white/20 leading-none select-none">
+              #{index + 1}
+            </span>
+          </div>
+        )}
       </div>
 
-      <UrlInputModal
-        isOpen={isUrlModalOpen}
-        onClose={() => setIsUrlModalOpen(false)}
-        onSubmit={(url) => { onSearchDrop(url, index); onInteract(-1); }}
-      />
+      <div
+        ref={imageContainerRef}
+        className={`relative shrink-0 ${LIST_ASPECT_MAP[aspectRatio] || 'aspect-[3/4] w-16 sm:w-20'}`}
+      >
+          {data.imageSrc ? (
+            <div 
+              className={`w-full h-full relative cursor-pointer group/image overflow-hidden border border-white/5 shadow-sm transition-all ${isSelected && !isAdjusting ? 'scale-[1.02] ring-2 ring-primary' : 'hover:scale-[1.02]'}`}
+              style={{ borderRadius }}
+            >
+                <img
+                    src={getProxiedImageUrl(data.imageSrc)}
+                    alt=""
+                    className="w-full h-full object-cover pointer-events-none"
+                    style={{
+                        objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || 'center'),
+                        transform: `scale(${isAdjusting ? zoom : (data.zoom || 1)})`,
+                        transformOrigin: 'center'
+                    }}
+                    referrerPolicy="no-referrer"
+                />
+  
+                {isAdjusting && (
+                  <div
+                    className="adjust-controls absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-between p-2 z-30 cursor-move"
+                    onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
+                    onWheel={handleWheel}
+                  >
+                    <div className="bg-black/60 text-white text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-full border border-white/10 shadow-2xl mt-1">Pan & Zoom</div>
+                    <div className="flex gap-2 mb-1">
+                      <button onClick={(e) => { e.stopPropagation(); stopAdjusting(); }} className="p-1.5 bg-black/60 hover:bg-white/20 text-white rounded-full border border-white/10"><X size={14} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); saveAdjustments(); setInteractionState(null); }} className="p-1.5 bg-primary hover:bg-primary/80 text-white rounded-full shadow-lg"><Check size={14} /></button>
+                    </div>
+                  </div>
+                )}
+            </div>
+          ) : (
+            <div 
+               className="w-full h-full bg-black/40 border border-white/5 shadow-sm flex flex-col items-center justify-center text-muted gap-1 cursor-pointer hover:bg-black/60 transition-colors"
+               style={{ borderRadius }}
+            >
+               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+               <Plus size={24} className="opacity-30" />
+               <span className="text-[10px] uppercase font-black tracking-widest opacity-30">Add</span>
+            </div>
+          )}
 
-      {/* 3. Title Input */}
+          <PopoverMenu
+            isOpen={isSelected && !isAdjusting}
+            onClose={() => setInteractionState(null)}
+            actions={actions}
+            align={data.imageSrc ? 'center' : 'bottom'}
+            className={data.imageSrc ? 'mt-[-10px]' : ''}
+          />
+      </div>
+
       <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
          <input
            type="text"
            placeholder="Enter Title..."
            value={data.textLabel || ''}
-           onChange={(e) => onUpdateCell(index, { textLabel: e.target.value })}
-           className="w-full bg-transparent text-lg sm:text-xl font-bold text-white focus:outline-none placeholder:text-white/10 truncate py-1 transition-colors"
+           onChange={(e) => handleUpdateCell(index, { textLabel: e.target.value })}
+           onClick={(e) => e.stopPropagation()}
+           className="w-full bg-transparent text-lg sm:text-xl font-bold text-white focus:outline-none placeholder:text-white/5 truncate py-1 transition-colors border-none focus:ring-0 p-0"
          />
-         {/* Mobile Rating Display (when star array hidden) */}
          <div className="sm:hidden flex items-center gap-1 text-xs font-bold text-yellow-500/80">
              <Star size={10} className="fill-yellow-500" />
              {data.rating ? <span>{data.rating}/10</span> : <span className="text-white/20">No Rating</span>}
          </div>
       </div>
 
-      {/* 4. Rating (Right Side) */}
       <div className="relative shrink-0 flex items-center justify-center px-2">
-         {/* Desktop Star Array */}
          <div className="hidden sm:flex gap-1">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
                 <button
                   key={star}
-                  onClick={() => onUpdateCell(index, { rating: star === data.rating ? 0 : star })}
-                  className="focus:outline-none group/star p-0.5"
+                  onClick={(e) => { e.stopPropagation(); handleUpdateCell(index, { rating: star === data.rating ? 0 : star }); }}
+                  className="focus:outline-none group/star p-0.5 hover:scale-125 transition-transform"
                 >
                    <Star
                      size={14}
-                     className={`
-                       ${(data.rating || 0) >= star ? 'fill-yellow-500 text-yellow-500' : 'text-white/10 group-hover/star:text-yellow-500/40'}
-                       transition-colors
-                     `}
+                     className={`${(data.rating || 0) >= star ? 'fill-yellow-500 text-yellow-500' : 'text-white/10 group-hover/star:text-yellow-500/40'} transition-colors`}
                    />
                 </button>
             ))}
          </div>
-
-         {/* Mobile Rating Touch Target */}
          <div className="sm:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface border border-transparent hover:border-border">
-             <Star
-               size={20}
-               className={`${data.rating ? 'fill-yellow-500 text-yellow-500' : 'text-muted/30'}`}
-             />
+             <Star size={20} className={`${data.rating ? 'fill-yellow-500 text-yellow-500' : 'text-muted/30'}`} />
              <select
-                className="absolute inset-0 opacity-0 w-full h-full"
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                 value={data.rating || 0}
-                onChange={(e) => onUpdateCell(index, { rating: Number(e.target.value) })}
+                onChange={(e) => { e.stopPropagation(); handleUpdateCell(index, { rating: Number(e.target.value) }); }}
              >
                 <option value="0">No Rating</option>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(r => (
@@ -357,51 +273,41 @@ const ListRow = React.memo(function ListRow({
              </select>
          </div>
       </div>
+
+      <UrlInputModal
+        isOpen={isUrlModalOpen}
+        onClose={() => setIsUrlModalOpen(false)}
+        onSubmit={(url) => { handleCellUpload(index, url); setInteractionState(null); }}
+      />
     </motion.div>
   );
 });
 
-export const ListView: React.FC<ListViewProps> = ({
-  rank,
-  onUpload,
-  onClear,
-  onSwap,
-  onInboxDrop,
-  onInboxDropMulti,
-  onSearchDrop,
-  onMoveToInbox,
-  onUpdateCell,
-  interactionState,
-  onInteract
-}) => {
+export const ListView: React.FC = () => {
+  const rank = useStore(selectActiveRank);
+  const cells = useStore(selectCells);
+  
+  if (!rank) return null;
+
   return (
     <div
-      className={`flex flex-col w-full min-w-0 ${rank.style === 'card' ? 'gap-3' : 'divide-y divide-white/5'}`}
+      className={`flex flex-col w-full max-w-5xl mx-auto px-4 sm:px-0 ${rank.style === 'card' ? 'gap-3' : 'divide-y divide-white/5 border-t border-white/5'}`}
       style={rank.style === 'card' ? { gap: rank.gap ?? 8 } : {}}
     >
-      <AnimatePresence>
-        {rank.cells.map((cell, index) => (
-          <ListRow
-            key={cell.id}
-            index={index}
-            data={cell}
-            rankStyle={rank.style ?? 'card'}
-            borderless={rank.borderless ?? false}
-            aspectRatio={rank.aspectRatio ?? '3:4'}
-            showNumbers={rank.showNumbers ?? true}
-            isSelected={interactionState?.type === 'cell' && interactionState.index === index}
-            onInteract={onInteract}
-            onUpload={onUpload}
-            onClear={onClear}
-            onSwap={onSwap}
-            onInboxDrop={onInboxDrop}
-            onInboxDropMulti={onInboxDropMulti}
-            onSearchDrop={onSearchDrop}
-            onMoveToInbox={onMoveToInbox}
-            onUpdateCell={onUpdateCell}
-          />
-        ))}
-      </AnimatePresence>
+      <SortableContext items={cells.map(c => c.id)} strategy={verticalListSortingStrategy}>
+        <AnimatePresence mode="popLayout">
+          {cells.map((cell, index) => (
+            <ListRow
+              key={cell.id}
+              index={index}
+              rankStyle={rank.style || 'card'}
+              borderless={rank.borderless || false}
+              aspectRatio={rank.aspectRatio || '3:4'}
+              showNumbers={rank.showNumbers ?? true}
+            />
+          ))}
+        </AnimatePresence>
+      </SortableContext>
     </div>
   );
 };

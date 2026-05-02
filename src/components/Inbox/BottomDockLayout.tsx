@@ -91,7 +91,7 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
       reopenTimeout = setTimeout(() => setIsExpanded(true), 300);
     }
     isDraggingFromDockRef.current = isDraggingFromDock;
-    
+
     return () => {
       clearTimeout(reopenTimeout);
     };
@@ -110,14 +110,14 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
         const rect = dockRef.current.getBoundingClientRect();
         const y = event.active.rect.current.translated?.top;
         const x = event.active.rect.current.translated?.left;
-        
+
         if (y !== undefined && x !== undefined) {
-           if (y < rect.top || y >= rect.bottom || x < rect.left || x >= rect.right) {
-              const isMobile = window.innerWidth < 768;
-              if (isMobile || autoCloseDockDesktop) {
-                setIsExpanded(false);
-              }
-           }
+          if (y < rect.top || y >= rect.bottom || x < rect.left || x >= rect.right) {
+            const isMobile = window.innerWidth < 768;
+            if (isMobile || autoCloseDockDesktop) {
+              setIsExpanded(false);
+            }
+          }
         }
       }
     }
@@ -135,14 +135,8 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
   };
 
   // Single source-of-truth for glass styles — same token as sidebar
-  const glassPanel = reduceGlass
-    ? "bg-surface border border-border shadow-2xl"
-    : "glass";
-
-  // Collapsed: use the app surface color so it feels unified, not foreign
-  const collapsedPanel = reduceGlass
-    ? "bg-surface border border-border shadow-2xl"
-    : "glass-panel";
+  const glassPanel = "glass";
+  const collapsedPanel = "glass-panel";
 
   return (
     <div
