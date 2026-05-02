@@ -6,6 +6,7 @@ import { ColorPicker } from "@/components/ui/ColorPicker";
 import { Save, Upload, ShieldAlert, Palette, Layers, Minimize2 } from "lucide-react";
 import { exportStateToJson } from "@/utils/storage";
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
+import { ImportChoiceModal } from "@/components/ImportChoiceModal";
 
 export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, message: string, onConfirm: () => void) => void }> = ({ requestConfirm }) => {
   const { accent, reduceGlass, autoCloseDesktop, updateTheme, updatePreferences } =
@@ -20,6 +21,8 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
     );
 
   const jsonInputRef = useRef<HTMLInputElement>(null);
+  const [isChoiceModalOpen, setIsChoiceModalOpen] = React.useState(false);
+  const [pendingState, setPendingState] = React.useState<any>(null);
 
   const handleExportJson = () => exportStateToJson(useStore.getState());
 
@@ -27,7 +30,10 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
     const text = await file.text();
     try {
       const json = JSON.parse(text);
-      if (json) useStore.getState().importState(json);
+      if (json) {
+        setPendingState(json);
+        setIsChoiceModalOpen(true);
+      }
     } catch (e) {
       console.error("Failed to import JSON", e);
       alert("Invalid JSON file");
@@ -103,17 +109,7 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
             iconBg="bg-orange-500/20 text-orange-400"
             label="Restore Data"
             sublabel="Import a previously exported JSON backup file."
-            onClick={() => {
-              if (requestConfirm) {
-                requestConfirm(
-                  "Restore Backup?",
-                  "This will overwrite all current ranks, images, and collections with the data from your backup file. This cannot be undone.",
-                  () => jsonInputRef.current?.click()
-                );
-              } else {
-                jsonInputRef.current?.click();
-              }
-            }}
+            onClick={() => jsonInputRef.current?.click()}
           />
           <SettingRow
             icon={<ShieldAlert size={16} />}
@@ -152,6 +148,18 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
       />
 
       <div className="h-4" />
+
+      <ImportChoiceModal
+        isOpen={isChoiceModalOpen}
+        onClose={() => setIsChoiceModalOpen(false)}
+        onSelect={(mode) => {
+          if (pendingState) {
+            useStore.getState().importState(pendingState, mode);
+            setIsChoiceModalOpen(false);
+            setPendingState(null);
+          }
+        }}
+      />
     </div>
   );
 };

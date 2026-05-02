@@ -32,45 +32,50 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
   const [coords, setCoords] = React.useState<{ x: number; y: number; translateY: number } | null>(null);
 
   // Measure and adjust position once mounted
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (isOpen && triggerPoint && menuRef.current) {
-      // Use a small delay to ensure the browser has layouted the element
-      const timeout = setTimeout(() => {
-        if (!menuRef.current) return;
-        
-        const rect = menuRef.current.getBoundingClientRect();
-        const padding = 16;
-        const winW = window.innerWidth;
-        const winH = window.innerHeight;
+      const rect = menuRef.current.getBoundingClientRect();
+      const padding = 12;
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
 
-        let x = triggerPoint.x;
-        let y = triggerPoint.y;
-        let translateY = -100; // Default: show above cursor
+      let x = triggerPoint.x;
+      let y = triggerPoint.y;
+      let translateY = -100; // Default: show above cursor
 
-        // Horizontal Constraint
-        const halfW = rect.width / 2;
-        if (x - halfW < padding) {
-          x = halfW + padding;
-        } else if (x + halfW > winW - padding) {
-          x = winW - halfW - padding;
-        }
+      // Horizontal Constraint (Nudge to stay on screen)
+      const halfW = rect.width / 2;
+      if (x - halfW < padding) {
+        x = halfW + padding;
+      } else if (x + halfW > winW - padding) {
+        x = winW - halfW - padding;
+      }
 
-        // Vertical Constraint
-        // distanceToTop = triggerPoint.y
-        if (y - rect.height - 40 < padding) {
-          // If too close to top, show below cursor
-          y = triggerPoint.y + 20;
-          translateY = 0;
-        } else {
-          // Normal: show above cursor
-          y = triggerPoint.y - 10;
+      // Vertical Constraint (Flip if no space above)
+      const menuH = rect.height;
+      const spaceAbove = triggerPoint.y;
+      const spaceBelow = winH - triggerPoint.y;
+
+      if (spaceAbove > menuH + 40) {
+        // Normal: show above
+        y = triggerPoint.y - 12;
+        translateY = -100;
+      } else if (spaceBelow > menuH + 40) {
+        // Invert: show below
+        y = triggerPoint.y + 12;
+        translateY = 0;
+      } else {
+        // Fallback: Nudge to fit in more available space
+        if (spaceAbove > spaceBelow) {
+          y = Math.min(winH - padding, Math.max(menuH + padding, triggerPoint.y));
           translateY = -100;
+        } else {
+          y = Math.max(padding, Math.min(winH - menuH - padding, triggerPoint.y));
+          translateY = 0;
         }
+      }
 
-        setCoords({ x, y, translateY });
-      }, 0);
-      
-      return () => clearTimeout(timeout);
+      setCoords({ x, y, translateY });
     } else if (!isOpen) {
       setCoords(null);
     }

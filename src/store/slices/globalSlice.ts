@@ -18,7 +18,7 @@ export interface GlobalSlice {
   checkDuplicateAndProceed: (imageSrc: string, action: () => void) => void;
   updateGlobalTheme: (themeUpdates: Partial<GlobalState["theme"]>) => void;
   handleClearAll: () => void;
-  importState: (newState: GlobalState) => void;
+  importState: (newState: GlobalState, mode: 'merge' | 'overwrite') => void;
   setSkipDuplicateWarning: (skip: boolean) => void;
   updatePreferences: (p: Partial<GlobalState["preferences"]>) => void;
 }
@@ -37,7 +37,7 @@ export const createGlobalSlice: StateCreator<
   },
   setInteractionState: (state) => set({ interactionState: state }),
   setDuplicateModalConfig: (config) =>
-    set((state) => {
+    set((state: AppState) => {
       Object.assign(state.duplicateModalConfig, config);
     }),
   checkDuplicateAndProceed: (imageSrc, action) => {
@@ -60,7 +60,7 @@ export const createGlobalSlice: StateCreator<
     }
 
     if (isDuplicate) {
-      set((draft) => {
+      set((draft: AppState) => {
         draft.duplicateModalConfig.isOpen = true;
         draft.duplicateModalConfig.imageSrc = imageSrc;
         draft.duplicateModalConfig.actionToExecute = action;
@@ -75,8 +75,8 @@ export const createGlobalSlice: StateCreator<
     if (state.duplicateModalConfig.actionToExecute) {
       state.duplicateModalConfig.actionToExecute();
     }
-    
-    set((draft) => {
+
+    set((draft: AppState) => {
       if (dontAskAgain) {
         draft.preferences.skipDuplicateWarning = true;
       }
@@ -87,12 +87,12 @@ export const createGlobalSlice: StateCreator<
   },
 
   updateGlobalTheme: (themeUpdates) =>
-    set((state) => {
+    set((state: AppState) => {
       if (state.theme) Object.assign(state.theme, themeUpdates);
     }),
 
   handleClearAll: () =>
-    set((state) => {
+    set((state: AppState) => {
       const activeRank = state.ranks[state.activeRankId];
       if (!activeRank) return;
 
@@ -127,15 +127,48 @@ export const createGlobalSlice: StateCreator<
       activeRank.updatedAt = Date.now();
     }),
 
-  importState: (newState) => set(() => newState),
+  importState: (newState, mode) =>
+    set((state: AppState) => {
+      if (mode === "overwrite") {
+        return newState;
+      }
+
+      Object.entries(newState.ranks).forEach(([id, rank]) => {
+        let targetId = id;
+        if (state.ranks[id]) {
+          targetId = `${id}-${Math.random().toString(36).slice(2, 7)}`;
+        }
+        state.ranks[targetId] = { ...rank, id: targetId };
+      });
+
+      newState.inbox.collections.forEach((newCol) => {
+        const existing = state.inbox.collections.find(
+          (c) => c.name.toLowerCase() === newCol.name.toLowerCase()
+        );
+        if (existing) {
+          const existingSrcs = new Set(existing.items.map((i) => i.imageSrc));
+          newCol.items.forEach((item) => {
+            if (!existingSrcs.has(item.imageSrc)) {
+              existing.items.push(item);
+            }
+          });
+        } else {
+          let targetColId = newCol.id;
+          if (state.inbox.collections.some((c) => c.id === targetColId)) {
+            targetColId = `${newCol.id}-${Math.random().toString(36).slice(2, 7)}`;
+          }
+          state.inbox.collections.push({ ...newCol, id: targetColId });
+        }
+      });
+    }),
 
   updatePreferences: (p) =>
-    set((state) => {
+    set((state: AppState) => {
       Object.assign(state.preferences, p);
     }),
 
   setSkipDuplicateWarning: (skip) =>
-    set((state) => {
+    set((state: AppState) => {
       state.preferences.skipDuplicateWarning = skip;
     }),
 });

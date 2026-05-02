@@ -16,11 +16,11 @@ const TIER_PRESETS = [
     { label: 'F', color: '#7fffff' },
 ];
 
-const TierHeader: React.FC<{
+const TierHeader = React.memo<{
     index: number;
     data?: TierData;
     onUpdate: (data: TierData) => void
-}> = ({ index, data, onUpdate }) => {
+}>(({ index, data, onUpdate }) => {
     const [isEditing, setIsEditing] = React.useState(false);
     const label = data?.label || TIER_PRESETS[Math.min(index, TIER_PRESETS.length - 1)].label;
     const color = data?.color || TIER_PRESETS[Math.min(index, TIER_PRESETS.length - 1)].color;
@@ -71,9 +71,9 @@ const TierHeader: React.FC<{
             </button>
         </div>
     );
-};
+});
 
-export const GridView: React.FC = () => {
+export const GridView = React.memo(() => {
     const rank = useStore(selectActiveRank);
     const cells = useStore(selectCells);
     const interactionState = useStore(s => s.interactionState);
@@ -254,4 +254,4 @@ export const GridView: React.FC = () => {
             ))}
         </motion.div>
     );
-};
+});

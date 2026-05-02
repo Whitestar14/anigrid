@@ -14,7 +14,7 @@ export type BottomDockCtrl = ReturnType<typeof useInboxController>;
 // Always use the same border radius — we animate height, NOT border-radius.
 // Using a constant large radius means it always looks pill-like while collapsed
 // and naturally square-cornered while tall.
-const DOCK_RADIUS = "24px";
+const DOCK_RADIUS = "22px";
 
 export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?: (title: string, message: string, onConfirm: () => void) => void }> = ({
   ctrl,
