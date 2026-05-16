@@ -77,12 +77,12 @@ export const Cell = React.memo(function Cell({
   );
 
   const { isOver, setNodeRef: setDroppableRef } = useDroppable({
-    id: `cell-drop-${index}`,
+    id: `cell-drop-${data.id}`,
     data: { type: 'cell', index }
   });
 
   const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } = useDraggable({
-    id: `cell-drag-${index}`,
+    id: `cell-drag-${data.id}`,
     data: {
       type: 'cell',
       index,
@@ -144,11 +144,11 @@ export const Cell = React.memo(function Cell({
       <div
         className={`
           w-full h-full overflow-hidden transition-all duration-300 relative
-          ${borderless ? '' : 'border border-white/10 shadow-lg'}
-          ${styleMode === 'card' ? 'bg-surface shadow-xl !rounded-2xl' : 'bg-transparent'}
-          ${isSelected ? 'ring-2 ring-primary scale-[1.02] z-10' : 'hover:scale-[1.01] hover:border-white/20'}
-          ${isFileDragOver ? 'ring-4 ring-primary ring-inset bg-primary/20' : ''}
-          ${isOver ? 'ring-2 ring-primary bg-primary/10' : ''}
+          ${borderless ? '' : 'border border-border shadow-lg'}
+          ${isDragging ? 'opacity-30 grayscale z-0' : 'z-10'}
+          ${isSelected ? 'ring-2 ring-primary scale-[1.02] z-10' : 'hover:scale-[1.01] hover:border-primary'}
+          ${isFileDragOver ? 'focus-ring bg-primary/20 scale-105 z-20' : ''}
+          ${isOver ? 'focus-ring scale-105 z-20' : ''}
         `}
         style={{ borderRadius }}
       >
@@ -165,11 +165,18 @@ export const Cell = React.memo(function Cell({
               }}
               referrerPolicy="no-referrer"
             />
-            {showRankNumber && (
-              <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-sm font-black size-8 flex items-center justify-center rounded-md border border-white/10 shadow-lg z-10 pointer-events-none">
-                #{index + 1}
-              </div>
-            )}
+            <AnimatePresence initial={false}>
+              {showRankNumber && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="absolute top-2 left-2 bg-surface-elevated backdrop-blur-md text-text text-sm font-black size-8 flex items-center justify-center rounded-md border border-border shadow-lg z-10 pointer-events-none"
+                >
+                  #{index + 1}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <AnimatePresence>
               {isAdjusting && (
@@ -179,9 +186,9 @@ export const Cell = React.memo(function Cell({
                   onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
                   onWheel={handleWheel}
                 >
-                  <div className="bg-black/60 text-white text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-full border border-white/10 shadow-2xl mt-2">Pan & Zoom</div>
-                  <div className="flex gap-2 mb-2">
-                    <button onClick={(e) => { e.stopPropagation(); stopAdjusting(); }} className="p-2 bg-black/60 hover:bg-white/10 text-white rounded-full border border-white/10 shadow-xl backdrop-blur-xl transition-all active:scale-90"><X size={18} /></button>
+                  <div className="bg-surface-elevated text-text text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-full border border-border shadow-2xl mt-2">Pan & Zoom</div>
+                  <div className="flex gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); stopAdjusting(); }} className="p-2 bg-surface-elevated hover:bg-hover text-text rounded-full border border-border shadow-xl backdrop-blur-xl transition-all active:scale-90"><X size={18} /></button>
                     <button onClick={(e) => { e.stopPropagation(); saveAdjustments(); onInteract(-1); }} className="p-2 bg-primary hover:bg-primary/80 text-white rounded-full shadow-xl transition-all active:scale-90"><Check size={18} /></button>
                   </div>
                 </motion.div>
@@ -189,7 +196,7 @@ export const Cell = React.memo(function Cell({
             </AnimatePresence>
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-muted group-hover/cell:text-text transition-colors export-hidden pointer-events-none bg-[#2c2c2e]/20">
+          <div className="w-full h-full flex flex-col items-center justify-center text-muted group-hover/cell:text-text transition-colors export-hidden pointer-events-none bg-surface-secondary">
             <Plus size={32} className="mb-2 opacity-30 group-hover/cell:opacity-100 transition-opacity" />
             <span className="text-xs font-bold uppercase tracking-wider opacity-50">Add</span>
           </div>

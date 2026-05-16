@@ -50,16 +50,16 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className={cn(
-              "relative w-full max-w-md shadow-2xl rounded-3xl overflow-hidden flex flex-col max-h-[85vh] glass",
+              "relative w-full shadow-2xl rounded-3xl overflow-hidden flex flex-col max-h-[85vh] glass-panel",
               className
             )}
           >
             {title && (
-              <div className="flex items-center justify-between px-8 py-6 border-b border-white/5 shrink-0">
-                <h2 className="text-xl font-medium text-white tracking-tight">{title}</h2>
+              <div className="flex items-center justify-between px-8 py-6 border-b border-border shrink-0">
+                <h2 className="text-xl font-medium text-text tracking-tight">{title}</h2>
                 <button
                   onClick={onClose}
-                  className="p-2 -mr-2 rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors border border-white/5"
+                  className="p-2 -mr-2 rounded-full bg-surface-secondary hover:bg-hover text-muted hover:text-text transition-colors border border-border"
                 >
                   <X className="w-4 h-4" />
                 </button>

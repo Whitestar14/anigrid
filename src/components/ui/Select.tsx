@@ -47,16 +47,16 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className={cn(
-              "flex items-center justify-between w-full h-10 px-4 py-2 text-sm text-left bg-black/20 border border-white/10 rounded-full",
-              "hover:bg-black/30 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50",
-              "backdrop-blur-md transition-all duration-200 text-white"
+              "flex items-center justify-between w-full h-10 px-4 py-2 text-sm text-left bg-surface-secondary border border-border rounded-full",
+              "hover:bg-hover focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50",
+              "backdrop-blur-md transition-all duration-200 text-text"
             )}
           >
-            <span className={cn("block truncate", !selectedOption && "text-white/30")}>
+            <span className={cn("block truncate", !selectedOption && "text-muted")}>
               {selectedOption ? selectedOption.label : placeholder || 'Select...'}
             </span>
             {!hideChevron && (
-                <ChevronDown className={cn("w-4 h-4 text-white/50 transition-transform duration-200", isOpen && "rotate-180")} />
+                <ChevronDown className={cn("w-4 h-4 text-muted transition-transform duration-200", isOpen && "rotate-180")} />
             )}
           </button>
       )}
@@ -68,7 +68,7 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -5, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className={cn("absolute z-50 mt-2 overflow-hidden bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 p-1 rounded-2xl shadow-2xl",
+            className={cn("absolute z-50 mt-2 overflow-hidden bg-surface/95 backdrop-blur-xl border border-border p-1 rounded-2xl shadow-2xl",
               dropdownClassName || "w-full min-w-[140px]",
               alignOffset === 'right' ? "right-0" : "left-0"
           )}>
@@ -81,13 +81,13 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
                       setIsOpen(false);
                     }}
                     className={cn(
-                      "flex items-center p-3 hover:bg-white/10 rounded-xl text-[13px] font-medium text-white transition-colors cursor-pointer",
-                      value === option.value && "bg-white/5"
+                      "flex items-center p-3 hover:bg-hover rounded-xl text-[13px] font-medium text-text transition-colors cursor-pointer",
+                      value === option.value && "bg-surface-elevated"
                     )}
                   >
                     <span className="block truncate">{option.label}</span>
                   </li>
-                  {idx < options.length - 1 && <div className="h-px bg-white/10 mx-2 my-0.5 shrink-0" />}
+                  {idx < options.length - 1 && <div className="h-px bg-border mx-2 my-0.5 shrink-0" />}
                 </React.Fragment>
               ))}
             </ul>

@@ -4,6 +4,7 @@ import { Search, Loader2, AlertCircle, Plus, Check, RefreshCw, WifiOff } from 'l
 import { JikanResult } from '@/types';
 import { Input } from '@/components/ui/Input';
 import { getProxiedImageUrl } from '@/utils/imageProxy';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 
 interface SearchPanelProps {
   query: string;
@@ -35,7 +36,7 @@ const SearchItem = React.memo<{
       {...attributes}
       {...listeners}
       className={`
-        group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-white/10 bg-[#2c2c2e] cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-500 transition-all shadow-md duration-200 ease-out touch-none
+        group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-border bg-surface-secondary cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-500 transition-all shadow-md duration-200 ease-out touch-none
         ${isAdded ? 'opacity-80' : ''}
         ${isDragging ? 'opacity-50 scale-95 ring-2 ring-green-500 drop-shadow-lg' : ''}
       `}
@@ -55,8 +56,8 @@ const SearchItem = React.memo<{
       {/* Add Button / Check Indicator */}
       <button
         onClick={(e) => {
-            e.stopPropagation();
-            if (!isAdded) onAdd(imgSrc);
+          e.stopPropagation();
+          if (!isAdded) onAdd(imgSrc);
         }}
         className={`
           absolute top-2 right-2 p-1.5 rounded-full shadow-sm hover:scale-110 transition-all z-10 glass
@@ -87,6 +88,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
   autoFocus
 }) => {
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<{ message: string; isNetwork?: boolean } | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -98,7 +100,9 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
   // Debounce search
   useEffect(() => {
+    setIsTyping(true);
     const timer = setTimeout(() => {
+      setIsTyping(false);
       if (query.length > 2) {
         performSearch();
       }
@@ -115,7 +119,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
     try {
       if (!navigator.onLine) {
-          throw new Error("offline");
+        throw new Error("offline");
       }
 
       const response = await fetch(`https://api.jikan.moe/v4/${mode}?q=${encodeURIComponent(query)}&limit=15&order_by=favorites&sort=desc`);
@@ -131,9 +135,9 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
     } catch (err: any) {
       console.error("Search error:", err);
       if (err.message === "offline" || err.name === "TypeError") { // fetch throws TypeError on network failure
-          setError({ message: "No internet connection.", isNetwork: true });
+        setError({ message: "No internet connection.", isNetwork: true });
       } else {
-          setError({ message: err.message || 'Search failed.' });
+        setError({ message: err.message || 'Search failed.' });
       }
       onResultsChange([]);
     } finally {
@@ -148,72 +152,68 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
         <div className="flex-1">
           <Input
             ref={inputRef}
-            icon={<Search size={16} className="text-white/50" />}
+            icon={<Search size={16} className="text-muted" />}
             type="text"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={`Search ${mode} on MAL...`}
-            className="font-medium bg-[#2c2c2e] border-transparent focus:border-white/20 focus:ring-1 focus:ring-white/20 text-[15px] rounded-xl h-10"
+            className="font-medium bg-surface-secondary border-transparent focus:border-border focus:ring-1 focus:ring-border text-[15px] rounded-full h-10 pr-4"
           />
         </div>
 
-        <div className="flex bg-[#767680]/24 rounded-xl p-1 shrink-0">
-          <button
-            onClick={() => onModeChange('anime')}
-            className={`px-4 py-1.5 text-[13px] font-medium transition-all rounded-lg ${mode === 'anime' ? 'bg-[#636366] text-white shadow-sm' : 'text-white/70 hover:text-white'}`}
-          >
-            Anime
-          </button>
-          <button
-            onClick={() => onModeChange('characters')}
-            className={`px-4 py-1.5 text-[13px] font-medium transition-all rounded-lg ${mode === 'characters' ? 'bg-[#636366] text-white shadow-sm' : 'text-white/70 hover:text-white'}`}
-          >
-            Chars
-          </button>
+        <div className="w-[160px] shrink-0">
+          <SegmentedControl
+            value={mode}
+            onChange={(val) => onModeChange(val as any)}
+            options={[
+              { value: 'anime', label: 'Anime' },
+              { value: 'characters', label: 'Chars' }
+            ]}
+          />
         </div>
       </div>
 
       {/* Results Area */}
       <div className="flex-1 overflow-x-auto min-h-[170px] custom-scrollbar pb-2">
         {loading ? (
-          <div className="h-40 flex items-center justify-center text-white/50 gap-3">
+          <div className="h-40 flex items-center justify-center text-muted gap-3">
             <Loader2 className="animate-spin" size={20} />
             <span className="text-[13px] font-medium">Searching MAL...</span>
           </div>
         ) : error ? (
-          <div className="h-40 flex flex-col items-center justify-center text-white/50 gap-3 p-4 text-center animate-in zoom-in-95">
+          <div className="h-40 flex flex-col items-center justify-center text-muted gap-3 p-4 text-center animate-in zoom-in-95">
             <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-1">
-                {error.isNetwork ? <WifiOff size={24} /> : <AlertCircle size={24} />}
+              {error.isNetwork ? <WifiOff size={24} /> : <AlertCircle size={24} />}
             </div>
-            <span className="text-[13px] font-medium text-white">{error.message}</span>
+            <span className="text-[13px] font-medium text-text">{error.message}</span>
             <button
-                onClick={performSearch}
-                className="mt-2 flex items-center gap-2 px-5 py-2 bg-[#2c2c2e] hover:bg-[#3a3a3c] border border-white/10 rounded-full text-[13px] font-medium transition-colors text-white"
+              onClick={performSearch}
+              className="mt-2 flex items-center gap-2 px-5 py-2 bg-surface hover:bg-hover border border-border rounded-full text-[13px] font-medium transition-colors text-text"
             >
-                <RefreshCw size={14} /> Retry
+              <RefreshCw size={14} /> Retry
             </button>
           </div>
         ) : results.length > 0 ? (
           <div className="flex gap-4 pb-4 px-2">
-             {results.map((item) => {
-               const imgSrc = item.images.jpg.large_image_url || item.images.jpg.image_url;
-               const label = item.title || item.name || 'Unknown';
-               const isAdded = usedImageSrcs.has(imgSrc);
-
-               return (
-                   <SearchItem
-                   key={item.mal_id}
-                   item={item}
-                   imgSrc={imgSrc}
-                   label={label}
-                   isAdded={isAdded}
-                   onAdd={onAdd}
-                 />
-               );
-             })}
+            {results.map((item) => {
+              const imgSrc = item.images.jpg.large_image_url || item.images.jpg.image_url;
+              const label = item.title || item.name || 'Unknown';
+              const isAdded = usedImageSrcs.has(imgSrc);
+              return (
+                <SearchItem key={item.mal_id} item={item} imgSrc={imgSrc} label={label} isAdded={isAdded} onAdd={onAdd} />
+              );
+            })}
+          </div>
+        ) : (query.length > 2 && !isTyping) ? (
+          <div className="h-40 flex flex-col items-center justify-center text-muted gap-2 animate-in zoom-in-95">
+            <div className="w-12 h-12 rounded-full bg-surface-elevated border border-border flex items-center justify-center mb-1">
+              <Search size={22} className="opacity-40" strokeWidth={1.5} />
+            </div>
+            <span className="text-[14px] font-semibold text-text">No results for &ldquo;{query}&rdquo;</span>
+            <span className="text-[12px] text-muted">Try a different search term</span>
           </div>
         ) : (
-          <div className="h-40 flex flex-col items-center justify-center text-white/40 opacity-80 select-none">
+          <div className="h-40 flex flex-col items-center justify-center text-muted opacity-80 select-none">
             <Search size={36} className="mb-3 opacity-50" strokeWidth={1.5} />
             <span className="text-[13px] font-medium">Search for your favorites</span>
           </div>

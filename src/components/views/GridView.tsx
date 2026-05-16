@@ -112,8 +112,8 @@ export const GridView = React.memo(() => {
         }
 
         // Inbox -> Cell Drop
-        if (current?.type === 'inbox-item') {
-            handleInboxDrop(current.id, current.collectionId, index);
+        if (current?.type === 'inbox') {
+            handleInboxDrop(current.itemId, current.collectionId, index);
             setInteractionState(null);
             setTriggerPoint(null);
             return;
@@ -168,7 +168,7 @@ export const GridView = React.memo(() => {
                         />
                         <motion.div
                             layout
-                            className="grid"
+                            className="grid justify-center mx-auto"
                             animate={{
                                 gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
                                 gap: `${rank.gap ?? 0}px`,
@@ -213,10 +213,13 @@ export const GridView = React.memo(() => {
         );
     }
 
+    const justifyClass = rank.gridJustify === 'left' ? 'justify-start' : 
+                         rank.gridJustify === 'right' ? 'justify-end' : 
+                         'justify-center';
+
     return (
         <motion.div
-            layout
-            className="grid"
+            className={`grid ${justifyClass} mx-auto`}
             animate={{
                 gridTemplateColumns: `repeat(${cols}, ${rank.cellWidth ? `${rank.cellWidth}px` : `minmax(120px, 1fr)`})`,
                 gap: `${rank.gap ?? 0}px`,

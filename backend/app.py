@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
 import requests
@@ -26,7 +27,19 @@ def proxy_image():
     if not image_url.startswith(('http://', 'https://')):
         return jsonify({'error': 'Invalid URL'}), 400
 
-    allowed_domains = ['myanimelist.net', 's4.anilist.co', 'cdn.myanimelist.net']
+    allowed_domains = [
+        'myanimelist.net', 
+        's4.anilist.co', 
+        'cdn.myanimelist.net',
+        'imgur.com',
+        'discordapp.com',
+        'discord.com',
+        'media.discordapp.net',
+        'pinterest.com',
+        'pinimg.com',
+        'unsplash.com',
+        'images.unsplash.com'
+    ]
     if not any(domain in image_url for domain in allowed_domains):
         return jsonify({'error': 'Domain not allowed'}), 403
 

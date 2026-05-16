@@ -69,85 +69,99 @@ export const InboxStashGrid = React.memo<InboxStashGridProps>(({
         className="flex-1 overflow-x-auto overflow-y-hidden p-6 custom-scrollbar"
       >
         <div className="flex gap-4 h-full items-center">
-          {currentItems.length === 0 ? (
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => !isAllView && onUploadClick()}
-              onKeyDown={(e) => {
-                if (!isAllView && (e.key === "Enter" || e.key === " ")) {
-                  e.preventDefault();
-                  onUploadClick();
-                }
-              }}
-              className={`flex-1 flex flex-col items-center justify-center text-white/40 text-[13px] font-medium select-none h-full border border-dashed border-white/10 rounded-2xl bg-[#2c2c2e]/30 p-4 transition-colors ${!isAllView ? "cursor-pointer hover:border-white/20 hover:bg-[#2c2c2e]/50 hover:text-white/60" : ""}`}
-            >
-              <CuteSlime className="w-16 h-16 text-white/20 mb-4" />
-              {isAllView ? (
-                "Your library is empty."
-              ) : (
-                <div className="flex flex-col items-center">
-                  <span className="mb-1 leading-tight">
-                    Drag items here or move them from the board
-                  </span>
-                  <span className="text-[11px] uppercase tracking-widest text-blue-400/80 mt-2 font-bold group-hover:text-blue-400">
-                    Tap to Upload
-                  </span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              {!isAllView && (
-                <button
-                  type="button"
-                  onClick={onUploadClick}
-                  className="shrink-0 w-28 h-40 border border-dashed border-white/20 rounded-2xl flex flex-col items-center justify-center text-white/50 hover:text-blue-400 hover:border-blue-400 transition-all group bg-[#2c2c2e]/50 hover:bg-[#3a3a3c]/50"
-                >
-                  <Upload
-                    size={24}
-                    className="group-hover:scale-110 transition-transform mb-3"
-                    strokeWidth={1.5}
-                  />
-                  <span className="text-[11px] font-medium uppercase tracking-widest">
-                    Upload
-                  </span>
-                </button>
-              )}
-              <AnimatePresence initial={false}>
-                {currentItems.map((item) => {
-                  const isUsed = usedOnBoard.has(item.imageSrc);
-                  const isSelected =
-                    selectedItemIds.has(item.id) ||
-                    (interactionState?.type === "inbox-item" &&
-                      interactionState.itemId === item.id);
+          <AnimatePresence mode="wait">
+            {currentItems.length === 0 ? (
+              <motion.div
+                key="empty-state"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                role="button"
+                tabIndex={0}
+                onClick={() => !isAllView && onUploadClick()}
+                onKeyDown={(e) => {
+                  if (!isAllView && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    onUploadClick();
+                  }
+                }}
+                className={`flex-1 flex flex-col items-center justify-center text-muted text-[13px] font-medium select-none h-full border border-dashed border-border rounded-2xl bg-surface-secondary p-4 transition-colors ${!isAllView ? "cursor-pointer hover:border-primary hover:bg-hover hover:text-text" : ""}`}
+              >
+                <CuteSlime className="w-16 h-16 text-muted mb-4" />
+                {isAllView ? (
+                  "Your library is empty."
+                ) : (
+                  <div className="flex flex-col items-center text-center">
+                    <span className="mb-1 leading-tight max-w-[200px]">
+                      Drag items here or move them from the board
+                    </span>
+                    <span className="text-[11px] uppercase tracking-widest text-blue-400/80 mt-2 font-bold group-hover:text-blue-400">
+                      Tap to Upload
+                    </span>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="items-grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex gap-4 items-center h-full"
+              >
+                {!isAllView && (
+                  <button
+                    type="button"
+                    onClick={onUploadClick}
+                    className="shrink-0 w-28 h-40 border border-dashed border-border rounded-2xl flex flex-col items-center justify-center text-muted hover:text-blue-400 hover:border-blue-400 transition-all group bg-surface-secondary hover:bg-hover"
+                  >
+                    <Upload
+                      size={24}
+                      className="group-hover:scale-110 transition-transform mb-3"
+                      strokeWidth={1.5}
+                    />
+                    <span className="text-[11px] font-medium uppercase tracking-widest">
+                      Upload
+                    </span>
+                  </button>
+                )}
+                <div className="flex gap-4 h-full items-center">
+                  <AnimatePresence mode="popLayout">
+                    {currentItems.map((item) => {
+                      const isUsed = usedOnBoard.has(item.imageSrc);
+                      const isSelected =
+                        selectedItemIds.has(item.id) ||
+                        (interactionState?.type === "inbox" &&
+                          interactionState.itemId === item.id);
 
-                  return (
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8, width: 0, marginRight: 0 }}
-                      transition={{ duration: 0.15 }}
-                      key={item.id}
-                      className="shrink-0"
-                    >
-                      <InboxItemCard
-                        item={item}
-                        isUsed={isUsed}
-                        isSelected={isSelected}
-                        isAllView={isAllView}
-                        collectionId={isAllView ? "all-images" : activeCollectionId}
-                        onItemClick={onItemClick}
-                        onDeleteItem={onDeleteItem}
-                        onRecall={onRecall}
-                      />
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </>
-          )}
+                      return (
+                        <motion.div
+                          layout
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          key={`${isAllView ? 'all' : activeCollectionId}-${item.id}`}
+                          className="shrink-0"
+                        >
+                          <InboxItemCard
+                            item={item}
+                            isUsed={isUsed}
+                            isSelected={isSelected}
+                            isAllView={isAllView}
+                            collectionId={isAllView ? "all-images" : activeCollectionId}
+                            onItemClick={onItemClick}
+                            onDeleteItem={onDeleteItem}
+                            onRecall={onRecall}
+                          />
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <input
@@ -164,7 +178,7 @@ export const InboxStashGrid = React.memo<InboxStashGridProps>(({
       {showLeft && (
         <button
           onClick={() => handleScroll("left")}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-30 p-2.5 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full text-white shadow-2xl animate-in fade-in slide-in-from-left-2 duration-300 md:hidden"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-30 p-2.5 bg-surface-elevated backdrop-blur-xl border border-border rounded-full text-text shadow-2xl animate-in fade-in slide-in-from-left-2 duration-300 md:hidden"
         >
           <ChevronLeft size={18} strokeWidth={2.5} />
         </button>
@@ -172,7 +186,7 @@ export const InboxStashGrid = React.memo<InboxStashGridProps>(({
       {showRight && (
         <button
           onClick={() => handleScroll("right")}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-30 p-2.5 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full text-white shadow-2xl animate-in fade-in slide-in-from-right-2 duration-300 md:hidden"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-30 p-2.5 bg-surface-elevated backdrop-blur-xl border border-border rounded-full text-text shadow-2xl animate-in fade-in slide-in-from-right-2 duration-300 md:hidden"
         >
           <ChevronRight size={18} strokeWidth={2.5} />
         </button>

@@ -71,9 +71,10 @@ export const createGlobalSlice: StateCreator<
   },
 
   handleDuplicateConfirm: (dontAskAgain) => {
-    const state = get();
-    if (state.duplicateModalConfig.actionToExecute) {
-      state.duplicateModalConfig.actionToExecute();
+    const state = get() as AppState;
+    const action = state.duplicateModalConfig.actionToExecute;
+    if (action) {
+      action();
     }
 
     set((draft: AppState) => {

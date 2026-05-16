@@ -118,7 +118,6 @@ export const createInboxSlice: StateCreator<
         currentRank.cells[toIndex].imageSrc = imageSrc;
         currentRank.updatedAt = Date.now();
 
-        // Add to inbox
         const activeColId =
           draft.inbox.activeCollectionId === "all-images"
             ? draft.inbox.collections[0].id
@@ -132,6 +131,24 @@ export const createInboxSlice: StateCreator<
              createdAt: Date.now()
            });
         }
+      });
+
+      // Background Optimization: Fetch and cache as base64
+      import("@/utils/imageProxy").then(({ fetchAndCacheImage }) => {
+        fetchAndCacheImage(imageSrc).then(base64 => {
+          if (base64) {
+            set(d => {
+              const r = d.ranks[d.activeRankId];
+              if (r && r.cells[toIndex]) r.cells[toIndex].imageSrc = base64;
+              
+              d.inbox.collections.forEach(c => {
+                c.items.forEach(it => {
+                  if (it.imageSrc === imageSrc) it.imageSrc = base64;
+                });
+              });
+            });
+          }
+        });
       });
     });
   },

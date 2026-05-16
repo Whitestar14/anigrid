@@ -19,8 +19,9 @@ export const Controls: React.FC<ControlsProps> = ({
   isSidebarOpen
 }) => {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 md:px-6 bg-black/80 backdrop-blur-xl border-b border-white/5 transition-all duration-200">
-      <div className="w-full max-w-[1920px] mx-auto flex items-center justify-between relative">
+    <header className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 md:px-6 bg-background/80 backdrop-blur-xl transition-all duration-200">
+      <div className="absolute inset-x-0 bottom-0 h-[0.5px] bg-border" />
+      <div className="w-full max-w-[1920px] mx-auto flex items-center justify-between relative z-10">
 
         {/* Left: Settings Button */}
         <div className="flex items-center shrink-0 w-20">
@@ -28,7 +29,7 @@ export const Controls: React.FC<ControlsProps> = ({
              variant="ghost"
              size="icon"
              onClick={onToggleSidebar}
-             className={`text-muted hover:text-white transition-colors ${isSidebarOpen ? 'bg-white/10 text-white' : ''}`}
+             className={`text-muted hover:text-text transition-colors ${isSidebarOpen ? 'bg-hover text-text' : ''}`}
              title="Toggle Settings Sidebar"
            >
              <Settings2 size={18} strokeWidth={2} />
@@ -39,10 +40,10 @@ export const Controls: React.FC<ControlsProps> = ({
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
           <button
             onClick={onOpenLibrary}
-            className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-white/5 hover:bg-white/10 active:scale-[0.97] transition-all group"
+            className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-hover hover:bg-border/20 active:scale-[0.97] transition-all group"
             title="Open Library"
           >
-            <span className="font-semibold text-[15px] text-white tracking-tight truncate max-w-[150px] sm:max-w-[300px] flex items-center justify-center relative min-w-[20px] min-h-[22px]">
+            <span className="font-semibold text-[15px] text-text tracking-tight truncate max-w-[150px] sm:max-w-[300px] flex items-center justify-center relative min-w-[20px] min-h-[22px]">
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.span
                   key={projectName}
@@ -56,7 +57,7 @@ export const Controls: React.FC<ControlsProps> = ({
                 </motion.span>
               </AnimatePresence>
             </span>
-            <ChevronDown size={14} className="text-white/50 group-hover:text-white transition-colors shrink-0" />
+            <ChevronDown size={14} className="text-muted group-hover:text-text transition-colors shrink-0" />
           </button>
         </div>
 
@@ -65,7 +66,7 @@ export const Controls: React.FC<ControlsProps> = ({
            <Button
             variant="ghost"
             onClick={onOpenExport}
-            className="gap-2 px-3 md:px-4 hover:bg-white/5 text-muted hover:text-white border-0"
+            className="gap-2 px-3 md:px-4 hover:bg-hover text-muted hover:text-text border-0"
            >
              <Download size={18} strokeWidth={2} />
              <span className="hidden md:inline font-medium">Export</span>

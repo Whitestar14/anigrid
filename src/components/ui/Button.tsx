@@ -6,16 +6,17 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger';
   size?: 'sm' | 'md' | 'lg' | 'icon';
   isLoading?: boolean;
+  icon?: React.ReactNode;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
+  ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, icon, ...props }, ref) => {
     const variants = {
       primary: 'bg-primary text-white hover:bg-primary/90 shadow-[0_0_15px_rgba(var(--color-primary),0.3)] border border-primary/50',
-      secondary: 'bg-white/5 hover:bg-white/10 text-white backdrop-blur-md border border-white/10 shadow-sm',
-      ghost: 'hover:bg-white/10 text-white/70 hover:text-white',
-      outline: 'border border-white/20 hover:bg-white/10 text-white',
-      danger: 'bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/30',
+      secondary: 'bg-surface-elevated hover:bg-hover text-text border border-border shadow-sm',
+      ghost: 'hover:bg-hover text-muted hover:text-text',
+      outline: 'border border-border hover:bg-hover text-text',
+      danger: 'bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30',
     };
 
     const sizes = {
@@ -37,7 +38,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...props}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : icon ? (
+          <span className={cn(children ? "mr-2" : "")}>{icon}</span>
+        ) : null}
         {children}
       </button>
     );

@@ -1,53 +1,26 @@
 import React from "react";
-import {
-  Maximize2,
-  Grid,
-  Hash,
-  Type,
-  Calendar,
-  List,
-  LayoutGrid,
-  Trash2,
-  Save,
-  Upload,
-  Layers,
-  SquareDashedKanban,
-  Square,
-  X,
-  Palette,
-} from "lucide-react";
-import { ColorPicker } from '@/components/ui/ColorPicker';
 import { useStore } from "@/store/useStore";
-import { Slider } from "@/components/ui/Slider";
-import { exportStateToJson } from "@/utils/storage";
 import { useShallow } from "zustand/react/shallow";
+import { Info } from "lucide-react";
+
+import { ProjectHeaderSection } from "./settings/ProjectHeaderSection";
+import { ViewModeSection } from "./settings/ViewModeSection";
+import { DimensionsSection } from "./settings/DimensionsSection";
+import { AppearanceSection } from "./settings/AppearanceSection";
+import { VisibilitySection } from "./settings/VisibilitySection";
 
 export interface GridSettingsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onToggle: () => void;
-  /** Destructive actions (clear grid) use the app-level confirm modal */
   requestConfirm: (title: string, message: string, action: () => void) => void;
 }
-
-import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
-const GRID_BG_COLORS = [
-  "transparent",
-  "#ffffff",
-  "#0f1115",
-  "#181b21",
-  "#1a202c",
-  "#2d3748",
-  "#000000",
-];
 
 export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   isOpen,
   onClose,
   requestConfirm,
 }) => {
-  const jsonInputRef = React.useRef<HTMLInputElement>(null);
-
   const activeRank = useStore(useShallow((s) => s.ranks[s.activeRankId]));
   const handleConfigChange = useStore((s) => s.handleConfigChange);
   const handleModeChange = useStore((s) => s.handleModeChange);
@@ -62,6 +35,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   const showDate = activeRank.showDate ?? true;
   const borderless = activeRank.borderless ?? false;
   const gap = activeRank.gap ?? 0;
+  const gridJustify = activeRank.gridJustify;
   const cellWidth = activeRank.cellWidth;
   const rankBackgroundColor = activeRank.backgroundColor;
   const aspectRatio = activeRank.aspectRatio || "3:4";
@@ -74,19 +48,6 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   const handleColsChange = (val: number) => {
     const c = Math.max(1, Math.min(20, val));
     handleConfigChange({ ...config, cols: c });
-  };
-
-  const handleExportJson = () => exportStateToJson(useStore.getState());
-
-  const handleImportJson = async (file: File) => {
-    const text = await file.text();
-    try {
-      const json = JSON.parse(text);
-      if (json) useStore.getState().importState(json);
-    } catch (e) {
-      console.error("Failed to import JSON", e);
-      alert("Invalid JSON file");
-    }
   };
 
   const handleClearAll = () => {
@@ -104,7 +65,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
       <aside
         className={`
-           border-r border-border glass flex shrink-0 z-40
+           bg-surface/80 backdrop-blur-3xl border-r border-border flex shrink-0 z-40
            fixed top-14 bottom-0 left-0 md:static overflow-hidden
          `}
         style={{
@@ -119,375 +80,57 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
         }}
       >
         <div className="relative w-80 h-full">
-          {/* Expanded Content */}
           <div
             className={`
-                    absolute inset-y-0 left-0 w-80 flex flex-col overflow-y-auto custom-scrollbar overflow-x-hidden
-                    transition-opacity duration-200
-                    ${isOpen ? "opacity-100 delay-150" : "opacity-0 pointer-events-none"}
-                `}
+              absolute inset-y-0 left-0 w-80 flex flex-col overflow-y-auto custom-scrollbar overflow-x-hidden
+              transition-opacity duration-200
+              ${isOpen ? "opacity-100 delay-150" : "opacity-0 pointer-events-none"}
+            `}
           >
-            <div className="flex flex-col gap-8 py-6 w-80">
-              {/* Header Section: Project Type */}
-              <div className="mx-4">
-                <SettingButtonGroup>
-                  <SettingRow
-                    as="div"
-                    icon={projectType === "tierlist" ? <Layers size={18} /> : <LayoutGrid size={18} />}
-                    iconBg={projectType === "tierlist" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"}
-                    label={projectType === "tierlist" ? "Tier List" : "Ranking Grid"}
-                    sublabel="Project Type"
-                    right={
-                      <button
-                        onClick={onClose}
-                        className="p-1 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors md:hidden"
-                        title="Close Settings"
-                      >
-                        <X size={16} />
-                      </button>
-                    }
-                  />
-                </SettingButtonGroup>
-              </div>
+            <div className="flex flex-col gap-8 pt-6 pb-24 w-80">
+              <ProjectHeaderSection
+                projectType={projectType}
+                onClearAll={handleClearAll}
+                onClose={onClose}
+              />
 
-              {/* Section: Mode (Only for Ranking Type) */}
               {projectType === "ranking" && (
-                <div className="flex flex-col gap-2">
-                  <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-4">
-                    View Mode
-                  </span>
-                  <div className="flex bg-[#767680]/24 p-1 rounded-xl mx-4">
-                    <button
-                      onClick={() => handleModeChange("grid")}
-                      className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg transition-colors text-[13px] font-medium ${mode === "grid" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
-                    >
-                      <LayoutGrid size={14} /> Grid
-                    </button>
-                    <button
-                      onClick={() => handleModeChange("list")}
-                      className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg transition-colors text-[13px] font-medium ${mode === "list" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
-                    >
-                      <List size={14} /> List
-                    </button>
-                  </div>
-                </div>
+                <ViewModeSection mode={mode} onModeChange={handleModeChange} />
               )}
 
-              <div className="h-px bg-white/10 mx-4"></div>
+              <div className="h-px bg-border mx-4"></div>
 
-              {/* Grid Specifics (Ranking Only) */}
               {projectType === "ranking" && (
-                <>
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-4">
-                      Dimensions
-                    </span>
-                    {mode === "grid" ? (
-                      <div className="flex flex-col gap-3 px-4 py-3 bg-[#2c2c2e] rounded-2xl mx-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 flex flex-col gap-1">
-                            <span className="text-[11px] text-white/50 font-medium uppercase">
-                              Rows
-                            </span>
-                            <input
-                              type="number"
-                              min="1"
-                              max="50"
-                              value={config.rows}
-                              onChange={(e) =>
-                                handleRowsChange(parseInt(e.target.value))
-                              }
-                              className="text-center font-medium bg-transparent text-white focus:outline-none w-full"
-                            />
-                          </div>
-                          <span className="text-white/50 font-medium">×</span>
-                          <div className="flex-1 flex flex-col gap-1">
-                            <span className="text-[11px] text-white/50 font-medium uppercase">
-                              Cols
-                            </span>
-                            <input
-                              type="number"
-                              min="1"
-                              max="20"
-                              value={config.cols}
-                              onChange={(e) =>
-                                handleColsChange(parseInt(e.target.value))
-                              }
-                              className="text-center font-medium bg-transparent text-white focus:outline-none w-full"
-                            />
-                          </div>
-                        </div>
-                        <div className="h-px bg-white/10 w-full"></div>
-                        <div className="flex flex-col gap-1 pt-1">
-                          <div className="flex justify-between items-center text-[11px] text-white/50 font-medium uppercase">
-                            <span>Cell Width</span>
-                            <span>{cellWidth || 'Auto'}</span>
-                          </div>
-                          <Slider
-                            min={60}
-                            max={300}
-                            step={5}
-                            value={cellWidth || 60}
-                            onChange={(v) =>
-                              updateActiveRank({
-                                cellWidth: v || undefined,
-                              })
-                            }
-                          />
-                          <div className="flex justify-between text-[10px] text-white/30">
-                            <span>Auto</span>
-                            <span>Wide</span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1 px-4 py-3 bg-[#2c2c2e] rounded-2xl mx-4">
-                        <span className="text-[11px] text-white/50 font-medium uppercase">
-                          Items
-                        </span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={config.rows}
-                          onChange={(e) =>
-                            handleRowsChange(parseInt(e.target.value))
-                          }
-                          className="text-center font-medium bg-transparent text-white focus:outline-none w-full"
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div className="h-px bg-white/10 mx-4"></div>
-                </>
-              )}
-
-              {/* Section: Appearance */}
-              {(projectType === "ranking" || projectType === "tierlist") && (
-                <>
-                  <div className="flex flex-col gap-4">
-                    <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-4">
-                      Appearance
-                    </span>
-
-                    <div className="flex flex-col gap-4 px-4 py-4 bg-[#2c2c2e] rounded-[20px] mx-4">
-                      <div className="flex flex-col gap-2">
-                        <span className="text-[11px] font-medium text-white/50 uppercase tracking-wide">
-                          Aspect Ratio
-                        </span>
-                        <div className="grid grid-cols-5 gap-1 bg-[#1c1c1e] p-1 rounded-lg">
-                          {(["1:1", "3:4", "4:3", "16:9", "9:16"] as const).map(
-                            (ratio) => (
-                              <button
-                                key={ratio}
-                                onClick={() => updateActiveRank({ aspectRatio: ratio })}
-                                className={`py-1.5 text-[11px] font-medium rounded-md transition-colors ${aspectRatio === ratio || (!aspectRatio && ratio === "3:4") ? "bg-[#3a3a3c] text-white shadow-sm" : "text-white/50 hover:text-white"}`}
-                              >
-                                {ratio}
-                              </button>
-                            ),
-                          )}
-                        </div>
-                      </div>
-                      {projectType === "ranking" && (
-                        <>
-                          <div className="h-px bg-white/5 mx-2"></div>
-
-                          <div className="flex flex-col gap-2">
-                            <div className="flex justify-between text-[13px] font-medium text-white/70 mb-1">
-                              <span>Gap</span>
-                              <span className="text-white">{gap}px</span>
-                            </div>
-                            <Slider
-                              min={0}
-                              max={32}
-                              step={2}
-                              value={gap}
-                              onChange={(v) =>
-                                updateActiveRank({ gap: v })
-                              }
-                            />
-                          </div>
-
-
-
-                          <div className="h-px bg-white/10 -mx-4"></div>
-
-                          <div className="flex items-center justify-between">
-                            <span className="text-[13px] text-white/70 font-medium">
-                              Grid Style
-                            </span>
-                            <div className="flex bg-[#767680]/24 p-1 rounded-xl">
-                              <button
-                                onClick={() => updateActiveRank({ style: "seamless", borderRadius: 0 })}
-                                title="Seamless"
-                                className={`p-1.5 rounded-lg transition-colors ${style === "seamless" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
-                              >
-                                <Maximize2 size={16} />
-                              </button>
-                              <button
-                                onClick={() => updateActiveRank({ style: "card" })}
-                                title="Cards"
-                                className={`p-1.5 rounded-lg transition-colors ${style === "card" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
-                              >
-                                <Grid size={16} />
-                              </button>
-                            </div>
-                          </div>
-
-
-
-                          {style === "seamless" && (
-                            <>
-                              <div className="h-px bg-white/10 -mx-4"></div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-[13px] text-white/70 font-medium">
-                                  Borders
-                                </span>
-                                <div className="flex bg-[#767680]/24 p-1 rounded-xl">
-                                  <button
-                                    onClick={() => updateActiveRank({ borderless: false })}
-                                    title="Show Borders"
-                                    className={`p-1.5 rounded-lg transition-colors ${!borderless ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
-                                  >
-                                    <SquareDashedKanban size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => updateActiveRank({ borderless: true })}
-                                    title="Borderless"
-                                    className={`p-1.5 rounded-lg transition-colors ${borderless ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}`}
-                                  >
-                                    <Square size={16} />
-                                  </button>
-                                </div>
-                              </div>
-                            </>
-                          )}
-
-                          <div className="h-px bg-white/10 -mx-4"></div>
-                        </>
-                      )}
-
-                      <div className="flex flex-col gap-2">
-                        <span className="text-[11px] font-medium text-white/50 uppercase tracking-wide">
-                          Background
-                        </span>
-                        <div className="flex flex-wrap gap-2">
-                          {GRID_BG_COLORS.map((color) => (
-                            <button
-                              key={color}
-                              onClick={() => updateActiveRank({ backgroundColor: color })}
-                              className={`w-6 h-6 rounded-full border-2 transition-all ${rankBackgroundColor === color ? "border-primary scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]" : "border-white/20 hover:border-white/50"}`}
-                              style={{
-                                backgroundColor:
-                                  color === "transparent" ? "#000" : color,
-                                backgroundImage:
-                                  color === "transparent"
-                                    ? "repeating-conic-gradient(#333 0% 25%, #222 0% 50%)"
-                                    : "",
-                              }}
-                              title={
-                                color === "transparent" ? "Transparent" : color
-                              }
-                            />
-                          ))}
-                          <label
-                            className={`relative w-6 h-6 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center ${!GRID_BG_COLORS.includes(rankBackgroundColor)
-                                ? "border-primary scale-110 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]"
-                                : "border-white/20 hover:border-white/50"
-                              }`}
-                            style={{
-                              backgroundColor: !GRID_BG_COLORS.includes(
-                                rankBackgroundColor,
-                              )
-                                ? rankBackgroundColor
-                                : "#2c2c2e",
-                            }}
-                            title="Custom Color"
-                          >
-                            <Palette
-                              size={12}
-                              className="text-white mix-blend-difference"
-                            />
-                            <ColorPicker
-                              value={
-                                !GRID_BG_COLORS.includes(rankBackgroundColor)
-                                  ? rankBackgroundColor
-                                  : "#000000"
-                              }
-                              onChange={(v) =>
-                                updateActiveRank({ backgroundColor: v })
-                              }
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="h-px bg-white/10 mx-4"></div>
-                </>
-              )}
-
-              {/* Section: Visibility (Global) */}
-              <div className="flex flex-col gap-2">
-                <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-4">
-                  Visibility
-                </span>
-                <div className="grid grid-cols-3 gap-2 px-4">
-                  {projectType === "ranking" && (
-                    <button
-                      onClick={() => handleVisualToggle("showNumbers")}
-                      className={`flex flex-col items-center justify-center h-auto py-3 gap-1.5 rounded-xl transition-colors text-[13px] font-medium ${showNumbers ? "bg-primary/20 text-primary" : "bg-[#2c2c2e] text-white/70 hover:bg-[#3a3a3c] hover:text-white"}`}
-                    >
-                      <Hash size={16} /> Rank
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleVisualToggle("showTitle")}
-                    className={`flex flex-col items-center justify-center h-auto py-3 gap-1.5 rounded-xl transition-colors text-[13px] font-medium ${showTitle ? "bg-primary/20 text-primary" : "bg-[#2c2c2e] text-white/70 hover:bg-[#3a3a3c] hover:text-white"}`}
-                  >
-                    <Type size={16} /> Title
-                  </button>
-                  <button
-                    onClick={() => handleVisualToggle("showDate")}
-                    className={`flex flex-col items-center justify-center h-auto py-3 gap-1.5 rounded-xl transition-colors text-[13px] font-medium ${showDate ? "bg-primary/20 text-primary" : "bg-[#2c2c2e] text-white/70 hover:bg-[#3a3a3c] hover:text-white"}`}
-                  >
-                    <Calendar size={16} /> Date
-                  </button>
-                </div>
-              </div>
-
-              <div className="h-px bg-white/10 mx-4"></div>
-
-              <div className="flex flex-col gap-2 relative">
-                <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-4">
-                  Data Actions
-                </span>
-
-                <SettingButtonGroup className="mx-4">
-                  <SettingRow
-                    icon={<Trash2 size={16} />}
-                    label={`Clear ${projectType === "tierlist" ? "Tiers" : "Grid"}`}
-                    iconBg="bg-red-500/20 text-[#ff453a]"
-                    onClick={handleClearAll}
-                    destructive
-                  />
-                </SettingButtonGroup>
-                <input
-                  type="file"
-                  ref={jsonInputRef}
-                  className="hidden"
-                  accept="application/json"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      handleImportJson(e.target.files[0]);
-                      e.target.value = "";
-                    }
-                  }}
+                <DimensionsSection
+                  mode={mode}
+                  config={config}
+                  cellWidth={cellWidth}
+                  onRowsChange={handleRowsChange}
+                  onColsChange={handleColsChange}
+                  onCellWidthChange={(v) => updateActiveRank({ cellWidth: v || undefined })}
                 />
+              )}
 
-                <div className="h-10"></div>
-              </div>
+              <AppearanceSection
+                projectType={projectType}
+                mode={mode}
+                aspectRatio={aspectRatio}
+                style={style as "card" | "seamless"}
+                borderless={borderless}
+                gap={gap}
+                gridJustify={gridJustify}
+                rankBackgroundColor={rankBackgroundColor}
+                onUpdateRank={updateActiveRank}
+              />
+
+              <VisibilitySection
+                projectType={projectType}
+                showNumbers={showNumbers}
+                showTitle={showTitle}
+                showDate={showDate}
+                showWatermark={activeRank.showWatermark ?? true}
+                onVisualToggle={handleVisualToggle as (k: string) => void}
+              />
             </div>
           </div>
         </div>

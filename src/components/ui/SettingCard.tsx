@@ -1,17 +1,27 @@
 import React from "react";
 
+/**
+ * SettingButtonGroup — structural container ONLY.
+ * Callers are responsible for providing surface styling via className.
+ *
+ * Settings panel (dock):  className="bg-surface border border-border rounded-[20px] overflow-hidden"
+ * Grid sidebar toggles:   className="glass rounded-[20px] overflow-hidden"
+ *
+ * This separation is intentional: the two contexts have different background
+ * contrast requirements and must never share a hardcoded surface style.
+ */
 export const SettingButtonGroup: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
   className = "",
 }) => {
   const childrenArray = React.Children.toArray(children).filter(Boolean);
   return (
-    <div className={`flex flex-col flex-shrink-0 bg-white/5 border border border-white/10 rounded-2xl overflow-hidden ${className}`}>
+    <div className={`flex flex-col flex-shrink-0 ${className}`}>
       {childrenArray.map((child, idx) => (
         <React.Fragment key={idx}>
           {child}
           {idx < childrenArray.length - 1 && (
-            <div className="h-px bg-white/10" />
+            <div className="h-[0.5px] bg-border" />
           )}
         </React.Fragment>
       ))}
@@ -41,18 +51,22 @@ export const SettingRow: React.FC<{
       onClick={onClick}
       role={!isBtn && onClick ? "button" : undefined}
       tabIndex={!isBtn && onClick ? 0 : undefined}
-      className={`flex items-center gap-3 px-4 py-3 w-full text-left transition-colors ${isClickable ? "hover:bg-white/5 cursor-pointer" : ""
-        } ${destructive ? "text-[#ff453a]" : "text-white"} ${className}`}
+      className={`relative flex items-center gap-3.5 px-4 py-2 min-h-[56px] w-full text-left transition-colors ${isClickable ? "hover:bg-hover active:bg-black/5 dark:active:bg-white/5 cursor-pointer" : ""
+        } ${destructive ? "text-red-500" : "text-text"} ${className}`}
     >
       {icon && (
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
+        <div className={`w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0 ${iconBg} shadow-sm`}>
           {icon}
         </div>
       )}
       <div className="flex-1 min-w-0 pr-2">
-        <div className={`text-[15px] font-medium truncate ${destructive ? "text-[#ff453a] group-hover:text-red-400" : ""}`}>{label}</div>
+        <div className={`text-[15px] font-medium truncate ${destructive ? "text-red-500" : ""}`}>
+          {label}
+        </div>
         {sublabel && (
-          <div className={`text-[13px] leading-snug mt-0.5 truncate ${destructive ? "text-[#ff453a]/60 group-hover:text-red-400/80" : "text-white/50"}`}>{sublabel}</div>
+          <div className={`text-[13px] leading-snug mt-0.5 ${destructive ? "text-red-500/60" : "text-muted"}`}>
+            {sublabel}
+          </div>
         )}
       </div>
       {right && <div className="shrink-0 flex items-center">{right}</div>}

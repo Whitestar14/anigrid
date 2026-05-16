@@ -1,17 +1,30 @@
 import React from 'react';
+import { motion } from 'motion/react';
 
-export const AppLogo: React.FC<{ className?: string }> = ({ className = '' }) => {
+
+export const LoadingScreen: React.FC = () => {
   return (
-    <svg 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
+    <motion.div 
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-background z-[9999] flex items-center justify-center"
     >
-      <rect x="3" y="3" width="7" height="7" rx="1.5" fill="currentColor" />
-      <rect x="14" y="3" width="7" height="7" rx="1.5" fill="currentColor" fillOpacity="0.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" fill="currentColor" fillOpacity="0.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" fill="currentColor" />
-    </svg>
+      <div className="relative w-8 h-8">
+        {[...Array(12)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute left-[14px] top-0 w-[3px] h-[8px] bg-muted rounded-full origin-[1.5px_16px]"
+            style={{ rotate: i * 30 }}
+            animate={{ opacity: [0.2, 1, 0.2] }}
+            transition={{
+              repeat: Infinity,
+              duration: 1,
+              delay: i * 0.083,
+              ease: "linear"
+            }}
+          />
+        ))}
+      </div>
+    </motion.div>
   );
 };

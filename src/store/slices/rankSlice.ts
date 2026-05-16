@@ -77,7 +77,9 @@ export const createRankSlice: StateCreator<
     set((state) => {
       const current = state.ranks[state.activeRankId];
       if (!current) return;
-      const totalCells = newConfig.rows * newConfig.cols;
+      
+      const totalCells = current.mode === "list" ? newConfig.rows : newConfig.rows * newConfig.cols;
+      
       if (totalCells > current.cells.length) {
         ensureCells(current.cells, totalCells - 1);
       } else if (totalCells < current.cells.length) {
@@ -275,7 +277,7 @@ export const createRankSlice: StateCreator<
         if (!row) return;
 
         const newCellData: CellData = {
-          id: `tier-cell-${Date.now()}`,
+          id: `tier-cell-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           imageSrc: item.imageSrc,
           position: 0,
         };
@@ -320,14 +322,16 @@ export const createRankSlice: StateCreator<
   handleSearchDropToTier: (imageSrc, rowId, targetIndex) => {
     const state = get();
     state.checkDuplicateAndProceed(imageSrc, () => {
+      let cellId = "";
       set((draft) => {
         const currentRank = draft.ranks[draft.activeRankId];
         if (!currentRank) return;
         const row = currentRank.tierRows.find((r) => r.id === rowId);
         if (!row) return;
 
+        cellId = `tier-cell-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         row.items.splice(targetIndex === -1 ? row.items.length : targetIndex, 0, {
-          id: `tier-cell-${Date.now()}`,
+          id: cellId,
           imageSrc,
           position: 0,
         });
@@ -347,6 +351,31 @@ export const createRankSlice: StateCreator<
         }
         currentRank.updatedAt = Date.now();
       });
+
+      // Background Optimization: Fetch and cache as base64
+      if (cellId) {
+        import("@/utils/imageProxy").then(({ fetchAndCacheImage }) => {
+          fetchAndCacheImage(imageSrc).then(base64 => {
+            if (base64) {
+              set(d => {
+                const r = d.ranks[d.activeRankId];
+                if (!r) return;
+                const row = r.tierRows.find(tr => tr.id === rowId);
+                if (!row) return;
+                const item = row.items.find(i => i.id === cellId);
+                if (item) item.imageSrc = base64;
+                
+                // Also update in inbox
+                d.inbox.collections.forEach(c => {
+                  c.items.forEach(it => {
+                    if (it.imageSrc === imageSrc) it.imageSrc = base64;
+                  });
+                });
+              });
+            }
+          });
+        });
+      }
     });
   },
   handleInternalTierMove: (sourceRowId, sourceItemId, targetRowId, targetIndex) =>

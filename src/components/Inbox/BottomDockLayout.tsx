@@ -16,9 +16,14 @@ export type BottomDockCtrl = ReturnType<typeof useInboxController>;
 // and naturally square-cornered while tall.
 const DOCK_RADIUS = "22px";
 
-export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?: (title: string, message: string, onConfirm: () => void) => void }> = ({
+export const BottomDockLayout: React.FC<{ 
+  ctrl: BottomDockCtrl; 
+  requestConfirm?: (title: string, message: string, onConfirm: () => void) => void;
+  onOpenAbout?: () => void;
+}> = ({
   ctrl,
   requestConfirm,
+  onOpenAbout,
 }) => {
   const reduceGlass = useStore((s) => s.preferences.reduceGlassEffects ?? false);
   const autoCloseDockDesktop = useStore(
@@ -164,24 +169,24 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
           relative overflow-hidden flex flex-col
           transition-all duration-240 ease-[cubic-bezier(0.32,0.72,0,1)]
           ${isExpanded ? glassPanel : collapsedPanel}
-          ${isDragOver || isDndOver ? "ring-2 ring-blue-500 ring-inset" : ""}
+          ${isDragOver || isDndOver ? "focus-ring" : ""}
         `}
         style={{
           width: isExpanded ? "100%" : "clamp(220px, calc(100vw - 120px), 310px)",
           height: isExpanded ? "28rem" : "3rem",
           // Keep border-radius constant — avoids the weird morph
           borderRadius: DOCK_RADIUS,
-          boxShadow: isExpanded ? "none" : "0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)"
+          boxShadow: isExpanded ? "none" : undefined
         }}
         onDrop={handleDrop}
       >
         <div
-          className={`absolute left-0 right-0 top-0 flex items-center pr-1 pl-2 h-[3rem] transition-opacity duration-200 ${!isExpanded ? "opacity-100 pointer-events-auto delay-75" : "opacity-0 pointer-events-none"}`}
+          className={`absolute left-0 right-0 top-0 flex items-stretch px-2 py-1.5 h-[3rem] gap-1 transition-opacity duration-200 ${!isExpanded ? "opacity-100 pointer-events-auto delay-75" : "opacity-0 pointer-events-none"}`}
         >
           <button
             type="button"
             aria-label="Open Library"
-            className="flex-1 min-w-0 flex items-center justify-center gap-2.5 text-[14px] font-medium text-white/90 hover:bg-white/5 transition-all duration-150 h-9 rounded-[14px]"
+            className="flex-1 min-w-0 flex items-center justify-center gap-2 text-[14px] font-medium text-text hover:bg-hover transition-all duration-150 rounded-[14px]"
             onClick={() => {
               setDockSurface("library");
               setActiveTab("stash");
@@ -191,11 +196,11 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
             <Library size={16} strokeWidth={2} className="shrink-0" />
             <span className="truncate">Library</span>
           </button>
-          <div className="w-px bg-white/10 h-6 mx-1 shrink-0" />
+          <div className="w-px bg-border self-center h-5 shrink-0" />
           <button
             type="button"
             aria-label="Open Settings"
-            className="w-9 h-9 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150 rounded-[14px] shrink-0"
+            className="w-10 flex items-center justify-center text-muted hover:text-text hover:bg-hover transition-all duration-150 rounded-[14px] shrink-0"
             onClick={() => {
               setDockSurface("settings");
               setIsExpanded(true);
@@ -215,7 +220,10 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
                 title="Settings"
                 onCollapse={() => setIsExpanded(false)}
               />
-              <SettingsDockPanel requestConfirm={requestConfirm} />
+              <SettingsDockPanel 
+                requestConfirm={requestConfirm} 
+                onOpenAbout={onOpenAbout}
+              />
             </>
           ) : (
             <>
@@ -228,7 +236,7 @@ export const BottomDockLayout: React.FC<{ ctrl: BottomDockCtrl; requestConfirm?:
                 }}
               />
 
-              <div className="flex-1 overflow-hidden relative flex flex-col min-h-0 bg-black/20">
+              <div className="flex-1 overflow-hidden relative flex flex-col min-h-0 bg-surface-secondary">
                 <div className="flex-1 min-h-0 flex flex-col relative">
                   {activeTab === "picker" && (
                     <InboxCollectionPickerPanel
@@ -307,14 +315,14 @@ const DockSurfaceHeader: React.FC<{
   onCollapse: () => void;
 }> = ({ title, onCollapse }) => (
   <div
-    className="h-12 flex items-center justify-between pl-5 pr-1 sm:pr-2 shrink-0 border-b border-white/10 cursor-pointer select-none"
+    className="h-12 flex items-center justify-between pl-5 pr-1 sm:pr-2 shrink-0 border-b border-border cursor-pointer select-none"
     onClick={onCollapse}
   >
-    <span className="text-[15px] font-semibold text-white">{title}</span>
+    <span className="text-[15px] font-semibold text-text">{title}</span>
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onCollapse(); }}
-      className="p-1.5 rounded-full hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+      className="p-1.5 rounded-full hover:bg-hover text-muted hover:text-text transition-colors"
       title="Collapse"
     >
       <ChevronDown size={19} />

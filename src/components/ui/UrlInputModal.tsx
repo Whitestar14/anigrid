@@ -50,10 +50,10 @@ export const UrlInputModal: React.FC<UrlInputModalProps> = ({
               <Globe size={20} className="text-primary" />
             </div>
           </div>
-          <h3 className="text-[17px] font-semibold text-white mb-1 leading-tight">
+          <h3 className="text-[17px] font-semibold text-text mb-1 leading-tight">
             Image URL
           </h3>
-          <p className="text-[13px] text-white/50 leading-snug">
+          <p className="text-[13px] text-muted leading-snug">
             Paste a direct link to any image
           </p>
         </div>
@@ -70,22 +70,22 @@ export const UrlInputModal: React.FC<UrlInputModalProps> = ({
               if (e.key === "Escape") onClose();
             }}
             placeholder="https://..."
-            className="w-full px-4 py-2.5 text-[15px] text-white bg-white/8 rounded-xl border border-white/10 focus:outline-none focus:border-primary/50 placeholder:text-white/25 transition-colors"
+            className="w-full px-4 py-2.5 text-[15px] text-text bg-surface-secondary rounded-xl border border-border focus:outline-none focus:border-primary/50 placeholder:text-muted transition-colors"
           />
         </div>
 
         {/* Actions */}
-        <div className="flex border-t border-white/10">
+        <div className="flex border-t border-border">
           <button
             onClick={onClose}
-            className="flex-1 py-3 text-[17px] text-blue-500 font-normal hover:bg-white/5 transition-colors border-r border-white/10"
+            className="flex-1 py-3 text-[17px] text-primary font-normal hover:bg-hover transition-colors border-r border-border"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!url.trim()}
-            className="flex-1 py-3 text-[17px] text-blue-500 font-semibold hover:bg-white/5 transition-colors disabled:opacity-30"
+            className="flex-1 py-3 text-[17px] text-primary font-semibold hover:bg-hover transition-colors disabled:opacity-30"
           >
             Add
           </button>

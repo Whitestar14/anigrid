@@ -61,7 +61,7 @@ export const downloadGrid = async (
     let dataUrl = "";
     const options = {
       pixelRatio: qualityScale,
-      cacheBust: true,
+      cacheBust: false,
       skipAutoScale: false,
       httpTimeout: 5000,
     };
@@ -82,6 +82,35 @@ export const downloadGrid = async (
     console.error("Failed to download image", err);
     throw new Error(
       "Export failed. External images cannot be embedded due to CORS restrictions."
+    );
+  }
+};
+
+export const copyGrid = async (
+  element: HTMLElement,
+  qualityScale: number = 2
+) => {
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const options = {
+      pixelRatio: qualityScale,
+      cacheBust: false,
+      skipAutoScale: false,
+      httpTimeout: 5000,
+    };
+
+    const dataUrl = await toPng(element, options);
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    
+    await navigator.clipboard.write([
+      new window.ClipboardItem({ 'image/png': blob })
+    ]);
+  } catch (err) {
+    console.error("Failed to copy image", err);
+    throw new Error(
+      "Copy failed. Your browser might not support clipboard operations or external images cannot be embedded."
     );
   }
 };

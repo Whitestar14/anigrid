@@ -40,15 +40,15 @@ export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
         }
       }}
       className={`
-                                      flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-lg shrink-0
-                                      ${activeCollectionId === "all-images" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white hover:bg-white/10"}
+                                      flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-full shrink-0
+                                      ${activeCollectionId === "all-images" ? "bg-surface-elevated text-text shadow-sm" : "text-muted hover:text-text hover:bg-hover"}
                                     `}
     >
       <Layers size={14} />
       All
     </div>
 
-    <div className="w-px h-4 bg-white/10 mx-1 shrink-0" />
+    <div className="w-px h-4 bg-border mx-1 shrink-0" />
 
     {collections.map((col) => {
       const isActive = col.id === activeCollectionId;
@@ -67,12 +67,11 @@ export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
             }
           }}
           className={`
-                                        group relative flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-lg min-w-[100px] justify-between shrink-0
-                                        ${
-                                          isActive
-                                            ? "bg-[#636366] text-white shadow-sm"
-                                            : "text-white/70 hover:text-white hover:bg-white/10"
-                                        }
+                                        group relative flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-full min-w-[100px] justify-between shrink-0
+                                        ${isActive
+              ? "bg-surface-elevated text-text shadow-sm"
+              : "text-muted hover:text-text hover:bg-hover"
+            }
                                       `}
         >
           {isEditing ? (
@@ -86,11 +85,11 @@ export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.currentTarget.blur();
               }}
-              className="bg-transparent border-none outline-none text-white w-full font-medium"
+              className="bg-transparent border-none outline-none text-text w-full font-medium"
             />
           ) : (
-            <div className="flex items-center gap-2 max-w-[120px]">
-              <span className="truncate">{col.name}</span>
+            <div className="flex items-center gap-2 max-w-[120px] min-w-0">
+              <span className="truncate min-w-0">{col.name}</span>
               {isActive && (
                 <button
                   type="button"
@@ -98,7 +97,7 @@ export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
                     e.stopPropagation();
                     onStartRename(col.id, col.name);
                   }}
-                  className="text-white/50 hover:text-white p-0.5 transition-colors"
+                  className="text-muted hover:text-text p-0.5 transition-colors shrink-0"
                   title="Rename"
                 >
                   <Edit size={12} />
@@ -114,7 +113,7 @@ export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
                 e.stopPropagation();
                 onRequestDeleteCollection(col);
               }}
-              className="p-0.5 hover:text-red-400 text-white/50 transition-colors ml-auto"
+              className="p-0.5 hover:text-red-400 text-muted transition-colors ml-auto"
               title="Delete Collection"
             >
               <Trash size={12} />
@@ -128,7 +127,7 @@ export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
       type="button"
       whileTap={{ scale: 0.9, rotate: 90 }}
       onClick={onAddCollection}
-      className="px-3 py-1.5 text-white/70 hover:text-blue-400 transition-colors hover:bg-white/10 rounded-lg"
+      className="px-3 py-1.5 text-muted hover:text-blue-400 transition-colors hover:bg-hover rounded-full"
       title="Create New Collection"
     >
       <Plus size={16} />

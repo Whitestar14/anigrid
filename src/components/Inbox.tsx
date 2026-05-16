@@ -4,6 +4,12 @@ import type { InboxProps } from "./Inbox/types";
 
 export type { InboxProps };
 
-export function Inbox({ requestConfirm }: InboxProps) {
-  return <BottomDockLayout ctrl={useInboxController(requestConfirm)} requestConfirm={requestConfirm} />;
+export function Inbox({ requestConfirm, onOpenAbout }: InboxProps) {
+  return (
+    <BottomDockLayout 
+      ctrl={useInboxController(requestConfirm)} 
+      requestConfirm={requestConfirm} 
+      onOpenAbout={onOpenAbout}
+    />
+  );
 }

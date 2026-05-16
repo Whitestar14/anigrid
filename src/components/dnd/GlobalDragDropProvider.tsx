@@ -44,12 +44,12 @@ const CustomDragOverlay = () => {
     return (
       <div 
         className={`
-          flex items-center gap-4 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 pointer-events-none
-          ${rankStyle === 'card' ? 'bg-surface rounded-2xl' : 'bg-[#1c1c1e]'}
+          flex items-center gap-4 p-3 shadow-2xl border border-border pointer-events-none
+          ${rankStyle === 'card' ? 'bg-surface rounded-2xl' : 'bg-surface-elevated'}
         `}
         style={{ width: data.width || '100%', opacity: 0.9 }}
       >
-        <div className={`shrink-0 overflow-hidden border border-white/5 ${LIST_ASPECT_MAP[rank.aspectRatio || '3:4']}`}>
+        <div className={`shrink-0 overflow-hidden border border-border ${LIST_ASPECT_MAP[rank.aspectRatio || '3:4']}`}>
           <img
             src={getProxiedImageUrl(data.imageSrc)}
             className="w-full h-full object-cover"
@@ -73,7 +73,7 @@ const CustomDragOverlay = () => {
   if (data.type === DRAG_TYPE.TIER_ITEM) {
     return (
       <div
-        className="overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-lg pointer-events-none border border-white/20 bg-[#1c1c1e]"
+        className="overflow-hidden shadow-2xl rounded-lg pointer-events-none border border-border bg-surface-elevated"
         style={{ 
           width: data.width || 96, 
           height: data.height || 128,
@@ -90,7 +90,7 @@ const CustomDragOverlay = () => {
 
   return (
     <div
-      className={`overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-xl pointer-events-none border border-white/20 ${ASPECT_MAP[rank.aspectRatio || '3:4']}`}
+      className={`overflow-hidden shadow-2xl rounded-xl pointer-events-none border border-border ${ASPECT_MAP[rank.aspectRatio || '3:4']}`}
       style={{ 
         width: data.width || 120, 
         opacity: 0.9
@@ -256,7 +256,7 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
       onDragCancel={handleDragCancel}
     >
       {children}
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={null} style={{ zIndex: 9999 }}>
         <CustomDragOverlay />
       </DragOverlay>
     </DndContext>

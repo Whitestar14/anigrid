@@ -1,14 +1,27 @@
 export const THEME_PALETTES = [
   {
+    id: "ios-light",
+    name: "iOS Light",
+    colors: {
+      background: "#f2f2f7",
+      surface: "#ffffff",
+      border: "rgba(0, 0, 0, 0.08)",
+      text: "#000000",
+      muted: "#8e8e93",
+      hover: "rgba(0, 0, 0, 0.05)",
+      overlay: "rgba(0, 0, 0, 0.2)",
+    },
+  },
+  {
     id: "ios-dark",
     name: "iOS Dark",
     colors: {
       background: "#000000",
       surface: "#1c1c1e",
-      border: "#38383a",
+      border: "rgba(255, 255, 255, 0.08)",
       text: "#ffffff",
       muted: "#98989d",
-      hover: "rgba(255, 255, 255, 0.1)",
+      hover: "rgba(255, 255, 255, 0.08)",
       overlay: "rgba(0, 0, 0, 0.6)",
     },
   },

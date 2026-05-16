@@ -66,16 +66,16 @@ export const Slider: React.FC<SliderProps> = ({
       onPointerCancel={onPointerUp}
     >
       {/* Track background */}
-      <div className="absolute inset-x-0 h-1 bg-white/20 rounded-full">
+      <div className="absolute inset-x-0 h-1 bg-border rounded-full">
         {/* Fill */}
         <div
-          className="h-full bg-white rounded-full"
+          className="h-full bg-primary rounded-full"
           style={{ width: `${pct}%` }}
         />
       </div>
       {/* Thumb */}
       <div
-        className="absolute h-[22px] w-[22px] -translate-x-1/2 bg-white rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.45)] pointer-events-none"
+        className="absolute h-[22px] w-[22px] -translate-x-1/2 bg-surface-elevated border border-border rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.2)] pointer-events-none"
         style={{ left: `${pct}%` }}
       />
     </div>

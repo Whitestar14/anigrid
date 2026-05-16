@@ -12,8 +12,32 @@
   --font-size-base: 1rem;
   --font-size-sm: 0.875rem;
   --font-size-lg: 1.125rem;
+
+  --color-systemBackground: var(--systemBackground);
+  --color-secondarySystemBackground: var(--secondarySystemBackground);
+  --color-tertiarySystemBackground: var(--tertiarySystemBackground);
+
+  --color-systemGroupedBackground: var(--systemGroupedBackground);
+  --color-secondarySystemGroupedBackground: var(--secondarySystemGroupedBackground);
+  --color-tertiarySystemGroupedBackground: var(--tertiarySystemGroupedBackground);
+
+  --color-label: var(--label);
+  --color-secondaryLabel: var(--secondaryLabel);
+  --color-tertiaryLabel: var(--tertiaryLabel);
+
+  --color-separator: var(--separator);
+  --color-opaqueSeparator: var(--opaqueSeparator);
+
+  --color-systemFill: var(--systemFill);
+  --color-secondarySystemFill: var(--secondarySystemFill);
+  --color-tintColor: var(--tintColor);
+  --color-destructive: var(--color-destructive);
+
+  /* Legacy mapped colors */
   --color-background: var(--color-background);
   --color-surface: var(--color-surface);
+  --color-surface-elevated: var(--color-surface-elevated);
+  --color-surface-secondary: var(--color-surface-secondary);
   --color-border: var(--color-border);
   --color-text: var(--color-text);
   --color-muted: var(--color-muted);
@@ -26,29 +50,94 @@
 }
 
 :root {
-  --color-background: #000000;
-  /* Zinc 950 */
-  --color-surface: #1c1c1e;
-  /* Zinc 900 */
-  --color-border: #38383a;
-  /* Zinc 800 */
-  --color-text: #ffffff;
-  /* Zinc 50 */
-  --color-muted: #98989d;
-  /* Zinc 400 */
-  --color-primary: #0a84ff;
-  /* Rose 500 */
-  --color-hover: rgba(255, 255, 255, 0.1);
+  /* iOS Dark Theme Semantic Tokens */
+  --systemBackground: #000000;
+  --secondarySystemBackground: #1c1c1e;
+  --tertiarySystemBackground: #2c2c2e;
+
+  --systemGroupedBackground: #000000;
+  --secondarySystemGroupedBackground: #1c1c1e;
+  --tertiarySystemGroupedBackground: #2c2c2e;
+
+  --label: #ffffff;
+  --secondaryLabel: rgba(235, 235, 245, 0.6);
+  --tertiaryLabel: rgba(235, 235, 245, 0.3);
+
+  --separator: rgba(84, 84, 88, 0.65);
+  --opaqueSeparator: #38383a;
+
+  --systemFill: rgba(120, 120, 128, 0.36);
+  --secondarySystemFill: rgba(120, 120, 128, 0.32);
+
+  --tintColor: #0a84ff;
+
+  /* Legacy Aliases */
+  --color-background: var(--systemBackground);
+  --color-surface: var(--secondarySystemGroupedBackground);
+  --color-surface-elevated: var(--tertiarySystemGroupedBackground);
+  --color-surface-secondary: var(--systemFill);
+  --color-border: var(--separator);
+  --color-text: var(--label);
+  --color-muted: var(--secondaryLabel);
+  --color-primary: var(--tintColor);
+  --color-hover: var(--systemFill);
   --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-focus-ring: var(--tintColor);
+  --color-destructive: #FF453A; /* iOS Dark Destructive */
 
   --z-dropdown: 30;
   --z-dock: 40;
   --z-modal: 100;
   --z-toast: 200;
-  --glass-bg: rgba(28, 28, 30, 0.75);
+
+  --glass-bg: rgba(30, 30, 32, 0.75);
+  --glass-card-bg: rgba(255, 255, 255, 0.06);
   --glass-blur: 40px;
   --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.light {
+  /* iOS Light Theme Semantic Tokens */
+  --systemBackground: #ffffff;
+  --secondarySystemBackground: #f2f2f7;
+  --tertiarySystemBackground: #ffffff;
+
+  --systemGroupedBackground: #f2f2f7;
+  --secondarySystemGroupedBackground: #ffffff;
+  --tertiarySystemGroupedBackground: #f2f2f7;
+
+  --label: #000000;
+  --secondaryLabel: rgba(60, 60, 67, 0.6);
+  --tertiaryLabel: rgba(60, 60, 67, 0.3);
+
+  --separator: rgba(60, 60, 67, 0.29);
+  --opaqueSeparator: #c6c6c8;
+
+  --systemFill: rgba(120, 120, 128, 0.2);
+  --secondarySystemFill: rgba(120, 120, 128, 0.16);
+
+  --tintColor: #007aff;
+
+  /* Legacy Aliases */
+  --color-background: var(--systemGroupedBackground);
+  --color-surface: var(--secondarySystemGroupedBackground);
+  --color-surface-elevated: var(--tertiarySystemGroupedBackground);
+  --color-surface-secondary: var(--systemFill);
+  --color-border: var(--separator);
+  --color-text: var(--label);
+  --color-muted: var(--secondaryLabel);
+  --color-primary: var(--tintColor);
+  --color-hover: var(--secondarySystemFill);
+  --color-overlay: rgba(0, 0, 0, 0.2);
+  --color-focus-ring: var(--tintColor);
+  --color-destructive: #FF3B30; /* iOS Light Destructive */
+
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-card-bg: rgba(255, 255, 255, 0.1);
+  --glass-blur: 40px;
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 /* Typography */
@@ -105,8 +194,9 @@ a {
 
 html[data-reduce-glass] {
   --glass-bg: var(--color-surface);
+  --glass-card-bg: var(--color-surface-elevated);
   --glass-blur: 0px;
-  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-border: var(--color-border);
   --glass-shadow: none;
 }
 
@@ -137,5 +227,14 @@ html[data-reduce-glass] * {
     backdrop-filter: blur(calc(var(--glass-blur) * 0.75));
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
+  }
+
+  .glass-card {
+    background-color: var(--glass-card-bg);
+    border: 1px solid var(--glass-border);
+  }
+
+  .focus-ring {
+    box-shadow: 0 0 0 3px var(--color-background), 0 0 0 6px var(--color-focus-ring) !important;
   }
 }

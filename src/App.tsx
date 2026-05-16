@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useStore } from "@/store/useStore";
 import { Controls } from "@/components/Controls";
 import { GridSettingsSidebar } from "@/components/GridSettingsSidebar";
@@ -10,11 +12,13 @@ import { Library } from "@/components/Library";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { DuplicateModal } from "@/components/DuplicateModal";
 import { ExportModal } from "@/components/ExportModal";
+import { AboutModal } from "@/components/AboutModal";
+import { LoadingScreen } from "@/components/AppLogo";
 import { useToast } from "@/context/ToastContext";
-import { readFileAsDataURL, downloadGrid } from "@/utils/imageUtils";
+import { readFileAsDataURL, downloadGrid, copyGrid } from "@/utils/imageUtils";
 import { cleanupOldCache } from "@/utils/imageCache";
 import { THEME_PALETTES, getContrastColor } from "@/theme/palettes";
-import { Edit2, Heart, Zap } from "lucide-react";
+import { Edit2 } from "lucide-react";
 import { 
   selectTheme, 
   selectActiveRankId, 
@@ -24,7 +28,23 @@ import {
 } from "@/store/selectors";
 
 export const App: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
+};
+
+const AppContent: React.FC = () => {
   const addToast = useToast();
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowLoader(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
   const theme = useStore(selectTheme);
   const preferences = useStore(selectPreferences);
   const reduceGlassEffects = preferences.reduceGlassEffects ?? false;
@@ -77,10 +97,21 @@ export const App: React.FC = () => {
   useLayoutEffect(() => {
     if (isLoaded && theme) {
       const root = document.documentElement;
+      
+      const isDark = theme.isDark ?? true;
+      if (isDark) {
+        root.classList.remove("light");
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+        root.classList.add("light");
+      }
+
       root.style.setProperty("--color-primary", theme.accentColor);
-      const paletteId = theme.paletteId || "ios-dark";
+      const paletteId = theme.paletteId || (isDark ? "ios-dark" : "ios-light");
       const palette =
         THEME_PALETTES.find((p) => p.id === paletteId) || THEME_PALETTES[0];
+        
       root.style.setProperty("--color-background", palette.colors.background);
       root.style.setProperty("--color-surface", palette.colors.surface);
       root.style.setProperty("--color-border", palette.colors.border);
@@ -88,14 +119,6 @@ export const App: React.FC = () => {
       root.style.setProperty("--color-muted", palette.colors.muted);
       root.style.setProperty("--color-hover", palette.colors.hover);
       root.style.setProperty("--color-overlay", palette.colors.overlay);
-      const isLight = ["cloud", "dawn", "latte"].includes(palette.id);
-      if (isLight) {
-        root.classList.remove("dark");
-        root.classList.add("light");
-      } else {
-        root.classList.remove("light");
-        root.classList.add("dark");
-      }
     }
   }, [theme, isLoaded]);
 
@@ -258,173 +281,205 @@ export const App: React.FC = () => {
     });
   };
 
-  if (!isLoaded || !activeRank)
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <div className="grid grid-cols-2 gap-2 w-16 h-16">
-          <div className="bg-surface border border-border rounded-full flex items-center justify-center aspect-square">
-            <div className="w-3 h-3 bg-primary rounded-full animate-bounce delay-0"></div>
-          </div>
-          <div className="bg-surface border border-border rounded-lg flex items-center justify-center aspect-square">
-            <Heart size={20} className="text-primary fill-primary animate-pulse delay-75" />
-          </div>
-          <div className="bg-surface border border-border rounded-lg flex items-center justify-center aspect-square">
-            <Zap size={20} className="text-text fill-text animate-pulse delay-150" />
-          </div>
-          <div className="bg-primary rounded-[12px] animate-pulse delay-200 aspect-square"></div>
-        </div>
-        <span className="text-muted font-bold tracking-widest text-xs mt-4">ANIGRID</span>
-      </div>
-    );
+  if (!activeRank) return <LoadingScreen />;
 
   const textColor = getContrastColor(activeRank.backgroundColor);
   const mainPadding = activeRank.type === "tierlist" ? "p-2 md:p-8" : "p-4 md:p-8";
   const containerPadding = activeRank.type === "tierlist" ? (window.innerWidth < 768 ? "0px" : "32px") : (activeRank.style === "card" ? "32px" : "16px");
 
   return (
-    <div className="h-[100dvh] bg-background text-text font-sans selection:bg-primary/30 flex flex-col overflow-hidden relative">
-      <Controls
-        projectName={activeRank.title}
-        onOpenLibrary={() => setIsLibraryOpen(true)}
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        onOpenExport={() => setIsExportModalOpen(true)}
-        isSidebarOpen={isSidebarOpen}
-      />
+    <>
+      <AnimatePresence mode="wait">
+        {(showLoader || !isLoaded) && <LoadingScreen key="loader" />}
+      </AnimatePresence>
 
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        onExportImage={async (fmt, qualityScale) => {
-          if (gridRef.current) {
-            try {
-              await downloadGrid(gridRef.current, activeRank.title, fmt, qualityScale);
-              addToast("success", `Exported as ${fmt.toUpperCase()}`);
-            } catch (error) {
-              addToast("error", error instanceof Error ? error.message : "Export failed");
-            }
-          }
-        }}
-      />
-
-      <Library
-        isOpen={isLibraryOpen}
-        onClose={() => setIsLibraryOpen(false)}
-        ranks={Object.values(ranks)}
-        activeRankId={activeRankId}
-        onSelectRank={setActiveRankId}
-        onDeleteRank={(id) => {
-          const rank = ranks[id];
-          if (!rank) return;
-          confirmAction(`Delete "${rank.title}"?`, "This cannot be undone.", () => {
-            handleDeleteRank(id);
-          });
-        }}
-        onNewRank={handleNewRank}
-        onUpdateRank={updateRankById}
-      />
-
-      <ConfirmModal
-        isOpen={modalConfig.isOpen}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        onConfirm={modalConfig.onConfirm}
-        onCancel={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}
-      />
-
-      <DuplicateModal
-        isOpen={duplicateModalConfig.isOpen}
-        imageSrc={duplicateModalConfig.imageSrc}
-        onConfirm={handleDuplicateConfirm}
-        onCancel={() => setDuplicateModalConfig({ isOpen: false, imageSrc: null, actionToExecute: null })}
-      />
-
-      <div className="flex flex-1 overflow-hidden pt-14">
-        <GridSettingsSidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          requestConfirm={confirmAction}
+      <div className="flex flex-col h-screen overflow-hidden">
+        <Controls
+          projectName={activeRank.title}
+          onOpenLibrary={() => setIsLibraryOpen(true)}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onOpenExport={() => setIsExportModalOpen(true)}
+          isSidebarOpen={isSidebarOpen}
         />
 
-        <div className="flex-1 flex flex-col min-w-0 relative bg-background">
-          <main
-            className={`flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center ${mainPadding} pb-40`}
-            onClick={() => interactionState && setInteractionState(null)}
-          >
-            <div
-              ref={gridRef}
-              className="relative transition-all duration-200 shadow-2xl"
-              style={{
-                width: "fit-content",
-                minWidth: activeRank.mode === "list" ? "100%" : (activeRank.type === "tierlist" ? "98%" : "auto"),
-                maxWidth: activeRank.type === "tierlist" ? "1200px" : "none",
-                backgroundColor: activeRank.backgroundColor === "transparent" ? "" : activeRank.backgroundColor,
-                padding: containerPadding,
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (interactionState) setInteractionState(null);
-              }}
+        <ExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          onExportImage={async (fmt, qualityScale) => {
+            if (gridRef.current) {
+              try {
+                await downloadGrid(gridRef.current, activeRank.title, fmt, qualityScale);
+                addToast("success", `Exported as ${fmt.toUpperCase()}`);
+              } catch (error) {
+                addToast("error", error instanceof Error ? error.message : "Export failed");
+              }
+            }
+          }}
+          onCopyImage={async (qualityScale) => {
+            if (gridRef.current) {
+              try {
+                await copyGrid(gridRef.current, qualityScale);
+                addToast("success", "Copied to clipboard");
+              } catch (error) {
+                addToast("error", error instanceof Error ? error.message : "Copy failed");
+              }
+            }
+          }}
+        />
+
+        <Library
+          isOpen={isLibraryOpen}
+          onClose={() => setIsLibraryOpen(false)}
+          ranks={Object.values(ranks)}
+          activeRankId={activeRankId}
+          onSelectRank={setActiveRankId}
+          onDeleteRank={(id) => {
+            const rank = ranks[id];
+            if (!rank) return;
+            confirmAction(`Delete "${rank.title}"?`, "This cannot be undone.", () => {
+              handleDeleteRank(id);
+            });
+          }}
+          onNewRank={handleNewRank}
+          onUpdateRank={updateRankById}
+        />
+
+        <ConfirmModal
+          isOpen={modalConfig.isOpen}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          onConfirm={modalConfig.onConfirm}
+          onCancel={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}
+        />
+
+        <DuplicateModal
+          isOpen={duplicateModalConfig.isOpen}
+          imageSrc={duplicateModalConfig.imageSrc}
+          onConfirm={handleDuplicateConfirm}
+          onCancel={() => setDuplicateModalConfig({ isOpen: false, imageSrc: null, actionToExecute: null })}
+        />
+
+        <AboutModal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
+
+        <div className="flex flex-1 overflow-hidden pt-14">
+          <GridSettingsSidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+            requestConfirm={confirmAction}
+          />
+
+          <div className="flex-1 flex flex-col min-w-0 relative bg-background">
+            <main
+              className={`flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center ${mainPadding} pb-40`}
+              onClick={() => interactionState && setInteractionState(null)}
             >
-              {(activeRank.showTitle !== false || isEditingTitle) && (
-                <div className="text-center mb-8 pb-4 border-b border-white/5 relative">
-                  {isEditingTitle ? (
-                    <input
-                      ref={titleInputRef}
-                      type="text"
-                      value={tempTitle}
-                      onChange={(e) => setTempTitle(e.target.value)}
-                      onBlur={() => {
-                        setIsEditingTitle(false);
-                        if (tempTitle.trim() && tempTitle !== activeRank.title) {
-                          updateActiveRank({ title: tempTitle });
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          setIsEditingTitle(false);
-                          if (tempTitle.trim() && tempTitle !== activeRank.title) {
-                            updateActiveRank({ title: tempTitle });
-                          }
-                        }
-                      }}
-                      autoFocus
-                      onFocus={(e) => e.target.select()}
-                      className="text-4xl md:text-5xl font-black text-center bg-transparent border-b-2 border-primary focus:outline-none w-full max-w-2xl placeholder-white/20 animate-in fade-in duration-200"
-                      style={{ color: textColor }}
-                    />
-                  ) : (
-                    <h1
-                      onClick={() => {
-                        setTempTitle(activeRank.title);
-                        setIsEditingTitle(true);
-                      }}
-                      className="text-4xl md:text-5xl font-black tracking-tighter cursor-pointer hover:text-primary transition-colors inline-flex items-center gap-3 group/title animate-in fade-in duration-200"
-                      style={{ color: textColor }}
+              <div
+                ref={gridRef}
+                className="relative transition-all duration-200 shadow-2xl"
+                style={{
+                  width: "fit-content",
+                  minWidth: activeRank.mode === "list" ? "100%" : (activeRank.type === "tierlist" ? "98%" : "auto"),
+                  maxWidth: activeRank.type === "tierlist" ? "1200px" : "none",
+                  backgroundColor: activeRank.backgroundColor === "transparent" ? "" : activeRank.backgroundColor,
+                  padding: containerPadding,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (interactionState) setInteractionState(null);
+                }}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {(activeRank.showTitle !== false || isEditingTitle) && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 120 }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="text-center mb-8 pb-4 border-b border-border relative flex justify-center items-center overflow-hidden"
                     >
-                      {activeRank.title}
-                      <Edit2 size={20} className="text-muted opacity-0 group-hover/title:opacity-100 transition-opacity" />
-                    </h1>
+                      {isEditingTitle ? (
+                        <input
+                          ref={titleInputRef}
+                          type="text"
+                          value={tempTitle}
+                          onChange={(e) => setTempTitle(e.target.value)}
+                          onBlur={() => {
+                            setIsEditingTitle(false);
+                            if (tempTitle.trim() && tempTitle !== activeRank.title) {
+                              updateActiveRank({ title: tempTitle });
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              setIsEditingTitle(false);
+                              if (tempTitle.trim() && tempTitle !== activeRank.title) {
+                                updateActiveRank({ title: tempTitle });
+                              }
+                            }
+                          }}
+                          autoFocus
+                          onFocus={(e) => e.target.select()}
+                          className="text-4xl md:text-5xl font-black text-center bg-transparent border-b-2 border-primary focus:outline-none w-full max-w-2xl placeholder-muted/40 animate-in fade-in zoom-in-95 duration-200"
+                          style={{ color: textColor }}
+                        />
+                      ) : (
+                        <h1
+                          className="text-4xl md:text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => {
+                            setTempTitle(activeRank.title);
+                            setIsEditingTitle(true);
+                          }}
+                          style={{ color: textColor }}
+                        >
+                          {activeRank.title}
+                        </h1>
+                      )}
+                      <button
+                        onClick={() => {
+                          setTempTitle(activeRank.title);
+                          setIsEditingTitle(true);
+                        }}
+                        className="absolute right-0 p-2 text-muted hover:text-text opacity-0 hover:opacity-100 transition-all"
+                        style={{ color: textColor }}
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`${activeRank.id}-${activeRank.type}-${activeRank.mode}`}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                  >
+                    {activeRank.type === "tierlist" ? <TierListView /> : activeRank.mode === "list" ? <ListView /> : <GridView />}
+                  </motion.div>
+                </AnimatePresence>
+
+                <div className="flex justify-between items-end opacity-30 px-2 mt-8 pt-4 border-t border-border">
+                  {activeRank.showWatermark !== false ? (
+                    <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>Ranku</div>
+                  ) : <div />}
+                  {activeRank.showDate !== false && (
+                    <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>
+                      {new Date().toLocaleDateString()}
+                    </div>
                   )}
                 </div>
-              )}
-
-              {activeRank.type === "tierlist" ? <TierListView /> : activeRank.mode === "list" ? <ListView /> : <GridView />}
-
-              <div className="flex justify-between items-end opacity-30 px-2 mt-8 pt-4 border-t border-white/5">
-                <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>AniGrid</div>
-                {activeRank.showDate !== false && (
-                  <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>
-                    {new Date().toLocaleDateString()}
-                  </div>
-                )}
               </div>
-            </div>
-          </main>
+            </main>
 
-          <Inbox requestConfirm={confirmAction} />
+            <Inbox 
+              requestConfirm={confirmAction} 
+              onOpenAbout={() => setIsAboutModalOpen(true)}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };

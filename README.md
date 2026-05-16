@@ -1,8 +1,8 @@
-# Anigrid
+# Ranku
 
 > The sleekest anime ranker/tier list builder for the perfectionists among us. There really aren't that many decent options for 3x3s out there, so I made one myself.
 
-A minimalist, **dark-mode native** ranking application built for anime enthusiasts. Now you can rank your waifus, tier favorite characters and organize your with zero clutter.
+A minimalist, **dark-mode native** ranking application built for anime enthusiasts. Now you can rank your favorite characters and organize your lists with zero clutter.
 
 ## Premium Experience
 

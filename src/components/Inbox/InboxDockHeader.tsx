@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronDown, Globe, Image as ImageIcon } from "lucide-react";
 import type { InboxTab } from "./types";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 
 export interface InboxDockHeaderProps {
   activeTab: InboxTab;
@@ -15,42 +16,26 @@ export const InboxDockHeader: React.FC<InboxDockHeaderProps> = ({
 }) => {
   return (
     <div
-      className="h-12 flex items-center justify-between pl-5 pr-1 sm:pr-2 select-none shrink-0 border-b border-white/10 cursor-pointer"
+      className="h-12 flex items-center justify-between pl-5 pr-1 sm:pr-2 select-none shrink-0 border-b border-border cursor-pointer"
       onClick={onToggleExpand}
     >
       <div className="flex items-center gap-4">
-        <span className="text-[15px] font-semibold text-white">Library</span>
+        <span className="text-[15px] font-semibold text-text">Library</span>
 
-        <div className="flex items-center bg-[#767680]/24 rounded-xl p-1">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onSelectTab("stash"); }}
-            className={`
-              flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all
-              ${activeTab === "stash" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}
-            `}
-          >
-            <ImageIcon size={14} />
-            stash
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onSelectTab("search"); }}
-            className={`
-              flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all
-              ${activeTab === "search" || activeTab === "picker" ? "bg-[#636366] text-white shadow-sm" : "text-white/70 hover:text-white"}
-            `}
-          >
-            <Globe size={14} />
-            search
-          </button>
-        </div>
+        <SegmentedControl
+          value={activeTab === "picker" ? "search" : activeTab}
+          onChange={(val) => onSelectTab(val as any)}
+          options={[
+            { value: "stash", label: "stash", icon: <ImageIcon size={14} /> },
+            { value: "search", label: "search", icon: <Globe size={14} /> }
+          ]}
+        />
       </div>
 
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
-        className="text-white/70 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10"
+        className="text-muted hover:text-text transition-colors p-1.5 rounded-full hover:bg-hover"
         title="Collapse dock"
       >
         <ChevronDown size={19} />

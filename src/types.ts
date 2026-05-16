@@ -54,12 +54,14 @@ export interface Rank {
   showNumbers: boolean;
   showTitle: boolean;
   showDate: boolean;
+  showWatermark?: boolean;
   showTiers?: boolean;
   borderless?: boolean;
   aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
   cellWidth?: number;
   borderRadius?: number;
   gap: number;
+  gridJustify?: "left" | "center" | "right";
   backgroundColor: string;
 
   tiers?: TierData[];

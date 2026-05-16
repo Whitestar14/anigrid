@@ -3,16 +3,21 @@ import { useStore } from "@/store/useStore";
 import { useShallow } from "zustand/react/shallow";
 import { Toggle } from "@/components/ui/Toggle";
 import { ColorPicker } from "@/components/ui/ColorPicker";
-import { Save, Upload, ShieldAlert, Palette, Layers, Minimize2 } from "lucide-react";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { Palette, Layers, Minimize2, Moon, Sun, Info } from "lucide-react";
 import { exportStateToJson } from "@/utils/storage";
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 import { ImportChoiceModal } from "@/components/ImportChoiceModal";
 
-export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, message: string, onConfirm: () => void) => void }> = ({ requestConfirm }) => {
-  const { accent, reduceGlass, autoCloseDesktop, updateTheme, updatePreferences } =
+export const SettingsDockPanel: React.FC<{ 
+  requestConfirm?: (title: string, message: string, onConfirm: () => void) => void;
+  onOpenAbout?: () => void;
+}> = ({ requestConfirm, onOpenAbout }) => {
+  const { accent, reduceGlass, autoCloseDesktop, isDark, updateTheme, updatePreferences } =
     useStore(
       useShallow((s) => ({
         accent: s.theme?.accentColor ?? "#3b82f6",
+        isDark: s.theme?.isDark ?? true,
         reduceGlass: s.preferences.reduceGlassEffects ?? false,
         autoCloseDesktop: s.preferences.autoCloseDockOnDragDesktop ?? false,
         updateTheme: s.updateGlobalTheme,
@@ -41,20 +46,44 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
   };
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 flex flex-col gap-6">
+    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 pb-12 flex flex-col gap-6">
 
       <div className="flex flex-col gap-2 relative">
-        <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-2">
+        <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
           Appearance
         </span>
-        <SettingButtonGroup>
+        <SettingButtonGroup className="glass-card rounded-[20px] overflow-hidden">
+          <SettingRow
+            as="div"
+            icon={isDark ? <Moon size={16} /> : <Sun size={16} />}
+            iconBg="bg-amber-500/20 text-amber-500"
+            label="Theme mode"
+            right={
+              <div className="w-[140px]">
+                <SegmentedControl
+                  value={isDark ? "dark" : "light"}
+                  onChange={(v) => {
+                    const mode = v === "dark";
+                    updateTheme({
+                      isDark: mode,
+                      paletteId: mode ? "ios-dark" : "ios-light"
+                    });
+                  }}
+                  options={[
+                    { value: "light", label: "Light" },
+                    { value: "dark", label: "Dark" }
+                  ]}
+                />
+              </div>
+            }
+          />
           <SettingRow
             asLabel
             icon={<Palette size={16} />}
             iconBg="bg-blue-500/20 text-blue-400"
             label="Accent color"
             right={
-              <div className="relative h-7 w-12 rounded-md overflow-hidden border border-white/10 bg-transparent flex items-center justify-center cursor-pointer">
+              <div className="relative h-7 w-12 rounded-md overflow-hidden border border-border bg-transparent flex items-center justify-center cursor-pointer">
                 <div className="absolute inset-0" style={{ backgroundColor: accent }} />
                 <ColorPicker
                   value={accent}
@@ -93,30 +122,28 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
       </div>
 
       <div className="flex flex-col gap-2 relative">
-        <span className="text-[13px] font-medium text-white/50 uppercase tracking-wide pl-2">
+        <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
           Data Actions
         </span>
-        <SettingButtonGroup>
-          <SettingRow
-            icon={<Save size={16} />}
-            iconBg="bg-green-500/20 text-green-400"
-            label="Backup Data"
-            sublabel="Export all your ranks, images, and settings to a JSON file."
+        <div className="glass-card rounded-[20px] overflow-hidden flex flex-col items-stretch">
+          <button
+            type="button"
             onClick={handleExportJson}
-          />
-          <SettingRow
-            icon={<Upload size={16} />}
-            iconBg="bg-orange-500/20 text-orange-400"
-            label="Restore Data"
-            sublabel="Import a previously exported JSON backup file."
+            className="w-full py-3.5 text-[15px] font-medium text-primary hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors"
+          >
+            Backup Data
+          </button>
+          <div className="h-px bg-border/60" />
+          <button
+            type="button"
             onClick={() => jsonInputRef.current?.click()}
-          />
-          <SettingRow
-            icon={<ShieldAlert size={16} />}
-            iconBg="bg-red-500/20 text-red-500"
-            label="Wipe All App Data"
-            sublabel="Deletes all local storage. Cannot be reversed."
-            destructive
+            className="w-full py-3.5 text-[15px] font-medium text-primary hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors"
+          >
+            Restore Data
+          </button>
+          <div className="h-px bg-border/60" />
+          <button
+            type="button"
             onClick={() => {
               if (requestConfirm) {
                 requestConfirm(
@@ -130,6 +157,31 @@ export const SettingsDockPanel: React.FC<{ requestConfirm?: (title: string, mess
                 );
               }
             }}
+            className="w-full py-3.5 text-[15px] font-medium text-red-500 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
+          >
+            Wipe All App Data
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 relative">
+        <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
+          App
+        </span>
+        <SettingButtonGroup className="bg-surface border border-border rounded-[20px] overflow-hidden">
+          <SettingRow
+            as="div"
+            icon={<Info size={16} />}
+            iconBg="bg-zinc-500/20 text-zinc-400"
+            label="About Ranku"
+            right={
+              <button
+                onClick={onOpenAbout}
+                className="text-[13px] font-semibold text-primary px-4 py-1.5 bg-primary/10 hover:bg-primary/20 active:scale-[0.96] rounded-full transition-all"
+              >
+                View
+              </button>
+            }
           />
         </SettingButtonGroup>
       </div>

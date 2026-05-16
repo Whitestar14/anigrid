@@ -40,3 +40,10 @@ export const fetchImageThroughProxy = async (
     return null;
   }
 };
+
+export const fetchAndCacheImage = async (externalUrl: string): Promise<string | null> => {
+  // If already a data URL, return as is
+  if (!externalUrl || externalUrl.startsWith('data:')) return externalUrl;
+  
+  return fetchImageThroughProxy(externalUrl);
+};

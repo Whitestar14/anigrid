@@ -81,6 +81,22 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
     }
   }, [isOpen, triggerPoint]);
 
+  // Handle click outside
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    // Use capture phase to ensure we catch it before other elements stop propagation if needed, 
+    // but usually bubble is fine.
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose]);
+
   const style: React.CSSProperties = isFixed ? {
     position: 'fixed',
     left: coords?.x ?? triggerPoint?.x,
@@ -112,19 +128,19 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
         >
           {actions.map((action, i) => (
             <React.Fragment key={action.label}>
-              {i > 0 && <div className="h-[1px] bg-white/5 mx-2 my-0.5" />}
+              {i > 0 && <div className="h-[1px] bg-border mx-2 my-0.5" />}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   action.onClick(e);
                   onClose();
                 }}
-                className={`flex items-center justify-between p-2.5 hover:bg-white/10 rounded-xl text-[13px] font-semibold transition-all active:scale-95 ${
-                  action.variant === 'danger' ? 'text-red-400 hover:bg-red-500/20' : 'text-white/90'
+                className={`flex items-center justify-between p-2.5 hover:bg-hover rounded-xl text-[13px] font-semibold transition-all active:scale-95 ${
+                  action.variant === 'danger' ? 'text-red-500 hover:bg-red-500/10' : 'text-text'
                 }`}
               >
                 <span>{action.label}</span>
-                <action.icon size={16} className={action.variant === 'danger' ? 'text-red-400/50' : 'text-white/40'} />
+                <action.icon size={16} className={action.variant === 'danger' ? 'text-red-500/50' : 'text-muted'} />
               </button>
             </React.Fragment>
           ))}
