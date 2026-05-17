@@ -30,7 +30,7 @@ export const VisibilitySection: React.FC<VisibilitySectionProps> = ({
           <SettingRow
             asLabel
             icon={<Hash size={16} />}
-            iconBg="bg-blue-500/20 text-blue-400"
+            iconBg="bg-primary/20 text-primary"
             label="Show Numbers"
             right={
               <Toggle

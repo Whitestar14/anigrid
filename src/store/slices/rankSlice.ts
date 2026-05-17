@@ -77,9 +77,9 @@ export const createRankSlice: StateCreator<
     set((state) => {
       const current = state.ranks[state.activeRankId];
       if (!current) return;
-      
+
       const totalCells = current.mode === "list" ? newConfig.rows : newConfig.rows * newConfig.cols;
-      
+
       if (totalCells > current.cells.length) {
         ensureCells(current.cells, totalCells - 1);
       } else if (totalCells < current.cells.length) {
@@ -91,10 +91,36 @@ export const createRankSlice: StateCreator<
   handleModeChange: (newMode) =>
     set((state) => {
       const current = state.ranks[state.activeRankId];
-      if (current) {
-        current.mode = newMode;
-        current.updatedAt = Date.now();
+      if (!current) return;
+
+      const oldMode = current.mode;
+      if (oldMode === newMode) return;
+
+      current.mode = newMode;
+
+      if (newMode === "list") {
+        const totalItems = current.cells.length;
+        current.config.rows = totalItems;
+        if (totalItems > current.cells.length) {
+          ensureCells(current.cells, totalItems - 1);
+        } else if (totalItems < current.cells.length) {
+          current.cells = current.cells.slice(0, totalItems);
+        }
+      } else {
+        const totalItems = current.cells.length;
+        const cols = current.config.cols || 5;
+        const neededRows = Math.max(1, Math.ceil(totalItems / cols));
+        current.config.rows = neededRows;
+
+        const newTotalCells = neededRows * cols;
+        if (newTotalCells > current.cells.length) {
+          ensureCells(current.cells, newTotalCells - 1);
+        } else if (newTotalCells < current.cells.length) {
+          current.cells = current.cells.slice(0, newTotalCells);
+        }
       }
+
+      current.updatedAt = Date.now();
     }),
   handleVisualToggle: (key) =>
     set((state) => {
@@ -364,7 +390,7 @@ export const createRankSlice: StateCreator<
                 if (!row) return;
                 const item = row.items.find(i => i.id === cellId);
                 if (item) item.imageSrc = base64;
-                
+
                 // Also update in inbox
                 d.inbox.collections.forEach(c => {
                   c.items.forEach(it => {

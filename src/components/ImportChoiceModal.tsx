@@ -17,7 +17,7 @@ export const ImportChoiceModal: React.FC<ImportChoiceModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       className="max-w-[300px]"
-      contentClassName="p-0"
+      contentClassName="p-0 overflow-hidden rounded-[22px]"
     >
       <div className="flex flex-col text-center">
         <div className="p-5 pb-4">
@@ -27,24 +27,24 @@ export const ImportChoiceModal: React.FC<ImportChoiceModalProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-col border-t border-border">
+        <div className="flex flex-col border-t border-border/40">
           <button
             onClick={() => onSelect('merge')}
-            className="w-full py-3.5 text-[17px] text-blue-500 font-medium hover:bg-hover active:bg-active transition-colors border-b border-border"
+            className="w-full py-3.5 text-[17px] text-primary font-medium hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors border-b border-border/40 cursor-pointer select-none"
           >
             Merge Data
           </button>
 
           <button
             onClick={() => onSelect('overwrite')}
-            className="w-full py-3.5 text-[17px] text-red-500 font-medium hover:bg-hover active:bg-active transition-colors border-b border-border"
+            className="w-full py-3.5 text-[17px] text-destructive font-medium hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors border-b border-border/40 cursor-pointer select-none"
           >
             Overwrite All
           </button>
           
           <button
             onClick={onClose}
-            className="w-full py-3.5 text-[17px] text-muted font-medium hover:bg-hover active:bg-active transition-colors"
+            className="w-full py-3.5 text-[17px] text-muted font-medium hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors cursor-pointer select-none"
           >
             Cancel
           </button>

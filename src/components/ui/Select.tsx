@@ -47,7 +47,7 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className={cn(
-              "flex items-center justify-between w-full h-10 px-4 py-2 text-sm text-left bg-surface-secondary border border-border rounded-full",
+              "flex items-center justify-between w-full h-10 px-4 py-2 text-sm text-left bg-surface-elevated/40 border border-border rounded-full",
               "hover:bg-hover focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50",
               "backdrop-blur-md transition-all duration-200 text-text"
             )}

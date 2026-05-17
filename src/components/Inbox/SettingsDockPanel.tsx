@@ -4,10 +4,11 @@ import { useShallow } from "zustand/react/shallow";
 import { Toggle } from "@/components/ui/Toggle";
 import { ColorPicker } from "@/components/ui/ColorPicker";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { Palette, Layers, Minimize2, Moon, Sun, Info } from "lucide-react";
+import { Palette, Layers, Minimize2, Moon, Sun, Info, ChevronRight } from "lucide-react";
 import { exportStateToJson } from "@/utils/storage";
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 import { ImportChoiceModal } from "@/components/ImportChoiceModal";
+import { useToast } from "@/context/ToastContext";
 
 export const SettingsDockPanel: React.FC<{ 
   requestConfirm?: (title: string, message: string, onConfirm: () => void) => void;
@@ -28,6 +29,7 @@ export const SettingsDockPanel: React.FC<{
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = React.useState(false);
   const [pendingState, setPendingState] = React.useState<any>(null);
+  const addToast = useToast();
 
   const handleExportJson = () => exportStateToJson(useStore.getState());
 
@@ -35,13 +37,15 @@ export const SettingsDockPanel: React.FC<{
     const text = await file.text();
     try {
       const json = JSON.parse(text);
-      if (json) {
+      if (json && typeof json === "object" && typeof json.version === "number" && json.ranks) {
         setPendingState(json);
         setIsChoiceModalOpen(true);
+      } else {
+        addToast("error", "Invalid backup. Please upload a valid Ranku Backup file.");
       }
     } catch (e) {
       console.error("Failed to import JSON", e);
-      alert("Invalid JSON file");
+      addToast("error", "Failed to parse JSON file.");
     }
   };
 
@@ -80,7 +84,7 @@ export const SettingsDockPanel: React.FC<{
           <SettingRow
             asLabel
             icon={<Palette size={16} />}
-            iconBg="bg-blue-500/20 text-blue-400"
+            iconBg="bg-primary/20 text-primary"
             label="Accent color"
             right={
               <div className="relative h-7 w-12 rounded-md overflow-hidden border border-border bg-transparent flex items-center justify-center cursor-pointer">
@@ -168,19 +172,15 @@ export const SettingsDockPanel: React.FC<{
         <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
           App
         </span>
-        <SettingButtonGroup className="bg-surface border border-border rounded-[20px] overflow-hidden">
+        <SettingButtonGroup className="bg-surface border border-border rounded-[20px] overflow-hidden group/about hover:shadow-sm transition-all focus-ring">
           <SettingRow
-            as="div"
+            as="button"
+            onClick={onOpenAbout}
             icon={<Info size={16} />}
-            iconBg="bg-zinc-500/20 text-zinc-400"
+            iconBg="bg-primary/10 text-primary"
             label="About Ranku"
             right={
-              <button
-                onClick={onOpenAbout}
-                className="text-[13px] font-semibold text-primary px-4 py-1.5 bg-primary/10 hover:bg-primary/20 active:scale-[0.96] rounded-full transition-all"
-              >
-                View
-              </button>
+              <ChevronRight size={16} className="text-muted/50 transition-transform group-hover/about:translate-x-0.5" />
             }
           />
         </SettingButtonGroup>
@@ -209,6 +209,7 @@ export const SettingsDockPanel: React.FC<{
             useStore.getState().importState(pendingState, mode);
             setIsChoiceModalOpen(false);
             setPendingState(null);
+            addToast("success", "Data restored successfully!");
           }
         }}
       />

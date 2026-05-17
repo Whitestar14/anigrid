@@ -19,12 +19,12 @@ import { readFileAsDataURL, downloadGrid, copyGrid } from "@/utils/imageUtils";
 import { cleanupOldCache } from "@/utils/imageCache";
 import { THEME_PALETTES, getContrastColor } from "@/theme/palettes";
 import { Edit2 } from "lucide-react";
-import { 
-  selectTheme, 
-  selectActiveRankId, 
-  selectActiveRank, 
-  selectRanks, 
-  selectPreferences 
+import {
+  selectTheme,
+  selectActiveRankId,
+  selectActiveRank,
+  selectRanks,
+  selectPreferences
 } from "@/store/selectors";
 
 export const App: React.FC = () => {
@@ -78,7 +78,7 @@ const AppContent: React.FC = () => {
     title: string;
     message: string;
     onConfirm: () => void;
-  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => { } });
 
   const gridRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -97,7 +97,7 @@ const AppContent: React.FC = () => {
   useLayoutEffect(() => {
     if (isLoaded && theme) {
       const root = document.documentElement;
-      
+
       const isDark = theme.isDark ?? true;
       if (isDark) {
         root.classList.remove("light");
@@ -111,7 +111,7 @@ const AppContent: React.FC = () => {
       const paletteId = theme.paletteId || (isDark ? "ios-dark" : "ios-light");
       const palette =
         THEME_PALETTES.find((p) => p.id === paletteId) || THEME_PALETTES[0];
-        
+
       root.style.setProperty("--color-background", palette.colors.background);
       root.style.setProperty("--color-surface", palette.colors.surface);
       root.style.setProperty("--color-border", palette.colors.border);
@@ -391,7 +391,7 @@ const AppContent: React.FC = () => {
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {(activeRank.showTitle !== false || isEditingTitle) && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 120 }}
                       exit={{ opacity: 0, height: 0 }}
@@ -473,8 +473,8 @@ const AppContent: React.FC = () => {
               </div>
             </main>
 
-            <Inbox 
-              requestConfirm={confirmAction} 
+            <Inbox
+              requestConfirm={confirmAction}
               onOpenAbout={() => setIsAboutModalOpen(true)}
             />
           </div>

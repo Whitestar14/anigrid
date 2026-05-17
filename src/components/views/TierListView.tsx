@@ -22,13 +22,14 @@ import { selectTierItem, selectActiveRank } from "@/store/selectors";
 const TierItem = React.memo(function TierItem({
   rowId,
   idx,
+  item,
   aspectRatio,
 }: {
   rowId: string;
   idx: number;
+  item: CellData;
   aspectRatio: string;
 }) {
-  const item = useStore(selectTierItem(rowId, idx));
   const interactionState = useStore(s => s.interactionState);
   const setInteractionState = useStore(s => s.setInteractionState);
   const onMoveToInbox = useStore(s => s.handleTierMoveToInbox);
@@ -312,7 +313,7 @@ export const TierListView: React.FC = () => {
             }}>
             <AnimatePresence>
               {row.items.map((item, idx) => (
-                <TierItem key={item.id} rowId={row.id} idx={idx} aspectRatio={rank.aspectRatio || "3:4"} />
+                <TierItem key={item.id} rowId={row.id} idx={idx} item={item} aspectRatio={rank.aspectRatio || "3:4"} />
               ))}
             </AnimatePresence>
             {row.items.length === 0 && (

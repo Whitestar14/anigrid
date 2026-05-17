@@ -18,6 +18,7 @@ export interface InboxSlice {
   deleteCollection: (id: string) => void;
   renameCollection: (id: string, name: string) => void;
   removeInboxItem: (id: string) => void;
+  moveItemsToCollection: (itemIds: string[], targetColId: string) => void;
 }
 
 export const createInboxSlice: StateCreator<
@@ -224,5 +225,23 @@ export const createInboxSlice: StateCreator<
       state.inbox.collections.forEach((col) => {
         col.items = col.items.filter((i) => i.id !== id);
       });
+    }),
+  moveItemsToCollection: (itemIds, targetColId) =>
+    set((state) => {
+      const targetCol = state.inbox.collections.find((c) => c.id === targetColId);
+      if (!targetCol) return;
+
+      const itemsToMove: InboxItem[] = [];
+
+      state.inbox.collections.forEach((col) => {
+        if (col.id === targetColId) return;
+        const matching = col.items.filter((i) => itemIds.includes(i.id));
+        if (matching.length > 0) {
+          col.items = col.items.filter((i) => !itemIds.includes(i.id));
+          itemsToMove.push(...matching);
+        }
+      });
+
+      targetCol.items.unshift(...itemsToMove);
     }),
 });

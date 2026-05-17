@@ -91,10 +91,12 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
       }
     };
 
-    // Use capture phase to ensure we catch it before other elements stop propagation if needed, 
-    // but usually bubble is fine.
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside, true);
+    document.addEventListener('touchstart', handleClickOutside, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      document.removeEventListener('touchstart', handleClickOutside, true);
+    };
   }, [isOpen, onClose]);
 
   const style: React.CSSProperties = isFixed ? {
@@ -136,11 +138,11 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
                   onClose();
                 }}
                 className={`flex items-center justify-between p-2.5 hover:bg-hover rounded-xl text-[13px] font-semibold transition-all active:scale-95 ${
-                  action.variant === 'danger' ? 'text-red-500 hover:bg-red-500/10' : 'text-text'
+                  action.variant === 'danger' ? 'text-destructive hover:bg-destructive/10' : 'text-text'
                 }`}
               >
                 <span>{action.label}</span>
-                <action.icon size={16} className={action.variant === 'danger' ? 'text-red-500/50' : 'text-muted'} />
+                <action.icon size={16} className={action.variant === 'danger' ? 'text-destructive/50' : 'text-muted'} />
               </button>
             </React.Fragment>
           ))}

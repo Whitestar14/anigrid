@@ -39,20 +39,37 @@ export const SettingRow: React.FC<{
   destructive?: boolean;
   className?: string;
   asLabel?: boolean;
-  as?: "div" | "button" | "label";
-}> = ({ icon, label, sublabel, iconBg = "bg-primary/20 text-primary", onClick, right, destructive, className = "", asLabel, as }) => {
+  as?: "div" | "button" | "label" | "a";
+  href?: string;
+  target?: string;
+  rel?: string;
+}> = ({
+  icon,
+  label,
+  sublabel,
+  iconBg = "bg-primary/20 text-primary",
+  onClick,
+  right,
+  destructive,
+  className = "",
+  asLabel,
+  as,
+  ...rest
+}) => {
   const Component = as || (asLabel ? "label" : onClick ? "button" : "div");
   const isBtn = Component === "button";
-  const isClickable = !!onClick || asLabel;
+  const isClickable = !!onClick || asLabel || Component === "a";
 
   return (
     <Component
       type={isBtn ? "button" : undefined}
       onClick={onClick}
-      role={!isBtn && onClick ? "button" : undefined}
-      tabIndex={!isBtn && onClick ? 0 : undefined}
-      className={`relative flex items-center gap-3.5 px-4 py-2 min-h-[56px] w-full text-left transition-colors ${isClickable ? "hover:bg-hover active:bg-black/5 dark:active:bg-white/5 cursor-pointer" : ""
-        } ${destructive ? "text-red-500" : "text-text"} ${className}`}
+      role={!isBtn && (onClick || Component === "a") ? "button" : undefined}
+      tabIndex={!isBtn && (onClick || Component === "a") ? 0 : undefined}
+      className={`relative flex items-center gap-3.5 px-4 py-2 min-h-[56px] w-full text-left transition-colors ${
+        isClickable ? "hover:bg-hover active:bg-black/5 dark:active:bg-white/5 cursor-pointer" : ""
+      } ${destructive ? "text-red-500" : "text-text"} ${className}`}
+      {...rest}
     >
       {icon && (
         <div className={`w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0 ${iconBg} shadow-sm`}>
@@ -64,7 +81,7 @@ export const SettingRow: React.FC<{
           {label}
         </div>
         {sublabel && (
-          <div className={`text-[13px] leading-snug mt-0.5 ${destructive ? "text-red-500/60" : "text-muted"}`}>
+          <div className={`text-[13px] leading-snug mt-0.5 hidden sm:block ${destructive ? "text-red-500/60" : "text-muted"}`}>
             {sublabel}
           </div>
         )}

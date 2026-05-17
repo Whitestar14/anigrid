@@ -41,7 +41,7 @@ export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
       }}
       className={`
                                       flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-full shrink-0
-                                      ${activeCollectionId === "all-images" ? "bg-surface-elevated text-text shadow-sm" : "text-muted hover:text-text hover:bg-hover"}
+                                      ${activeCollectionId === "all-images" ? "bg-surface text-text shadow-sm border border-border/10" : "text-muted hover:text-text hover:bg-hover"}
                                     `}
     >
       <Layers size={14} />
@@ -69,7 +69,7 @@ export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
           className={`
                                         group relative flex items-center gap-2 px-4 py-1.5 cursor-pointer text-[13px] font-medium rounded-full min-w-[100px] justify-between shrink-0
                                         ${isActive
-              ? "bg-surface-elevated text-text shadow-sm"
+              ? "bg-surface text-text shadow-sm border border-border/10"
               : "text-muted hover:text-text hover:bg-hover"
             }
                                       `}
@@ -127,7 +127,7 @@ export const InboxCollectionTabsRow = React.memo<InboxCollectionTabsRowProps>(({
       type="button"
       whileTap={{ scale: 0.9, rotate: 90 }}
       onClick={onAddCollection}
-      className="px-3 py-1.5 text-muted hover:text-blue-400 transition-colors hover:bg-hover rounded-full"
+      className="px-3 py-1.5 text-muted hover:text-primary transition-colors hover:bg-hover rounded-full"
       title="Create New Collection"
     >
       <Plus size={16} />

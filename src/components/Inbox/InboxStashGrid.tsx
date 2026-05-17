@@ -72,10 +72,11 @@ export const InboxStashGrid = React.memo<InboxStashGridProps>(({
           <AnimatePresence mode="wait">
             {currentItems.length === 0 ? (
               <motion.div
-                key="empty-state"
-                initial={{ opacity: 0, scale: 0.8 }}
+                key={`empty-state-${isAllView ? 'all' : activeCollectionId}`}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
                 role="button"
                 tabIndex={0}
                 onClick={() => !isAllView && onUploadClick()}
@@ -95,7 +96,7 @@ export const InboxStashGrid = React.memo<InboxStashGridProps>(({
                     <span className="mb-1 leading-tight max-w-[200px]">
                       Drag items here or move them from the board
                     </span>
-                    <span className="text-[11px] uppercase tracking-widest text-blue-400/80 mt-2 font-bold group-hover:text-blue-400">
+                    <span className="text-[11px] uppercase tracking-widest text-primary/80 mt-2 font-bold group-hover:text-primary">
                       Tap to Upload
                     </span>
                   </div>
@@ -103,10 +104,11 @@ export const InboxStashGrid = React.memo<InboxStashGridProps>(({
               </motion.div>
             ) : (
               <motion.div
-                key="items-grid"
+                key={`items-grid-${isAllView ? 'all' : activeCollectionId}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 className="flex gap-4 items-center h-full"
               >
                 {!isAllView && (

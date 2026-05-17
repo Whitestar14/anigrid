@@ -22,7 +22,7 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
       isOpen={isOpen} 
       onClose={onCancel} 
       className="max-w-[270px]"
-      contentClassName="p-0"
+      contentClassName="p-0 overflow-hidden rounded-[22px]"
     >
       <div className="flex flex-col text-center">
           <div className="p-5 pb-4 flex flex-col items-center">
@@ -32,7 +32,7 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
               </p>
 
               {imageSrc && (
-                  <div className="w-16 h-20 rounded-lg overflow-hidden border border-border relative shadow-sm mb-4">
+                  <div className="w-16 h-20 rounded-lg overflow-hidden border border-border/60 relative shadow-sm mb-4">
                       <img src={imageSrc} className="w-full h-full object-cover" />
                   </div>
               )}
@@ -43,16 +43,16 @@ export const DuplicateModal: React.FC<DuplicateModalProps> = ({
               </div>
           </div>
 
-          <div className="flex border-t border-border">
+          <div className="flex border-t border-border/40">
               <button 
                   onClick={onCancel}
-                  className="flex-1 py-3 text-[17px] text-blue-500 font-normal hover:bg-hover transition-colors border-r border-border"
+                  className="flex-1 py-3 text-[17px] text-primary font-normal hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors border-r border-border/40 cursor-pointer select-none"
               >
                   Cancel
               </button>
               <button 
                   onClick={() => onConfirm(dontAsk)}
-                  className="flex-1 py-3 text-[17px] text-blue-500 font-semibold hover:bg-hover transition-colors"
+                  className="flex-1 py-3 text-[17px] text-primary font-semibold hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors cursor-pointer select-none"
               >
                   Add
               </button>

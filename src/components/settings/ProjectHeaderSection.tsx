@@ -19,7 +19,7 @@ export const ProjectHeaderSection: React.FC<ProjectHeaderSectionProps> = ({
         <SettingRow
           as="div"
           icon={projectType === "tierlist" ? <Layers size={18} /> : <LayoutGrid size={18} />}
-          iconBg={projectType === "tierlist" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"}
+          iconBg={projectType === "tierlist" ? "bg-purple-500/20 text-purple-400" : "bg-primary/20 text-primary"}
           label={projectType === "tierlist" ? "Tier List" : "Ranking Grid"}
           sublabel="Project Type"
           right={

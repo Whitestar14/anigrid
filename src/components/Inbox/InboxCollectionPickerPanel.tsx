@@ -37,7 +37,7 @@ export const InboxCollectionPickerPanel: React.FC<
           <button
             type="button"
             onClick={onBack}
-            className="p-2 hover:bg-hover rounded-full text-blue-500 hover:text-blue-400 transition-colors"
+            className="p-2 hover:bg-hover rounded-full text-primary hover:text-primary/80 transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
@@ -62,7 +62,7 @@ export const InboxCollectionPickerPanel: React.FC<
                 className={`
                                       group relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all gap-3 text-center h-32
                                       ${col.id === lastTargetCollectionId
-                    ? "bg-blue-500/10 border-blue-500/50 text-blue-500"
+                    ? "bg-primary/10 border-primary/50 text-primary"
                     : "bg-surface-secondary border-transparent hover:border-border hover:bg-surface text-muted hover:text-text cursor-pointer"
                   }
                                   `}
@@ -80,7 +80,7 @@ export const InboxCollectionPickerPanel: React.FC<
                       if (e.key === "Enter") e.currentTarget.blur();
                       if (e.key === "Escape") onCancelRename();
                     }}
-                    className="w-full bg-surface border border-border rounded px-2 py-0.5 text-[13px] text-text outline-none focus:border-blue-500 text-center"
+                    className="w-full bg-surface border border-border rounded px-2 py-0.5 text-[13px] text-text outline-none focus:border-primary text-center"
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
@@ -89,7 +89,7 @@ export const InboxCollectionPickerPanel: React.FC<
                       {col.name}
                     </span>
                     {col.id === lastTargetCollectionId && (
-                      <span className="text-[11px] font-medium text-blue-500/70 absolute bottom-2">
+                      <span className="text-[11px] font-medium text-primary/75 absolute bottom-2">
                         Recent
                       </span>
                     )}

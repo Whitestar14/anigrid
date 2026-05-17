@@ -36,9 +36,9 @@ const SearchItem = React.memo<{
       {...attributes}
       {...listeners}
       className={`
-        group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-border bg-surface-secondary cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-blue-500 transition-all shadow-md duration-200 ease-out touch-none
+        group relative shrink-0 w-28 h-40 rounded-2xl overflow-hidden border border-border bg-surface-secondary cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-primary transition-all shadow-md duration-200 ease-out touch-none
         ${isAdded ? 'opacity-80' : ''}
-        ${isDragging ? 'opacity-50 scale-95 ring-2 ring-green-500 drop-shadow-lg' : ''}
+        ${isDragging ? 'opacity-50 scale-95 ring-2 ring-emerald-500 drop-shadow-lg' : ''}
       `}
       title={label}
     >
@@ -60,8 +60,8 @@ const SearchItem = React.memo<{
           if (!isAdded) onAdd(imgSrc);
         }}
         className={`
-          absolute top-2 right-2 p-1.5 rounded-full shadow-sm hover:scale-110 transition-all z-10 glass
-          ${isAdded ? 'bg-green-500/90 text-white cursor-default' : 'bg-blue-500/90 text-white'}
+          absolute top-2 right-2 p-1.5 rounded-full shadow-sm hover:scale-110 transition-all z-10 glass cursor-pointer
+          ${isAdded ? 'bg-emerald-500 text-white cursor-default' : 'bg-primary text-white hover:bg-primary/95'}
         `}
         title={isAdded ? "Already added" : "Add to Collection"}
       >
@@ -88,7 +88,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
   autoFocus
 }) => {
   const [loading, setLoading] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  const [lastSearchedQuery, setLastSearchedQuery] = useState("");
   const [error, setError] = useState<{ message: string; isNetwork?: boolean } | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -100,10 +100,8 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
   // Debounce search
   useEffect(() => {
-    setIsTyping(true);
     const timer = setTimeout(() => {
-      setIsTyping(false);
-      if (query.length > 2) {
+      if (query.length > 2 && query !== lastSearchedQuery) {
         performSearch();
       }
     }, 600);
@@ -116,6 +114,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
     setLoading(true);
     setError(null);
+    setLastSearchedQuery(query);
 
     try {
       if (!navigator.onLine) {
@@ -157,7 +156,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={`Search ${mode} on MAL...`}
-            className="font-medium bg-surface-secondary border-transparent focus:border-border focus:ring-1 focus:ring-border text-[15px] rounded-full h-10 pr-4"
+            className="font-medium bg-surface-secondary border-transparent focus:border-border focus:ring-1 focus:ring-border text-[15px] rounded-full h-10 pr-4 pl-10"
           />
         </div>
 
@@ -204,7 +203,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
               );
             })}
           </div>
-        ) : (query.length > 2 && !isTyping) ? (
+        ) : (query.length > 2 && query === lastSearchedQuery) ? (
           <div className="h-40 flex flex-col items-center justify-center text-muted gap-2 animate-in zoom-in-95">
             <div className="w-12 h-12 rounded-full bg-surface-elevated border border-border flex items-center justify-center mb-1">
               <Search size={22} className="opacity-40" strokeWidth={1.5} />

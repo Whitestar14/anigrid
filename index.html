@@ -1,19 +1,63 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="description" content="Ranku — The premium, high-fidelity anime ranking and tier list builder." />
-    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <title>Ranku — Anime Rankings &amp; Tier Lists</title>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+  <!-- SEO & Primary Meta Tags -->
+  <title>Ranku — Anime Rankings &amp; Tier Lists</title>
+  <meta name="title" content="Ranku — Anime Rankings &amp; Tier Lists" />
+  <meta name="description"
+    content="A local-first anime ranking board and tier list editor. Drag, drop, and organize your favorite shows with fluid, responsive animations." />
+  <meta name="keywords"
+    content="ranku, anigrid, anime ranking, tier list builder, custom rankings, anime collections, local-first web app, modern tier lists" />
+  <meta name="author" content="Stud.io" />
+  <meta name="robots" content="index, follow" />
+
+  <!-- iOS PWA / Web App Capabilities -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ranku" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ranku.app" />
+  <meta property="og:title" content="Ranku — Anime Rankings &amp; Tier Lists" />
+  <meta property="og:description"
+    content="A local-first anime ranking board and tier list editor. Drag, drop, and organize your favorite shows with fluid, responsive animations." />
+  <meta property="og:image" content="/og-image.png" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://ranku.app" />
+  <meta property="twitter:title" content="Ranku — Anime Rankings &amp; Tier Lists" />
+  <meta property="twitter:description"
+    content="A local-first anime ranking board and tier list editor. Drag, drop, and organize your favorite shows with fluid, responsive animations." />
+  <meta property="twitter:image" content="/og-image.png" />
+
+  <!-- Theme Colors matching iOS Dark/Light Modes -->
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+  <!-- Preconnect & Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap"
+    rel="stylesheet" />
+
+  <!-- Clean Apple Touch Icon Placeholder -->
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 </head>
-  <body class="bg-black">
-    <div id="root"></div>
-    <script>
-      const savedTheme = localStorage.getItem('theme') || 'dark';
-      document.documentElement.className = savedTheme;
-    </script>
+
+<body class="bg-black text-text antialiased selection:bg-primary/20 selection:text-primary">
+  <div id="root"></div>
+  <script>
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.className = savedTheme;
+  </script>
   <script type="module" src="/src/index.tsx"></script>
 </body>
+
 </html>

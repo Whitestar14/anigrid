@@ -84,20 +84,20 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
               </div>
               <Slider min={0} max={32} step={2} value={gap} onChange={(v) => onUpdateRank({ gap: v })} />
             </div>
-            <div className="px-4 py-3 flex flex-col gap-1.5">
-              <span className="text-[11px] font-medium text-muted uppercase tracking-wide">Alignment</span>
-              <SegmentedControl
-                value={gridJustify || "center"}
-                onChange={(val) => onUpdateRank({ gridJustify: val })}
-                options={[
-                  { value: "left", label: "Left" },
-                  { value: "center", label: "Center" },
-                  { value: "right", label: "Right" }
-                ]}
-              />
-            </div>
           </>
         )}
+        <div className="px-4 py-3 flex flex-col gap-1.5">
+          <span className="text-[11px] font-medium text-muted uppercase tracking-wide">Alignment</span>
+          <SegmentedControl
+            value={gridJustify || "center"}
+            onChange={(val) => onUpdateRank({ gridJustify: val })}
+            options={[
+              { value: "left", label: "Left" },
+              { value: "center", label: "Center" },
+              { value: "right", label: "Right" }
+            ]}
+          />
+        </div>
         <div className="px-4 py-3 flex flex-col gap-2">
           <span className="text-[11px] font-medium text-muted uppercase tracking-wide">Background</span>
           <div className="flex flex-wrap gap-2">

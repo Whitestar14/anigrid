@@ -65,7 +65,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
       <aside
         className={`
-           bg-surface/80 backdrop-blur-3xl border-r border-border flex shrink-0 z-40
+           glass border-r border-border border-l-0 border-y-0 flex shrink-0 z-40
            fixed top-14 bottom-0 left-0 md:static overflow-hidden
          `}
         style={{

@@ -71,6 +71,7 @@ export const BottomDockLayout: React.FC<{
     toggleExpand,
     handleCollectionPick,
     requestDeleteCollection,
+    moveItemsToCollection,
     onFileInputChange,
     handleRecall,
     setIsDraggingFromDock,
@@ -156,10 +157,10 @@ export const BottomDockLayout: React.FC<{
 
   return (
     <div
-      className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-40 px-4 flex justify-center w-full`}
+      className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-40 px-2 md:px-4 flex justify-center w-full`}
       style={{
-        maxWidth: isExpanded ? "768px" : "100%",
-        width: isExpanded ? "calc(100% - 32px)" : "auto",
+        maxWidth: isExpanded ? "960px" : "100%",
+        width: isExpanded ? "var(--expanded-dock-width, calc(100% - 16px))" : "auto",
         transition: "width 240ms cubic-bezier(0.32,0.72,0,1), max-width 240ms cubic-bezier(0.32,0.72,0,1)",
       }}
     >
@@ -291,7 +292,15 @@ export const BottomDockLayout: React.FC<{
                       onCommitRename={commitRename}
                       onRequestDeleteCollection={requestDeleteCollection}
                       onBulkDelete={handleBulkDelete}
-                      onClearSelection={() => setSelectedItemIds(new Set())}
+                      onClearSelection={() => {
+                        setSelectedItemIds(new Set());
+                        useStore.getState().setInteractionState(null);
+                      }}
+                      onMoveItemsToCollection={(targetId) => {
+                        moveItemsToCollection(Array.from(selectedItemIds), targetId);
+                        setSelectedItemIds(new Set());
+                        useStore.getState().setInteractionState(null);
+                      }}
                       onUploadClick={() => fileInputRef.current?.click()}
                       onFileChange={onFileInputChange}
                       onItemClick={handleItemClick}

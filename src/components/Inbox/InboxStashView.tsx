@@ -23,6 +23,7 @@ export interface InboxStashViewProps {
   onRequestDeleteCollection: (col: InboxCollection) => void;
   onBulkDelete: () => void;
   onClearSelection: () => void;
+  onMoveItemsToCollection?: (colId: string) => void;
   onUploadClick: () => void;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onItemClick: (e: React.MouseEvent, itemId: string) => void;
@@ -46,6 +47,7 @@ export const InboxStashView: React.FC<InboxStashViewProps> = (props) => (
       onRequestDeleteCollection={props.onRequestDeleteCollection}
       onBulkDelete={props.onBulkDelete}
       onClearSelection={props.onClearSelection}
+      onMoveItemsToCollection={props.onMoveItemsToCollection}
     />
     <InboxStashGrid
       fileInputRef={props.fileInputRef}

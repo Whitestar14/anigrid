@@ -38,6 +38,7 @@ export const createBlankRank = (type: ProjectType = 'ranking'): Rank => {
     title: type === 'tierlist' ? 'My Tier List' : 'My Ranking',
     type,
     mode: type === 'tierlist' ? 'tier' : 'grid',
+    gridJustify: type === 'tierlist' ? 'left' : 'center',
     config: { rows: 3, cols: 3 },
     cells: Array.from({ length: 9 }).map((_, i) => ({
       id: `cell-${i}-${Date.now()}`,
@@ -49,7 +50,7 @@ export const createBlankRank = (type: ProjectType = 'ranking'): Rank => {
     showTitle: true,
     showDate: true,
     gap: 0,
-    backgroundColor: 'transparent',
+    backgroundColor: '#1c1c1e',
     tierRows: createDefaultTierRows(),
     createdAt: Date.now(),
     updatedAt: Date.now()

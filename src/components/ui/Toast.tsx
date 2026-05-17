@@ -53,11 +53,10 @@ const Toast: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> =
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.9 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 border border-border shadow-2xl rounded-2xl max-w-[90vw] sm:max-w-md ${
-        reduceGlass
-          ? 'bg-surface-elevated'
-          : 'bg-surface-elevated/90 backdrop-blur-xl'
-      }`}
+      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 border border-border shadow-2xl rounded-2xl max-w-[90vw] ${reduceGlass
+        ? 'bg-surface-elevated'
+        : 'bg-surface-elevated/90 backdrop-blur-xl'
+        }`}
     >
       {icons[toast.type]}
       <span className="text-[14px] font-medium text-text">{toast.message}</span>

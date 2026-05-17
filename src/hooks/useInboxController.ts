@@ -44,6 +44,7 @@ export function useInboxController(
     deleteCollection,
     renameCollection,
     removeInboxItem,
+    moveItemsToCollection,
     handleMoveToInbox,
     handleTierItemRemove,
     handleAddToCollection,
@@ -64,6 +65,7 @@ export function useInboxController(
       deleteCollection: s.deleteCollection,
       renameCollection: s.renameCollection,
       removeInboxItem: s.removeInboxItem,
+      moveItemsToCollection: s.moveItemsToCollection,
       handleMoveToInbox: s.handleMoveToInbox,
       handleTierItemRemove: s.handleTierItemRemove,
       handleAddToCollection: s.handleAddToCollection,
@@ -294,6 +296,10 @@ export function useInboxController(
   const requestDeleteCollection = useCallback(
     (col: { id: string; name: string; items: InboxItem[] }) => {
       const itemCount = col.items ? col.items.length : 0;
+      if (itemCount === 0) {
+        deleteCollection(col.id);
+        return;
+      }
       requestConfirm(
         `Delete "${col.name}"?`, 
         `This will permanently delete the collection and its ${itemCount} item${itemCount === 1 ? '' : 's'}. This action cannot be undone.`, 
@@ -365,6 +371,7 @@ export function useInboxController(
     toggleExpand,
     handleCollectionPick,
     requestDeleteCollection,
+    moveItemsToCollection: moveItemsToCollection,
     onFileInputChange,
     setIsDraggingFromDock,
     isDraggingFromDock,

@@ -114,7 +114,7 @@ export const Library: React.FC<ExtendedLibraryProps> = ({
                       }
                     }}
                     icon={rank.type === 'tierlist' ? <Layers size={16} strokeWidth={2} /> : <LayoutGrid size={16} strokeWidth={2} />}
-                    iconBg={rank.type === 'tierlist' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}
+                    iconBg={rank.type === 'tierlist' ? 'bg-purple-500/20 text-purple-400' : 'bg-primary/20 text-primary'}
                     label={
                       <div className="flex items-center gap-2">
                         {editingId === rank.id ? (
@@ -153,7 +153,7 @@ export const Library: React.FC<ExtendedLibraryProps> = ({
                     right={
                       <>
                         {rank.id === activeRankId && (
-                          <Check size={16} className="text-blue-500 mr-1" />
+                          <Check size={16} className="text-primary mr-1" />
                         )}
                         <button
                           onClick={(e) => {

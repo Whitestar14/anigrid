@@ -4,12 +4,13 @@ import { getProxiedImageUrl } from '@/utils/imageProxy';
 import { UrlInputModal } from '@/components/ui/UrlInputModal';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '@/store/useStore';
-import { selectCellByIndex, selectActiveRank, selectCells } from '@/store/selectors';
+import { selectActiveRank, selectCells } from '@/store/selectors';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
 import { usePanZoom } from '@/hooks/usePanZoom';
 import { LIST_ASPECT_MAP } from '@/utils/ui';
+import { CellData } from '@/types';
 
 interface ListRowProps {
   index: number;
@@ -21,12 +22,12 @@ interface ListRowProps {
 
 const ListRow = React.memo(function ListRow({
   index,
+  data,
   rankStyle,
   borderless,
   aspectRatio,
   showNumbers,
-}: ListRowProps) {
-  const data = useStore(selectCellByIndex(index));
+}: ListRowProps & { data: CellData }) {
   const activeRank = useStore(selectActiveRank);
   const interactionState = useStore(s => s.interactionState);
   const isSelected = interactionState?.type === 'cell' && interactionState.index === index;
@@ -182,11 +183,9 @@ const ListRow = React.memo(function ListRow({
 
         setInteractionState({ type: 'cell', index });
       }}
-      {...attributes}
-      {...listeners}
     >
-      <div className="flex items-center gap-2 shrink-0">
-        <GripVertical size={16} className="text-muted group-hover:text-text transition-colors" />
+      <div className="flex items-center gap-2 shrink-0" {...attributes} {...listeners}>
+        <GripVertical size={16} className="text-muted group-hover:text-text cursor-grab active:cursor-grabbing transition-colors" />
         <AnimatePresence mode="popLayout" initial={false}>
           {showNumbers && (
             <motion.div 
@@ -243,10 +242,6 @@ const ListRow = React.memo(function ListRow({
           <div
             className="w-full h-full bg-surface-secondary border border-border shadow-sm flex flex-col items-center justify-center text-muted gap-2 cursor-pointer hover:bg-hover transition-colors group/empty"
             style={{ borderRadius }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onInteract(index, { x: e.clientX, y: e.clientY });
-            }}
           >
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
             <Plus size={24} className="opacity-30 group-hover/empty:opacity-100 transition-opacity" />
@@ -343,6 +338,7 @@ export const ListView: React.FC = () => {
             <ListRow
               key={cell.id}
               index={index}
+              data={cell}
               rankStyle={rank.style || 'card'}
               borderless={rank.borderless || false}
               aspectRatio={rank.aspectRatio || '3:4'}

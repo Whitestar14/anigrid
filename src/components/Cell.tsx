@@ -99,12 +99,27 @@ export const Cell = React.memo(function Cell({
     setDraggableRef(node);
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.popover-menu') || (e.target as HTMLElement).closest('.adjust-controls')) return;
-    e.stopPropagation();
-    const point = { x: e.clientX, y: e.clientY };
+  const lastInteractRef = useRef<number>(0);
+  const handleInteraction = (clientX: number, clientY: number, target: HTMLElement) => {
+    if (target.closest('.popover-menu') || target.closest('.adjust-controls')) return;
+
+    const now = Date.now();
+    if (now - lastInteractRef.current < 200) return;
+    lastInteractRef.current = now;
+
+    const point = { x: clientX, y: clientY };
     setLocalClickPoint(point);
     onInteract(index, point);
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleInteraction(e.clientX, e.clientY, e.target as HTMLElement);
+  };
+
+  const handleTap = (e: any, info: any) => {
+    if (e.stopPropagation) e.stopPropagation();
+    handleInteraction(info.point.x, info.point.y, e.target as HTMLElement);
   };
 
   const actions = data.imageSrc ? [
@@ -133,6 +148,7 @@ export const Cell = React.memo(function Cell({
         ${isDragging ? 'z-50' : 'z-0'}
       `}
       onClick={handleClick}
+      onTap={handleTap}
       onDragOver={(e) => { e.preventDefault(); setIsFileDragOver(true); }}
       onDragLeave={() => setIsFileDragOver(false)}
       onDrop={(e) => {
@@ -171,7 +187,7 @@ export const Cell = React.memo(function Cell({
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="absolute top-2 left-2 bg-surface-elevated backdrop-blur-md text-text text-sm font-black size-8 flex items-center justify-center rounded-md border border-border shadow-lg z-10 pointer-events-none"
+                  className="absolute top-2 left-2 bg-surface-elevated text-text text-sm font-black size-8 flex items-center justify-center rounded-md border border-border shadow-lg z-10 pointer-events-none"
                 >
                   #{index + 1}
                 </motion.div>
