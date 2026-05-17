@@ -10,7 +10,7 @@ import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 import { ImportChoiceModal } from "@/components/ImportChoiceModal";
 import { useToast } from "@/context/ToastContext";
 
-export const SettingsDockPanel: React.FC<{ 
+export const SettingsDockPanel: React.FC<{
   requestConfirm?: (title: string, message: string, onConfirm: () => void) => void;
   onOpenAbout?: () => void;
 }> = ({ requestConfirm, onOpenAbout }) => {
@@ -172,7 +172,7 @@ export const SettingsDockPanel: React.FC<{
         <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
           App
         </span>
-        <SettingButtonGroup className="bg-surface border border-border rounded-[20px] overflow-hidden group/about hover:shadow-sm transition-all focus-ring">
+        <SettingButtonGroup className="glass-card rounded-[20px] overflow-hidden">
           <SettingRow
             as="button"
             onClick={onOpenAbout}
