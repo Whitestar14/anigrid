@@ -419,7 +419,7 @@ const AppContent: React.FC = () => {
                           }}
                           autoFocus
                           onFocus={(e) => e.target.select()}
-                          className="text-4xl md:text-5xl font-black text-center bg-transparent border-b-2 border-primary focus:outline-none w-full max-w-2xl placeholder-muted/40 animate-in fade-in zoom-in-95 duration-200"
+                          className="text-4xl md:text-5xl font-black text-center bg-transparent focus:outline-none w-full max-w-2xl placeholder-muted/40 animate-in fade-in zoom-in-95 duration-200"
                           style={{ color: textColor }}
                         />
                       ) : (
