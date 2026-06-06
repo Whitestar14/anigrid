@@ -10,55 +10,45 @@ import { useStore } from '@/store/useStore';
 import { selectCellByIndex, selectActiveRank } from '@/store/selectors';
 import { PopoverMenu } from '@/components/ui/PopoverMenu';
 import { usePanZoom } from '@/hooks/usePanZoom';
+import { useCellInteraction } from '@/hooks/useCellInteraction';
+import { useCellMediaUpload } from '@/hooks/useCellMediaUpload';
 
 interface CellProps {
   index: number;
-  styleMode: GridStyle;
-  showRankNumber: boolean;
-  isSelected: boolean;
-  borderless?: boolean;
-  aspectRatio?: '1:1' | '3:4' | '4:3' | '16:9' | '9:16';
-  onUpload: (index: number, file: File) => void;
-  onClear: (index: number) => void;
-  onSwap: (fromIndex: number, toIndex: number) => void;
-  onInboxDrop: (itemId: string, collectionId: string, toIndex: number) => void;
-  onInboxDropMulti?: (itemIds: string[], collectionId: string, toIndex: number) => void;
-  onMoveToInbox?: (index: number) => void;
-  onSearchDrop: (imageSrc: string, toIndex: number) => void;
-  onDownloadSingle: (index: number) => void;
-  onInteract: (index: number, point?: { x: number; y: number } | null) => void;
-  onUpdateCell: (index: number, data: Partial<CellData>) => void;
 }
 
 export const Cell = React.memo(function Cell({
   index,
-  styleMode,
-  showRankNumber,
-  isSelected,
-  borderless,
-  aspectRatio = '3:4',
-  onUpload,
-  onClear,
-  onSwap,
-  onInboxDrop,
-  onInboxDropMulti,
-  onSearchDrop,
-  onDownloadSingle,
-  onInteract,
-  onUpdateCell,
-  onMoveToInbox
 }: CellProps) {
   const data = useStore(selectCellByIndex(index));
   const activeRank = useStore(selectActiveRank);
-  if (!data) return null;
+
+  const handleCellClear = useStore(s => s.handleCellClear);
+  const handleUpdateCell = useStore(s => s.handleUpdateCell);
+  const handleMoveToInbox = useStore(s => s.handleMoveToInbox);
+  const handleCellUpload = useStore(s => s.handleCellUpload);
+  const handleSearchDrop = useStore(s => s.handleSearchDrop);
+
+  if (!data || !activeRank) return null;
 
   const cellRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isFileDragOver, setIsFileDragOver] = useState(false);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
-  const [localClickPoint, setLocalClickPoint] = useState<{ x: number; y: number } | null>(null);
 
-  const borderRadius = activeRank?.borderRadius ?? 12;
+  const borderRadius = activeRank.borderRadius ?? 12;
+  const aspectRatio = activeRank.aspectRatio || '3:4';
+  const showRankNumber = activeRank.showNumbers ?? true;
+  const borderless = activeRank.borderless ?? false;
+
+  const { isSelected, localClickPoint, handleInteraction, clearInteraction } = useCellInteraction({
+    type: 'cell',
+    index
+  });
+
+  const { fileInputRef, triggerPicker, handleFileChange } = useCellMediaUpload((base64) => {
+    handleCellUpload(index, base64 as string);
+    clearInteraction();
+  });
 
   const {
     isAdjusting,
@@ -73,7 +63,7 @@ export const Cell = React.memo(function Cell({
   } = usePanZoom(
     { zoom: data.zoom, posX: data.objectPosition ? parseInt(data.objectPosition.split(' ')[0]) : 50, posY: data.objectPosition ? parseInt(data.objectPosition.split(' ')[1]) : 50 },
     cellRef,
-    (state) => onUpdateCell(index, { zoom: state.zoom, objectPosition: `${state.posX}% ${state.posY}%` })
+    (state) => handleUpdateCell(index, { zoom: state.zoom, objectPosition: `${state.posX}% ${state.posY}%` })
   );
 
   const { isOver, setNodeRef: setDroppableRef } = useDroppable({
@@ -99,19 +89,6 @@ export const Cell = React.memo(function Cell({
     setDraggableRef(node);
   };
 
-  const lastInteractRef = useRef<number>(0);
-  const handleInteraction = (clientX: number, clientY: number, target: HTMLElement) => {
-    if (target.closest('.popover-menu') || target.closest('.adjust-controls')) return;
-
-    const now = Date.now();
-    if (now - lastInteractRef.current < 200) return;
-    lastInteractRef.current = now;
-
-    const point = { x: clientX, y: clientY };
-    setLocalClickPoint(point);
-    onInteract(index, point);
-  };
-
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     handleInteraction(e.clientX, e.clientY, e.target as HTMLElement);
@@ -123,13 +100,13 @@ export const Cell = React.memo(function Cell({
   };
 
   const actions = data.imageSrc ? [
-    { label: 'Replace', icon: Upload, onClick: () => fileInputRef.current?.click() },
+    { label: 'Replace', icon: Upload, onClick: triggerPicker },
     { label: 'Crop & Adjust', icon: Crop, onClick: startAdjusting },
-    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => onMoveToInbox?.(index) },
-    { label: 'Download', icon: Download, onClick: () => onDownloadSingle(index) },
-    { label: 'Remove', icon: Trash2, onClick: () => onClear(index), variant: 'danger' as const },
+    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => handleMoveToInbox(index) },
+    { label: 'Download', icon: Download, onClick: () => { } },
+    { label: 'Remove', icon: Trash2, onClick: () => handleCellClear(index), variant: 'danger' as const },
   ] : [
-    { label: 'Local File', icon: Upload, onClick: () => fileInputRef.current?.click() },
+    { label: 'Local File', icon: Upload, onClick: triggerPicker },
     { label: 'From URL', icon: Globe, onClick: () => setIsUrlModalOpen(true) },
     { label: 'Search Online', icon: Search, onClick: () => window.dispatchEvent(new CustomEvent('open-inbox-search')) },
   ];
@@ -154,7 +131,15 @@ export const Cell = React.memo(function Cell({
       onDrop={(e) => {
         e.preventDefault();
         setIsFileDragOver(false);
-        if (e.dataTransfer.files?.[0]) onUpload(index, e.dataTransfer.files[0]);
+        if (e.dataTransfer.files?.[0]) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (event.target?.result) {
+              handleCellUpload(index, event.target.result as string);
+            }
+          };
+          reader.readAsDataURL(e.dataTransfer.files[0]);
+        }
       }}
     >
       <div
@@ -183,11 +168,11 @@ export const Cell = React.memo(function Cell({
             />
             <AnimatePresence initial={false}>
               {showRankNumber && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="absolute top-2 left-2 bg-surface-elevated text-text text-sm font-black size-8 flex items-center justify-center rounded-md border border-border shadow-lg z-10 pointer-events-none"
+                  className="absolute top-2 left-2 bg-surface-elevated text-text text-xs font-bold size-6 flex items-center justify-center rounded-md border border-border shadow-lg z-10 pointer-events-none"
                 >
                   #{index + 1}
                 </motion.div>
@@ -205,24 +190,24 @@ export const Cell = React.memo(function Cell({
                   <div className="bg-surface-elevated text-text text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-full border border-border shadow-2xl mt-2">Pan & Zoom</div>
                   <div className="flex gap-2">
                     <button onClick={(e) => { e.stopPropagation(); stopAdjusting(); }} className="p-2 bg-surface-elevated hover:bg-hover text-text rounded-full border border-border shadow-xl backdrop-blur-xl transition-all active:scale-90"><X size={18} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); saveAdjustments(); onInteract(-1); }} className="p-2 bg-primary hover:bg-primary/80 text-white rounded-full shadow-xl transition-all active:scale-90"><Check size={18} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); saveAdjustments(); clearInteraction(); }} className="p-2 bg-primary hover:bg-primary/80 text-white rounded-full shadow-xl transition-all active:scale-90"><Check size={18} /></button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-muted group-hover/cell:text-text transition-colors export-hidden pointer-events-none bg-surface-secondary">
+          <div className="w-full h-full flex flex-col items-center justify-center text-muted group-hover/cell:text-text transition-colors export-hidden pointer-events-none bg-surface">
             <Plus size={32} className="mb-2 opacity-30 group-hover/cell:opacity-100 transition-opacity" />
-            <span className="text-xs font-bold uppercase tracking-wider opacity-50">Add</span>
+            <span className="text-xs hidden sm:flex font-bold uppercase tracking-wider opacity-50">Add</span>
           </div>
         )}
 
-        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) onUpload(index, e.target.files[0]); onInteract(-1); }} />
+        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
 
         <PopoverMenu
           isOpen={isSelected && !isAdjusting}
-          onClose={() => { onInteract(-1); setLocalClickPoint(null); }}
+          onClose={clearInteraction}
           actions={actions}
           triggerPoint={localClickPoint}
           className={localClickPoint ? "" : "mt-[-20px]"}
@@ -232,7 +217,7 @@ export const Cell = React.memo(function Cell({
       <UrlInputModal
         isOpen={isUrlModalOpen}
         onClose={() => setIsUrlModalOpen(false)}
-        onSubmit={(url) => { onSearchDrop(url, index); onInteract(-1); }}
+        onSubmit={(url) => { handleSearchDrop(url, index); clearInteraction(); }}
       />
     </motion.div>
   );

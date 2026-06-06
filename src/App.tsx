@@ -15,17 +15,17 @@ import { ExportModal } from "@/components/ExportModal";
 import { AboutModal } from "@/components/AboutModal";
 import { LoadingScreen } from "@/components/AppLogo";
 import { useToast } from "@/context/ToastContext";
-import { readFileAsDataURL, downloadGrid, copyGrid } from "@/utils/imageUtils";
+import { downloadGrid, copyGrid } from "@/utils/imageUtils";
 import { cleanupOldCache } from "@/utils/imageCache";
-import { THEME_PALETTES, getContrastColor } from "@/theme/palettes";
+import { getContrastColor } from "@/theme/palettes";
 import { Edit2 } from "lucide-react";
 import {
-  selectTheme,
   selectActiveRankId,
   selectActiveRank,
   selectRanks,
-  selectPreferences
 } from "@/store/selectors";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 export const App: React.FC = () => {
   return (
@@ -45,9 +45,6 @@ const AppContent: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const theme = useStore(selectTheme);
-  const preferences = useStore(selectPreferences);
-  const reduceGlassEffects = preferences.reduceGlassEffects ?? false;
   const activeRankId = useStore(selectActiveRankId);
   const activeRank = useStore(selectActiveRank);
   const ranks = useStore(selectRanks);
@@ -68,9 +65,6 @@ const AppContent: React.FC = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
-  const [internalClipboard, setInternalClipboard] = useState<string | null>(
-    null,
-  );
 
   // Modals
   const [modalConfig, setModalConfig] = useState<{
@@ -94,176 +88,8 @@ const AppContent: React.FC = () => {
     cleanupOldCache();
   }, []);
 
-  useLayoutEffect(() => {
-    if (isLoaded && theme) {
-      const root = document.documentElement;
-
-      const isDark = theme.isDark ?? true;
-      if (isDark) {
-        root.classList.remove("light");
-        root.classList.add("dark");
-      } else {
-        root.classList.remove("dark");
-        root.classList.add("light");
-      }
-
-      root.style.setProperty("--color-primary", theme.accentColor);
-      const paletteId = theme.paletteId || (isDark ? "ios-dark" : "ios-light");
-      const palette =
-        THEME_PALETTES.find((p) => p.id === paletteId) || THEME_PALETTES[0];
-
-      root.style.setProperty("--color-background", palette.colors.background);
-      root.style.setProperty("--color-surface", palette.colors.surface);
-      root.style.setProperty("--color-border", palette.colors.border);
-      root.style.setProperty("--color-text", palette.colors.text);
-      root.style.setProperty("--color-muted", palette.colors.muted);
-      root.style.setProperty("--color-hover", palette.colors.hover);
-      root.style.setProperty("--color-overlay", palette.colors.overlay);
-    }
-  }, [theme, isLoaded]);
-
-  useLayoutEffect(() => {
-    document.documentElement.toggleAttribute(
-      "data-reduce-glass",
-      reduceGlassEffects,
-    );
-  }, [reduceGlassEffects]);
-
-  // Global Paste
-  useEffect(() => {
-    const handlePaste = async (e: ClipboardEvent) => {
-      if (
-        (e.target as HTMLElement).tagName === "INPUT" ||
-        (e.target as HTMLElement).tagName === "TEXTAREA"
-      )
-        return;
-
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf("image") !== -1) {
-          const blob = items[i].getAsFile();
-          if (blob) {
-            try {
-              const src = await readFileAsDataURL(blob);
-              const st = useStore.getState();
-              if (st.interactionState?.type === "cell") {
-                st.handleCellUpload(st.interactionState.index, src);
-              } else {
-                const activeColId =
-                  st.inbox.activeCollectionId === "all-images"
-                    ? st.inbox.collections[0].id
-                    : st.inbox.activeCollectionId;
-                st.handleAddToCollection(src, activeColId);
-              }
-            } catch (err) {
-              console.error(err);
-            }
-          }
-        }
-      }
-    };
-    window.addEventListener("paste", handlePaste);
-    return () => window.removeEventListener("paste", handlePaste);
-  }, []);
-
-  // --- Keyboard Shortcuts ---
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        (e.target as HTMLElement).tagName === "INPUT" ||
-        (e.target as HTMLElement).tagName === "TEXTAREA"
-      )
-        return;
-
-      const st = useStore.getState();
-      const rank = st.ranks[st.activeRankId];
-
-      if (e.key === "Escape") {
-        st.setInteractionState(null);
-        setIsEditingTitle(false);
-        return;
-      }
-
-      // Undo / Redo
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        if (e.shiftKey) {
-          useStore.temporal.getState().redo();
-        } else {
-          useStore.temporal.getState().undo();
-        }
-        return;
-      }
-
-      // Arrow navigation for grid/list
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        if (st.interactionState?.type === "cell" && rank) {
-          e.preventDefault();
-          const maxCells = rank.cells.length;
-          const cols = rank.mode === 'grid' ? rank.config.cols : 1;
-          let newIndex = st.interactionState.index;
-
-          if (e.key === 'ArrowRight') newIndex++;
-          if (e.key === 'ArrowLeft') newIndex--;
-          if (e.key === 'ArrowDown') newIndex += cols;
-          if (e.key === 'ArrowUp') newIndex -= cols;
-
-          if (newIndex >= 0 && newIndex < maxCells) {
-            st.setInteractionState({ type: "cell", index: newIndex });
-          }
-          return;
-        }
-      }
-
-      // Quick Clear
-      if (e.key === "Backspace" || e.key === "Delete") {
-        if (st.interactionState?.type === "cell" && rank) {
-          e.preventDefault();
-          st.handleCellClear(st.interactionState.index);
-          return;
-        }
-      }
-
-      // Copy/Paste internal
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
-        if (st.interactionState?.type === "cell" && rank) {
-          const cell = rank.cells[st.interactionState.index];
-          if (cell && cell.imageSrc) {
-            setInternalClipboard(cell.imageSrc);
-          }
-        }
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
-        if (
-          st.interactionState?.type === "cell" &&
-          rank &&
-          internalClipboard
-        ) {
-          st.handleCellUpload(
-            st.interactionState.index,
-            internalClipboard,
-          );
-        }
-      }
-
-      if (e.key === "Delete" || e.key === "Backspace") {
-        if (st.interactionState?.type === "cell" && rank) {
-          st.handleCellClear(st.interactionState.index);
-          st.setInteractionState(null);
-        }
-        if (st.interactionState?.type === "tier-item" && rank) {
-          st.handleTierItemRemove(
-            st.interactionState.rowId,
-            st.interactionState.itemId,
-          );
-          st.setInteractionState(null);
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [internalClipboard]);
+  useAppTheme(isLoaded);
+  useGlobalShortcuts(setIsEditingTitle);
 
   const confirmAction = (
     title: string,
