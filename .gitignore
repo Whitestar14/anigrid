@@ -8,14 +8,13 @@ yarn.lock
 package-lock.json
 .pnpm-store/
 .vite/
+*.zip
 
-# Environment variables - NEVER COMMIT!
 .env
 .env.local
 .env.development
 .env.production
 .env.*.local
-# Only commit .env.example as a template
 
 # Logs
 logs/

@@ -45,8 +45,16 @@ const AppContent: React.FC = () => {
   if (!activeRank) return <LoadingScreen />;
 
   const textColor = getContrastColor(activeRank.backgroundColor);
-  const mainPadding = activeRank.type === "tierlist" ? "p-2 md:p-8" : "p-4 md:p-8";
-  const containerPadding = activeRank.type === "tierlist" ? (window.innerWidth < 768 ? "0px" : "32px") : (activeRank.style === "card" ? "32px" : "16px");
+  const mainPadding =
+    activeRank.type === "tierlist" ? "p-2 md:p-8" : "p-4 md:p-8";
+  const containerPadding =
+    activeRank.type === "tierlist"
+      ? window.innerWidth < 768
+        ? "0px"
+        : "32px"
+      : activeRank.style === "card"
+      ? "32px"
+      : "16px";
 
   return (
     <>
@@ -79,9 +87,13 @@ const AppContent: React.FC = () => {
           onDeleteRank={(id) => {
             const rank = ctrl.ranks[id];
             if (!rank) return;
-            ctrl.confirmAction(`Delete "${rank.title}"?`, "This cannot be undone.", () => {
-              ctrl.handleDeleteRank(id);
-            });
+            ctrl.confirmAction(
+              `Delete "${rank.title}"?`,
+              "This cannot be undone.",
+              () => {
+                ctrl.handleDeleteRank(id);
+              }
+            );
           }}
           onNewRank={ctrl.handleNewRank}
           onUpdateRank={ctrl.updateRankById}
@@ -92,17 +104,28 @@ const AppContent: React.FC = () => {
           title={ctrl.modalConfig.title}
           message={ctrl.modalConfig.message}
           onConfirm={ctrl.modalConfig.onConfirm}
-          onCancel={() => ctrl.setModalConfig((prev) => ({ ...prev, isOpen: false }))}
+          onCancel={() =>
+            ctrl.setModalConfig((prev) => ({ ...prev, isOpen: false }))
+          }
         />
 
         <DuplicateModal
           isOpen={ctrl.duplicateModalConfig.isOpen}
           imageSrc={ctrl.duplicateModalConfig.imageSrc}
           onConfirm={ctrl.handleDuplicateConfirm}
-          onCancel={() => ctrl.setDuplicateModalConfig({ isOpen: false, imageSrc: null, actionToExecute: null })}
+          onCancel={() =>
+            ctrl.setDuplicateModalConfig({
+              isOpen: false,
+              imageSrc: null,
+              actionToExecute: null,
+            })
+          }
         />
 
-        <AboutModal isOpen={ctrl.isAboutModalOpen} onClose={() => ctrl.setIsAboutModalOpen(false)} />
+        <AboutModal
+          isOpen={ctrl.isAboutModalOpen}
+          onClose={() => ctrl.setIsAboutModalOpen(false)}
+        />
 
         <div className="flex flex-1 overflow-hidden pt-14">
           <GridSettingsSidebar
@@ -115,16 +138,26 @@ const AppContent: React.FC = () => {
           <div className="flex-1 flex flex-col min-w-0 relative bg-background">
             <main
               className={`flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center ${mainPadding} pb-40`}
-              onClick={() => ctrl.interactionState && ctrl.setInteractionState(null)}
+              onClick={() =>
+                ctrl.interactionState && ctrl.setInteractionState(null)
+              }
             >
               <div
                 ref={ctrl.gridRef}
                 className="relative transition-all duration-200 shadow-2xl"
                 style={{
                   width: "fit-content",
-                  minWidth: activeRank.type === "list" ? "100%" : (activeRank.type === "tierlist" ? "98%" : "auto"),
+                  minWidth:
+                    activeRank.type === "list"
+                      ? "100%"
+                      : activeRank.type === "tierlist"
+                      ? "98%"
+                      : "auto",
                   maxWidth: activeRank.type === "tierlist" ? "1200px" : "none",
-                  backgroundColor: activeRank.backgroundColor === "transparent" ? "" : activeRank.backgroundColor,
+                  backgroundColor:
+                    activeRank.backgroundColor === "transparent"
+                      ? ""
+                      : activeRank.backgroundColor,
                   padding: containerPadding,
                 }}
                 onClick={(e) => {
@@ -148,15 +181,23 @@ const AppContent: React.FC = () => {
                           onChange={(e) => ctrl.setTempTitle(e.target.value)}
                           onBlur={() => {
                             ctrl.setIsEditingTitle(false);
-                            if (ctrl.tempTitle.trim() && ctrl.tempTitle !== activeRank.title) {
+                            if (
+                              ctrl.tempTitle.trim() &&
+                              ctrl.tempTitle !== activeRank.title
+                            ) {
                               ctrl.updateActiveRank({ title: ctrl.tempTitle });
                             }
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               ctrl.setIsEditingTitle(false);
-                              if (ctrl.tempTitle.trim() && ctrl.tempTitle !== activeRank.title) {
-                                ctrl.updateActiveRank({ title: ctrl.tempTitle });
+                              if (
+                                ctrl.tempTitle.trim() &&
+                                ctrl.tempTitle !== activeRank.title
+                              ) {
+                                ctrl.updateActiveRank({
+                                  title: ctrl.tempTitle,
+                                });
                               }
                             }
                           }}
@@ -199,20 +240,35 @@ const AppContent: React.FC = () => {
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.25, ease: "easeInOut" }}
                   >
-                    {activeRank.type === "tierlist" ? <TierListView /> : activeRank.type === "list" ? <ListView /> : <GridView />}
+                    {activeRank.type === "tierlist" ? (
+                      <TierListView />
+                    ) : activeRank.type === "list" ? (
+                      <ListView />
+                    ) : (
+                      <GridView />
+                    )}
                   </motion.div>
                 </AnimatePresence>
-
-                <div className="flex justify-between items-end opacity-30 px-2 mt-8 pt-4 border-t border-border">
-                  {activeRank.showWatermark !== false ? (
-                    <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>Ranku</div>
-                  ) : <div />}
-                  {activeRank.showDate !== false && (
-                    <div className="text-[10px] font-mono font-bold tracking-widest uppercase" style={{ color: textColor }}>
-                      {new Date().toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
+                {(activeRank.showWatermark || activeRank.showDate) && (
+                  <div className="flex justify-between items-end opacity-30 px-2 mt-8 pt-4 border-t border-border">
+                    {activeRank.showWatermark && (
+                      <div
+                        className="text-[10px] font-mono font-bold tracking-widest uppercase"
+                        style={{ color: textColor }}
+                      >
+                        Ranku
+                      </div>
+                    )}
+                    {activeRank.showDate && (
+                      <div
+                        className="text-[10px] font-mono font-bold tracking-widest uppercase"
+                        style={{ color: textColor }}
+                      >
+                        {new Date().toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </main>
 
