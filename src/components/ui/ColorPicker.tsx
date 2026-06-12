@@ -9,7 +9,7 @@ interface ColorPickerProps {
 
 export const ColorPicker: React.FC<ColorPickerProps> = ({ value, onChange, className }) => {
   const [localValue, setLocalValue] = useState(value);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setLocalValue(value);

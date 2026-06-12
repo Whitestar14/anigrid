@@ -2,9 +2,10 @@ import React from "react";
 import { Hash, Type, Calendar } from "lucide-react";
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 import { Toggle } from "@/components/ui/Toggle";
+import { ProjectType } from "@/types";
 
 interface VisibilitySectionProps {
-  projectType: "ranking" | "tierlist";
+  projectType: ProjectType;
   showNumbers: boolean;
   showTitle: boolean;
   showDate: boolean;
@@ -26,20 +27,18 @@ export const VisibilitySection: React.FC<VisibilitySectionProps> = ({
         Visibility
       </span>
       <SettingButtonGroup className="glass-card rounded-[20px] overflow-hidden mx-4">
-        {projectType === "ranking" && (
-          <SettingRow
-            asLabel
-            icon={<Hash size={16} />}
-            iconBg="bg-primary/20 text-primary"
-            label="Show Numbers"
-            right={
-              <Toggle
-                checked={showNumbers}
-                onCheckedChange={() => onVisualToggle("showNumbers")}
-              />
-            }
-          />
-        )}
+        {(projectType === "ranking" || projectType === "list") && <SettingRow
+          asLabel
+          icon={<Hash size={16} />}
+          iconBg="bg-primary/20 text-primary"
+          label="Show Numbers"
+          right={
+            <Toggle
+              checked={showNumbers}
+              onCheckedChange={() => onVisualToggle("showNumbers")}
+            />
+          }
+        />}
         <SettingRow
           asLabel
           icon={<Type size={16} />}

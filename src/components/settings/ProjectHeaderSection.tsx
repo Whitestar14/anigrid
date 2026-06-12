@@ -1,9 +1,11 @@
 import React from "react";
-import { LayoutGrid, Layers, Trash2, X } from "lucide-react";
+import { LayoutGrid, Layers, Trash2, X, List } from "lucide-react";
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 
+import { ProjectType } from "@/types";
+
 interface ProjectHeaderSectionProps {
-  projectType: "ranking" | "tierlist";
+  projectType: ProjectType;
   onClearAll: () => void;
   onClose: () => void;
 }
@@ -18,9 +20,9 @@ export const ProjectHeaderSection: React.FC<ProjectHeaderSectionProps> = ({
       <SettingButtonGroup className="glass-card rounded-[20px] overflow-hidden">
         <SettingRow
           as="div"
-          icon={projectType === "tierlist" ? <Layers size={18} /> : <LayoutGrid size={18} />}
-          iconBg={projectType === "tierlist" ? "bg-purple-500/20 text-purple-400" : "bg-primary/20 text-primary"}
-          label={projectType === "tierlist" ? "Tier List" : "Ranking Grid"}
+          icon={projectType === "tierlist" ? <Layers size={18} /> : projectType === "list" ? <List size={18} /> : <LayoutGrid size={18} />}
+          iconBg={projectType === "tierlist" ? "bg-purple-500/20 text-purple-400" : projectType === "list" ? "bg-emerald-500/20 text-emerald-500" : "bg-primary/20 text-primary"}
+          label={projectType === "tierlist" ? "Tier List" : projectType === "list" ? "List" : "Ranking Grid"}
           sublabel="Project Type"
           right={
             <div className="flex items-center gap-1">

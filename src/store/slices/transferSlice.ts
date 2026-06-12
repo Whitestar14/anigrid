@@ -13,7 +13,7 @@ export interface TransferSlice {
 
 export const createTransferSlice: StateCreator<
   AppState,
-  [["zustand/temporal", unknown], ["zustand/immer", never]],
+  [["zustand/immer", never]],
   [],
   TransferSlice
 > = (set, get) => ({

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Rank, ProjectType } from '@/types';
-import { Trash2, Edit2, LayoutGrid, Layers, ChevronRight, Check } from 'lucide-react';
+import { Trash2, Edit2, LayoutGrid, Layers, List, ChevronRight, Check } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { motion, AnimatePresence } from 'motion/react';
@@ -68,20 +68,27 @@ export const Library: React.FC<ExtendedLibraryProps> = ({
         </button>
       </div>
 
-      <div className="px-4 pt-5 pb-3 shrink-0 flex gap-3">
+      <div className="px-4 pt-5 pb-3 shrink-0 flex gap-2">
         <button
           onClick={() => { onNewRank('ranking'); onClose(); }}
-          className="flex-1 flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-[20px] glass-card hover:bg-hover transition-colors text-text text-[13px] font-medium shadow-sm"
+          className="flex-1 flex flex-col items-center justify-center gap-2 py-3 px-2 rounded-[16px] glass-card hover:bg-hover transition-colors text-text text-[13px] font-medium shadow-sm"
         >
-          <LayoutGrid size={22} className="text-primary" />
-          New Grid
+          <LayoutGrid size={20} className="text-primary" />
+          Grid
+        </button>
+        <button
+          onClick={() => { onNewRank('list'); onClose(); }}
+          className="flex-1 flex flex-col items-center justify-center gap-2 py-3 px-2 rounded-[16px] glass-card hover:bg-hover transition-colors text-text text-[13px] font-medium shadow-sm"
+        >
+          <List size={20} className="text-emerald-500" />
+          List
         </button>
         <button
           onClick={() => { onNewRank('tierlist'); onClose(); }}
-          className="flex-1 flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-[20px] glass-card hover:bg-hover transition-colors text-text text-[13px] font-medium shadow-sm"
+          className="flex-1 flex flex-col items-center justify-center gap-2 py-3 px-2 rounded-[16px] glass-card hover:bg-hover transition-colors text-text text-[13px] font-medium shadow-sm"
         >
-          <Layers size={22} className="text-purple-400" />
-          New Tier List
+          <Layers size={20} className="text-purple-400" />
+          Tier List
         </button>
       </div>
 
@@ -113,8 +120,8 @@ export const Library: React.FC<ExtendedLibraryProps> = ({
                         onClose();
                       }
                     }}
-                    icon={rank.type === 'tierlist' ? <Layers size={16} strokeWidth={2} /> : <LayoutGrid size={16} strokeWidth={2} />}
-                    iconBg={rank.type === 'tierlist' ? 'bg-purple-500/20 text-purple-400' : 'bg-primary/20 text-primary'}
+                    icon={rank.type === 'tierlist' ? <Layers size={16} strokeWidth={2} /> : rank.type === 'list' ? <List size={16} strokeWidth={2} /> : <LayoutGrid size={16} strokeWidth={2} />}
+                    iconBg={rank.type === 'tierlist' ? 'bg-purple-500/20 text-purple-400' : rank.type === 'list' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-primary/20 text-primary'}
                     label={
                       <div className="flex items-center gap-2">
                         {editingId === rank.id ? (
@@ -145,7 +152,7 @@ export const Library: React.FC<ExtendedLibraryProps> = ({
                     }
                     sublabel={
                       <div className="flex items-center gap-2">
-                        <span className="capitalize">{rank.type === 'tierlist' ? 'Tier List' : 'Ranking Grid'}</span>
+                        <span className="capitalize">{rank.type === 'tierlist' ? 'Tier List' : rank.type === 'list' ? 'List' : 'Ranking Grid'}</span>
                         <span className="w-1 h-1 rounded-full bg-border" />
                         <span>{new Date(rank.updatedAt).toLocaleDateString()}</span>
                       </div>

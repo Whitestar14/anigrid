@@ -1,6 +1,6 @@
 import { StateCreator } from "zustand";
 import { AppState } from "../useStore";
-import { TierRow, ProjectType, GridConfig, RankMode, CellData, InboxItem } from "@/types";
+import { TierRow, ProjectType, GridConfig, CellData, InboxItem } from "@/types";
 import { checkAndRescueImages, ensureCells, findInboxItem, findInboxItems } from "@/utils/storeUtils";
 import { createBlankRank } from "@/utils/storage";
 
@@ -8,7 +8,7 @@ export interface RankSlice {
   updateActiveRank: (updates: Partial<AppState["ranks"][string]>) => void;
   updateRankById: (id: string, updates: Partial<AppState["ranks"][string]>) => void;
   handleConfigChange: (newConfig: GridConfig) => void;
-  handleModeChange: (newMode: RankMode) => void;
+
   handleVisualToggle: (
     key: "showNumbers" | "showTitle" | "showDate" | "showTiers" | "borderless"
   ) => void;
@@ -16,6 +16,10 @@ export interface RankSlice {
   handleUpdateCell: (index: number, data: Partial<CellData>) => void;
   handleCellClear: (index: number) => void;
   handleSwapCells: (fromIndex: number, toIndex: number) => void;
+  handleReorderCells: (fromIndex: number, toIndex: number) => void;
+  handleUpdateTierItem: (rowId: string, itemId: string, data: Partial<CellData>) => void;
+  handleUpdateTierRows: (rows: TierRow[]) => void;
+  handleTierItemRemove: (rowId: string, itemId: string) => void;
 
   handleNewRank: (type: ProjectType) => void;
   handleDeleteRank: (id: string) => void;
@@ -24,7 +28,7 @@ export interface RankSlice {
 
 export const createRankSlice: StateCreator<
   AppState,
-  [["zustand/temporal", unknown], ["zustand/immer", never]],
+  [["zustand/immer", never]],
   [],
   RankSlice
 > = (set, get) => ({
@@ -49,7 +53,7 @@ export const createRankSlice: StateCreator<
       const current = state.ranks[state.activeRankId];
       if (!current) return;
 
-      const totalCells = current.mode === "list" ? newConfig.rows : newConfig.rows * newConfig.cols;
+      const totalCells = current.type === "list" ? newConfig.rows : newConfig.rows * newConfig.cols;
 
       if (totalCells > current.cells.length) {
         ensureCells(current.cells, totalCells - 1);
@@ -59,40 +63,7 @@ export const createRankSlice: StateCreator<
       current.config = newConfig;
       current.updatedAt = Date.now();
     }),
-  handleModeChange: (newMode) =>
-    set((state) => {
-      const current = state.ranks[state.activeRankId];
-      if (!current) return;
 
-      const oldMode = current.mode;
-      if (oldMode === newMode) return;
-
-      current.mode = newMode;
-
-      if (newMode === "list") {
-        const totalItems = current.cells.length;
-        current.config.rows = totalItems;
-        if (totalItems > current.cells.length) {
-          ensureCells(current.cells, totalItems - 1);
-        } else if (totalItems < current.cells.length) {
-          current.cells = current.cells.slice(0, totalItems);
-        }
-      } else {
-        const totalItems = current.cells.length;
-        const cols = current.config.cols || 5;
-        const neededRows = Math.max(1, Math.ceil(totalItems / cols));
-        current.config.rows = neededRows;
-
-        const newTotalCells = neededRows * cols;
-        if (newTotalCells > current.cells.length) {
-          ensureCells(current.cells, newTotalCells - 1);
-        } else if (newTotalCells < current.cells.length) {
-          current.cells = current.cells.slice(0, newTotalCells);
-        }
-      }
-
-      current.updatedAt = Date.now();
-    }),
   handleVisualToggle: (key) =>
     set((state) => {
       const current = state.ranks[state.activeRankId];
@@ -153,6 +124,39 @@ export const createRankSlice: StateCreator<
         const [movedItem] = current.cells.splice(fromIndex, 1);
         current.cells.splice(toIndex, 0, movedItem);
         current.updatedAt = Date.now();
+      }
+    }),
+  handleUpdateTierItem: (rowId, itemId, data) =>
+    set((state) => {
+      const current = state.ranks[state.activeRankId];
+      if (current) {
+        const row = current.tierRows.find(r => r.id === rowId);
+        if (row) {
+          const item = row.items.find(i => i.id === itemId);
+          if (item) {
+            Object.assign(item, data);
+            current.updatedAt = Date.now();
+          }
+        }
+      }
+    }),
+  handleUpdateTierRows: (rows) =>
+    set((state) => {
+      const current = state.ranks[state.activeRankId];
+      if (current) {
+        current.tierRows = rows;
+        current.updatedAt = Date.now();
+      }
+    }),
+  handleTierItemRemove: (rowId, itemId) =>
+    set((state) => {
+      const current = state.ranks[state.activeRankId];
+      if (current) {
+        const row = current.tierRows.find(r => r.id === rowId);
+        if (row) {
+          row.items = row.items.filter(i => i.id !== itemId);
+          current.updatedAt = Date.now();
+        }
       }
     }),
 

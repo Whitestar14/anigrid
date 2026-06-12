@@ -35,12 +35,11 @@ export const createBlankRank = (type: ProjectType = 'ranking'): Rank => {
   const rankId = `rank-${Date.now()}`;
   return {
     id: rankId,
-    title: type === 'tierlist' ? 'My Tier List' : 'My Ranking',
+    title: type === 'tierlist' ? 'My Tier List' : type === 'list' ? 'My List' : 'My Ranking',
     type,
-    mode: type === 'tierlist' ? 'tier' : 'grid',
     gridJustify: type === 'tierlist' ? 'left' : 'center',
-    config: { rows: 3, cols: 3 },
-    cells: Array.from({ length: 9 }).map((_, i) => ({
+    config: { rows: type === 'list' ? 5 : 3, cols: 3 },
+    cells: Array.from({ length: type === 'list' ? 5 : 9 }).map((_, i) => ({
       id: `cell-${i}-${Date.now()}`,
       imageSrc: null,
       position: i

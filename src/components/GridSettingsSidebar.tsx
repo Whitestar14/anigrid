@@ -3,7 +3,7 @@ import { useStore } from "@/store/useStore";
 import { useShallow } from "zustand/react/shallow";
 
 import { ProjectHeaderSection } from "./settings/ProjectHeaderSection";
-import { ViewModeSection } from "./settings/ViewModeSection";
+
 import { DimensionsSection } from "./settings/DimensionsSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
 import { VisibilitySection } from "./settings/VisibilitySection";
@@ -22,13 +22,13 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 }) => {
   const activeRank = useStore(useShallow((s) => s.ranks[s.activeRankId]));
   const handleConfigChange = useStore((s) => s.handleConfigChange);
-  const handleModeChange = useStore((s) => s.handleModeChange);
+
   const handleVisualToggle = useStore((s) => s.handleVisualToggle);
   const updateActiveRank = useStore((s) => s.updateActiveRank);
 
   if (!activeRank) return null;
 
-  const { config, style, mode, type: projectType } = activeRank;
+  const { config, style, type: projectType } = activeRank;
   const showNumbers = activeRank.showNumbers ?? true;
   const showTitle = activeRank.showTitle ?? true;
   const showDate = activeRank.showDate ?? true;
@@ -93,15 +93,11 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
                 onClose={onClose}
               />
 
-              {projectType === "ranking" && (
-                <ViewModeSection mode={mode} onModeChange={handleModeChange} />
-              )}
 
-              <div className="h-px bg-border mx-4"></div>
 
               {projectType === "ranking" && (
                 <DimensionsSection
-                  mode={mode}
+                projectType={projectType}
                   config={config}
                   cellWidth={cellWidth}
                   onRowsChange={handleRowsChange}
@@ -112,7 +108,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
               <AppearanceSection
                 projectType={projectType}
-                mode={mode}
+
                 aspectRatio={aspectRatio}
                 style={style as "card" | "seamless"}
                 borderless={borderless}

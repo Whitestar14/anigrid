@@ -27,7 +27,7 @@ export const Cell = React.memo(function Cell({
   const handleUpdateCell = useStore(s => s.handleUpdateCell);
   const handleItemTransfer = useStore(s => s.handleItemTransfer);
   const handleCellUpload = useStore(s => s.handleCellUpload);
-  const handleSearchDrop = useStore(s => s.handleSearchDrop);
+
 
   if (!data || !activeRank) return null;
 
@@ -217,7 +217,7 @@ export const Cell = React.memo(function Cell({
       <UrlInputModal
         isOpen={isUrlModalOpen}
         onClose={() => setIsUrlModalOpen(false)}
-        onSubmit={(url) => { handleSearchDrop(url, index); clearInteraction(); }}
+        onSubmit={(url) => { handleItemTransfer({ type: "search", imageSrc: url }, { type: "cell", index }); clearInteraction(); }}
       />
     </motion.div>
   );

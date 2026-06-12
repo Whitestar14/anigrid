@@ -22,7 +22,7 @@ export const SettingsDockPanel: React.FC<{
         isDark: s.theme?.isDark ?? true,
         reduceGlass: s.preferences.reduceGlassEffects ?? false,
         autoCloseDesktop: s.preferences.autoCloseDockOnDragDesktop ?? false,
-        updateTheme: s.updateTheme,
+        updateTheme: s.updateGlobalTheme,
         updatePreferences: s.updatePreferences,
       })),
     );

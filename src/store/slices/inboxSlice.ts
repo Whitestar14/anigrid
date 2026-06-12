@@ -17,11 +17,12 @@ export interface InboxSlice {
   renameCollection: (id: string, name: string) => void;
   removeInboxItem: (id: string) => void;
   moveItemsToCollection: (itemIds: string[], targetColId: string) => void;
+  recallItemByImageSrc: (imageSrc: string) => void;
 }
 
 export const createInboxSlice: StateCreator<
   AppState,
-  [["zustand/temporal", unknown], ["zustand/immer", never]],
+  [["zustand/immer", never]],
   [],
   InboxSlice
 > = (set, get) => ({
@@ -123,5 +124,12 @@ export const createInboxSlice: StateCreator<
       });
 
       targetCol.items.unshift(...itemsToMove);
+    }),
+
+  recallItemByImageSrc: (imageSrc) =>
+    set((state) => {
+      state.inbox.collections.forEach((col) => {
+        col.items = col.items.filter((i) => i.imageSrc !== imageSrc);
+      });
     }),
 });

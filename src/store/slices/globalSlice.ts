@@ -25,7 +25,7 @@ export interface GlobalSlice {
 
 export const createGlobalSlice: StateCreator<
   AppState,
-  [["zustand/temporal", unknown], ["zustand/immer", never]],
+  [["zustand/immer", never]],
   [],
   GlobalSlice
 > = (set, get) => ({

@@ -1,10 +1,10 @@
 import React from "react";
 import { Slider } from "@/components/ui/Slider";
 
-import { RankMode } from "@/types";
+import { ProjectType } from "@/types";
 
 interface DimensionsSectionProps {
-  mode: RankMode;
+  projectType: ProjectType;
   config: { rows: number; cols: number };
   cellWidth: number | null | undefined;
   onRowsChange: (v: number) => void;
@@ -13,7 +13,7 @@ interface DimensionsSectionProps {
 }
 
 export const DimensionsSection: React.FC<DimensionsSectionProps> = ({
-  mode,
+  projectType,
   config,
   cellWidth,
   onRowsChange,
@@ -25,18 +25,22 @@ export const DimensionsSection: React.FC<DimensionsSectionProps> = ({
       <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
         Dimensions
       </span>
-      {mode === "grid" ? (
+      {projectType !== "tierlist" ? (
         <div className="mx-4 glass-card rounded-[20px] overflow-hidden divide-y divide-border/50">
-          <div className="px-4 py-3 flex items-center gap-3">
-            <div className="flex-1 flex flex-col gap-0.5 items-center">
+          <div className={`px-4 py-3 flex items-center gap-3 ${projectType === "list" ? "justify-center" : ""}`}>
+            <div className={`flex flex-col gap-0.5 items-center ${projectType === "list" ? "w-full" : "flex-1"}`}>
               <span className="text-[11px] text-muted font-medium uppercase">Rows</span>
               <input type="number" min="1" max="50" value={config.rows} onChange={(e) => onRowsChange(parseInt(e.target.value))} className="text-center font-semibold bg-transparent text-text focus:outline-none w-full text-[17px]" />
             </div>
-            <span className="text-muted font-medium text-lg">×</span>
-            <div className="flex-1 flex flex-col gap-0.5 items-center">
-              <span className="text-[11px] text-muted font-medium uppercase">Cols</span>
-              <input type="number" min="1" max="20" value={config.cols} onChange={(e) => onColsChange(parseInt(e.target.value))} className="text-center font-semibold bg-transparent text-text focus:outline-none w-full text-[17px]" />
-            </div>
+            {projectType === "ranking" && (
+              <>
+                <span className="text-muted font-medium text-lg">×</span>
+                <div className="flex-1 flex flex-col gap-0.5 items-center">
+                  <span className="text-[11px] text-muted font-medium uppercase">Cols</span>
+                  <input type="number" min="1" max="20" value={config.cols} onChange={(e) => onColsChange(parseInt(e.target.value))} className="text-center font-semibold bg-transparent text-text focus:outline-none w-full text-[17px]" />
+                </div>
+              </>
+            )}
           </div>
           <div className="px-4 py-3 flex flex-col gap-1.5">
             <div className="flex justify-between items-center text-[11px] text-muted font-medium uppercase">

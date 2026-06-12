@@ -77,7 +77,7 @@ export function useGlobalShortcuts(setIsEditingTitle: (val: boolean) => void) {
         if (st.interactionState?.type === "cell" && rank) {
           e.preventDefault();
           const maxCells = rank.cells.length;
-          const cols = rank.mode === 'grid' ? rank.config.cols : 1;
+          const cols = rank.type === 'ranking' ? rank.config.cols : 1;
           let newIndex = st.interactionState.index;
 
           if (e.key === 'ArrowRight') newIndex++;

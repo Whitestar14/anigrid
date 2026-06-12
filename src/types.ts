@@ -27,8 +27,7 @@ export interface InboxCollection {
 }
 
 export type GridStyle = "seamless" | "card";
-export type RankMode = "grid" | "list" | "tier";
-export type ProjectType = "ranking" | "tierlist";
+export type ProjectType = "ranking" | "list" | "tierlist";
 
 export interface TierRow {
   id: string;
@@ -46,7 +45,6 @@ export interface Rank {
   id: string;
   title: string;
   type: ProjectType;
-  mode: RankMode;
   config: GridConfig;
   cells: CellData[];
   style: GridStyle;
