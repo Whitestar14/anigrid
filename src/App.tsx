@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useStore } from "@/store/useStore";
 import { Controls } from "@/components/Controls";
 import { GridSettingsSidebar } from "@/components/GridSettingsSidebar";
 import { GridView } from "@/components/views/GridView";
@@ -14,18 +13,8 @@ import { DuplicateModal } from "@/components/DuplicateModal";
 import { ExportModal } from "@/components/ExportModal";
 import { AboutModal } from "@/components/AboutModal";
 import { LoadingScreen } from "@/components/AppLogo";
-import { useToast } from "@/context/ToastContext";
-import { downloadGrid, copyGrid } from "@/utils/imageUtils";
-import { cleanupOldCache } from "@/utils/imageCache";
 import { getContrastColor } from "@/theme/palettes";
 import { Edit2 } from "lucide-react";
-import {
-  selectActiveRankId,
-  selectActiveRank,
-  selectRanks,
-} from "@/store/selectors";
-import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
-import { useAppTheme } from "@/hooks/useAppTheme";
 
 import { useAppController } from "@/hooks/useAppController";
 
@@ -144,7 +133,7 @@ const AppContent: React.FC = () => {
             >
               <div
                 ref={ctrl.gridRef}
-                className="relative transition-all duration-200 shadow-2xl"
+                className="relative transition-all duration-200"
                 style={{
                   width: "fit-content",
                   minWidth:

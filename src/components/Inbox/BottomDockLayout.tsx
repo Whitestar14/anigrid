@@ -11,9 +11,6 @@ import { SettingsDockPanel } from "./SettingsDockPanel";
 
 export type BottomDockCtrl = ReturnType<typeof useInboxController>;
 
-// Always use the same border radius — we animate height, NOT border-radius.
-// Using a constant large radius means it always looks pill-like while collapsed
-// and naturally square-cornered while tall.
 const DOCK_RADIUS = "22px";
 
 export const BottomDockLayout: React.FC<{
@@ -121,7 +118,7 @@ export const BottomDockLayout: React.FC<{
     <div
       className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-40 md:px-4 flex justify-center w-full`}
       style={{
-        maxWidth: ctrl.isExpanded ? "960px" : "100%",
+        maxWidth: ctrl.isExpanded ? "768px" : "100%",
         width: ctrl.isExpanded
           ? "var(--expanded-dock-width, calc(100% - 16px))"
           : "auto",
@@ -141,7 +138,7 @@ export const BottomDockLayout: React.FC<{
           width: ctrl.isExpanded
             ? "100%"
             : "clamp(220px, calc(100vw - 120px), 310px)",
-          height: ctrl.isExpanded ? "28rem" : "3rem",
+          height: ctrl.isExpanded ? "24rem" : "3rem",
           // Keep border-radius constant — avoids the weird morph
           borderRadius: DOCK_RADIUS,
           boxShadow: ctrl.isExpanded ? "none" : undefined,
