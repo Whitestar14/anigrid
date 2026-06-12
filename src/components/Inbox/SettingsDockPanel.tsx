@@ -10,6 +10,7 @@ import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 import { ImportChoiceModal } from "@/components/ImportChoiceModal";
 import { useToast } from "@/context/ToastContext";
 
+
 export const SettingsDockPanel: React.FC<{
   requestConfirm?: (title: string, message: string, onConfirm: () => void) => void;
   onOpenAbout?: () => void;
@@ -21,7 +22,7 @@ export const SettingsDockPanel: React.FC<{
         isDark: s.theme?.isDark ?? true,
         reduceGlass: s.preferences.reduceGlassEffects ?? false,
         autoCloseDesktop: s.preferences.autoCloseDockOnDragDesktop ?? false,
-        updateTheme: s.updateGlobalTheme,
+        updateTheme: s.updateTheme,
         updatePreferences: s.updatePreferences,
       })),
     );

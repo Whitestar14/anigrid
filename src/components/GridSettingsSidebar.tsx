@@ -1,7 +1,6 @@
 import React from "react";
 import { useStore } from "@/store/useStore";
 import { useShallow } from "zustand/react/shallow";
-import { Info } from "lucide-react";
 
 import { ProjectHeaderSection } from "./settings/ProjectHeaderSection";
 import { ViewModeSection } from "./settings/ViewModeSection";

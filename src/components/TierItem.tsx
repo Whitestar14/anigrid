@@ -21,7 +21,7 @@ export const TierItem = React.memo(function TierItem({
   item: CellData;
   aspectRatio: string;
 }) {
-  const onMoveToInbox = useStore(s => s.handleTierMoveToInbox);
+  const handleItemTransfer = useStore(s => s.handleItemTransfer);
   const onUpdateItem = useStore(s => s.handleUpdateTierItem);
 
   const tierRef = useRef<HTMLDivElement>(null);
@@ -124,7 +124,7 @@ export const TierItem = React.memo(function TierItem({
           triggerPoint={localClickPoint}
           actions={[
             { label: 'Adjust', icon: Crop, onClick: startAdjusting },
-            { label: 'Remove', icon: X, onClick: () => { onMoveToInbox(rowId, idx); clearInteraction(); }, variant: 'danger' }
+            { label: 'Remove', icon: X, onClick: () => { handleItemTransfer({ type: "tier", rowId, itemId: item.id }, { type: "inbox" }); clearInteraction(); }, variant: 'danger' }
           ]}
         />
       )}

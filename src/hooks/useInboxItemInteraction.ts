@@ -24,7 +24,7 @@ export function useInboxItemInteraction() {
 
       // ── Place into a targeted grid cell ──────────────────────
       if (interactionState?.type === "cell") {
-        s.handleInboxDrop(itemId, collectionId, interactionState.index);
+        s.handleItemTransfer({ type: "inbox", collectionId, itemId }, { type: "cell", index: interactionState.index });
         // Advance selection to next cell so the user can keep clicking inbox items
         const nextIndex = interactionState.index + 1;
         if (nextIndex < activeRank.cells.length) {
@@ -37,7 +37,7 @@ export function useInboxItemInteraction() {
 
       // ── Place into a targeted tier row ───────────────────────
       if (interactionState?.type === "tier-item") {
-        s.handleInboxDropToTier(itemId, collectionId, interactionState.rowId, -1);
+        s.handleItemTransfer({ type: "inbox", collectionId, itemId }, { type: "tier", rowId: interactionState.rowId, targetIndex: -1 });
         s.setInteractionState(null);
         return;
       }

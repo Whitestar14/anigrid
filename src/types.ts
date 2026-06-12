@@ -98,10 +98,16 @@ export interface GlobalState {
   };
 }
 
-export type DragSource =
+export type TransferSource =
   | { type: "cell"; index: number }
-  | { type: "inbox"; id: string; originCollectionId: string }
-  | { type: "search"; imageSrc: string };
+  | { type: "inbox"; collectionId: string; itemId?: string }
+  | { type: "search"; imageSrc: string }
+  | { type: "tier"; rowId: string; itemId: string };
+
+export type TransferTarget =
+  | { type: "inbox" }
+  | { type: "cell"; index: number }
+  | { type: "tier"; rowId: string; targetIndex: number };
 
 export interface JikanResult {
   mal_id: number;

@@ -5,9 +5,7 @@ import { findInboxItem, findInboxItems } from "@/utils/storeUtils";
 
 export interface InboxSlice {
   updateActiveCollection: (updates: Partial<InboxCollection>) => void;
-  handleInboxDrop: (itemId: string, sourceColId: string, toIndex: number) => void;
-  handleInboxDropMulti: (itemIds: string[], sourceColId: string, toIndex: number) => void;
-  handleSearchDrop: (imageSrc: string, toIndex: number) => void;
+
   handleAddToCollection: (imageSrc: string, collectionId: string) => void;
   handleUpdateLastTarget: (colId: string) => void;
   setIsDraggingFromDock: (v: boolean) => void;
@@ -34,125 +32,7 @@ export const createInboxSlice: StateCreator<
       );
       if (collection) Object.assign(collection, updates);
     }),
-  handleInboxDrop: (itemId, sourceColId, toIndex) => {
-    const state = get();
-    const item = findInboxItem(state.inbox, itemId, sourceColId);
-    if (!item) return;
 
-    state.checkDuplicateAndProceed(item.imageSrc, () => {
-      set((draft) => {
-        const currentRank = draft.ranks[draft.activeRankId];
-        if (!currentRank) return;
-
-        // Ensure enough cells
-        if (toIndex >= currentRank.cells.length) {
-          const toAdd = toIndex - currentRank.cells.length + 1;
-          for (let i = 0; i < toAdd; i++) {
-            currentRank.cells.push({
-              id: `cell-${currentRank.cells.length}-${Date.now()}`,
-              imageSrc: null,
-              position: currentRank.cells.length,
-            });
-          }
-        }
-        currentRank.cells[toIndex].imageSrc = item.imageSrc;
-        currentRank.updatedAt = Date.now();
-      });
-      get().handleUpdateLastTarget(sourceColId);
-    });
-  },
-  handleInboxDropMulti: (itemIds, sourceColId, toIndex) => {
-    const state = get();
-    const activeRank = state.ranks[state.activeRankId];
-    if (!activeRank || itemIds.length === 0) return;
-
-    const validItems = findInboxItems(state.inbox, itemIds, sourceColId);
-    if (validItems.length === 0) return;
-
-    set((draft) => {
-      const currentRank = draft.ranks[draft.activeRankId];
-      if (!currentRank) return;
-
-      let currentIdx = toIndex;
-      for (const item of validItems) {
-        if (!draft.preferences.skipDuplicateWarning && currentRank.type === "ranking") {
-          if (currentRank.cells.some((c) => c.imageSrc === item.imageSrc)) continue;
-        }
-
-        // Find next empty cell or append
-        while (currentIdx < currentRank.cells.length && currentRank.cells[currentIdx].imageSrc) {
-          currentIdx++;
-        }
-
-        if (currentIdx >= currentRank.cells.length) {
-          currentRank.cells.push({
-            id: `cell-${currentRank.cells.length}-${Date.now()}`,
-            imageSrc: item.imageSrc,
-            position: currentRank.cells.length,
-          });
-        } else {
-          currentRank.cells[currentIdx].imageSrc = item.imageSrc;
-        }
-        currentIdx++;
-      }
-      currentRank.updatedAt = Date.now();
-    });
-    get().handleUpdateLastTarget(sourceColId);
-  },
-  handleSearchDrop: (imageSrc, toIndex) => {
-    const state = get();
-    state.checkDuplicateAndProceed(imageSrc, () => {
-      set((draft) => {
-        const currentRank = draft.ranks[draft.activeRankId];
-        if (!currentRank) return;
-
-        if (toIndex >= currentRank.cells.length) {
-          const toAdd = toIndex - currentRank.cells.length + 1;
-          for (let i = 0; i < toAdd; i++) {
-            currentRank.cells.push({
-              id: `cell-${currentRank.cells.length}-${Date.now()}`,
-              imageSrc: null,
-              position: currentRank.cells.length,
-            });
-          }
-        }
-        currentRank.cells[toIndex].imageSrc = imageSrc;
-        currentRank.updatedAt = Date.now();
-
-        const activeColId =
-          draft.inbox.activeCollectionId === "all-images"
-            ? draft.inbox.collections[0].id
-            : draft.inbox.activeCollectionId;
-        
-        const col = draft.inbox.collections.find(c => c.id === activeColId);
-        if (col && !col.items.some(i => i.imageSrc === imageSrc)) {
-           col.items.push({
-             id: `inbox-add-${Date.now()}`,
-             imageSrc,
-             createdAt: Date.now()
-           });
-        }
-      });
-
-      // Background Optimization: Fetch and cache as base64
-      import("@/utils/imageProxy").then(({ fetchAndCacheImage }) => {
-        fetchAndCacheImage(imageSrc).then(base64 => {
-          if (base64) {
-            set(d => {
-              const r = d.ranks[d.activeRankId];
-              if (r && r.cells[toIndex]) r.cells[toIndex].imageSrc = base64;
-              
-              d.inbox.collections.forEach(c => {
-                c.items.forEach(it => {
-                  if (it.imageSrc === imageSrc) it.imageSrc = base64;
-                });
-              });
-            });
-          }
-        });
-      });
-    });
-  },
   handleAddToCollection: (imageSrc, collectionId) =>
     set((state) => {
       const col = state.inbox.collections.find((c) => c.id === collectionId);

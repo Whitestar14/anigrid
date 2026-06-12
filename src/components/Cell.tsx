@@ -25,7 +25,7 @@ export const Cell = React.memo(function Cell({
 
   const handleCellClear = useStore(s => s.handleCellClear);
   const handleUpdateCell = useStore(s => s.handleUpdateCell);
-  const handleMoveToInbox = useStore(s => s.handleMoveToInbox);
+  const handleItemTransfer = useStore(s => s.handleItemTransfer);
   const handleCellUpload = useStore(s => s.handleCellUpload);
   const handleSearchDrop = useStore(s => s.handleSearchDrop);
 
@@ -102,7 +102,7 @@ export const Cell = React.memo(function Cell({
   const actions = data.imageSrc ? [
     { label: 'Replace', icon: Upload, onClick: triggerPicker },
     { label: 'Crop & Adjust', icon: Crop, onClick: startAdjusting },
-    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => handleMoveToInbox(index) },
+    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => handleItemTransfer({ type: "cell", index }, { type: "inbox" }) },
     { label: 'Download', icon: Download, onClick: () => { } },
     { label: 'Remove', icon: Trash2, onClick: () => handleCellClear(index), variant: 'danger' as const },
   ] : [

@@ -44,19 +44,19 @@ export function useCellInteraction(config: CellInteractionConfig) {
         return;
       }
       if (current?.type === 'inbox') {
-        store.handleInboxDrop(current.itemId, current.collectionId, config.index);
+        store.handleItemTransfer({ type: "inbox", collectionId: current.collectionId, itemId: current.itemId }, { type: "cell", index: config.index });
         store.setInteractionState(null);
         setLocalClickPoint(null);
         return;
       }
       if (current?.type === 'inbox-multi') {
-        store.handleInboxDropMulti(current.itemIds, current.collectionId, config.index);
+        store.handleItemTransfer({ type: "inbox", collectionId: current.collectionId }, { type: "cell", index: config.index }, current.itemIds);
         store.setInteractionState(null);
         setLocalClickPoint(null);
         return;
       }
       if (current?.type === 'search') {
-        store.handleSearchDrop(current.imageSrc, config.index);
+        store.handleItemTransfer({ type: "search", imageSrc: current.imageSrc }, { type: "cell", index: config.index });
         store.setInteractionState(null);
         setLocalClickPoint(null);
         return;
@@ -65,38 +65,33 @@ export function useCellInteraction(config: CellInteractionConfig) {
     } else if (config.type === 'tier-item' && config.rowId) {
       // --- TIER ITEM LOGIC ---
       if (current?.type === 'inbox') {
-        store.handleInboxDropToTier(current.itemId, current.collectionId, config.rowId, config.index);
+        store.handleItemTransfer({ type: "inbox", collectionId: current.collectionId, itemId: current.itemId }, { type: "tier", rowId: config.rowId, targetIndex: config.index });
         store.setInteractionState(null);
         setLocalClickPoint(null);
         return;
       }
       if (current?.type === 'inbox-multi') {
-        store.handleInboxDropToTierMulti(current.itemIds, current.collectionId, config.rowId, config.index);
+        store.handleItemTransfer({ type: "inbox", collectionId: current.collectionId }, { type: "tier", rowId: config.rowId, targetIndex: config.index }, current.itemIds);
         store.setInteractionState(null);
         setLocalClickPoint(null);
         return;
       }
       if (current?.type === 'tier-item') {
         if (current.itemId !== config.itemId || config.itemId === undefined) {
-          store.handleInternalTierMove(current.rowId, current.itemId, config.rowId, config.index);
+          store.handleItemTransfer({ type: "tier", rowId: current.rowId, itemId: current.itemId }, { type: "tier", rowId: config.rowId, targetIndex: config.index });
         }
         store.setInteractionState(null);
         setLocalClickPoint(null);
         return;
       }
       if (current?.type === 'search') {
-        store.handleSearchDropToTier(current.imageSrc, config.rowId, config.index);
+        store.handleItemTransfer({ type: "search", imageSrc: current.imageSrc }, { type: "tier", rowId: config.rowId, targetIndex: config.index });
         store.setInteractionState(null);
         setLocalClickPoint(null);
         return;
       }
       if (current?.type === 'cell') {
-        const cells = store.ranks[store.activeRankId]?.cells;
-        const cell = cells?.[current.index];
-        if (cell?.imageSrc) {
-          store.handleSearchDropToTier(cell.imageSrc, config.rowId, config.index);
-          store.handleCellClear(current.index);
-        }
+        store.handleItemTransfer({ type: "cell", index: current.index }, { type: "tier", rowId: config.rowId, targetIndex: config.index });
         store.setInteractionState(null);
         setLocalClickPoint(null);
         return;

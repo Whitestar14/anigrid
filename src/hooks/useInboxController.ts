@@ -45,8 +45,7 @@ export function useInboxController(
     renameCollection,
     removeInboxItem,
     moveItemsToCollection,
-    handleMoveToInbox,
-    handleTierItemRemove,
+    handleItemTransfer,
     handleAddToCollection,
     recallItemByImageSrc,
     handleUpdateLastTarget,
@@ -66,8 +65,7 @@ export function useInboxController(
       renameCollection: s.renameCollection,
       removeInboxItem: s.removeInboxItem,
       moveItemsToCollection: s.moveItemsToCollection,
-      handleMoveToInbox: s.handleMoveToInbox,
-      handleTierItemRemove: s.handleTierItemRemove,
+      handleItemTransfer: s.handleItemTransfer,
       handleAddToCollection: s.handleAddToCollection,
       recallItemByImageSrc: s.recallItemByImageSrc,
       handleUpdateLastTarget: s.handleUpdateLastTarget,
@@ -241,11 +239,11 @@ export function useInboxController(
         try {
           const source = JSON.parse(dragData) as { type?: string };
           if (source.type === "cell") {
-            handleMoveToInbox((source as { index: number }).index);
+            handleItemTransfer({ type: "cell", index: (source as { index: number }).index }, { type: "inbox" });
             scheduleDockExpand(setIsExpanded);
           } else if (source.type === "tier-item") {
             const t = source as { rowId: string; itemId: string };
-            handleTierItemRemove(t.rowId, t.itemId);
+            handleItemTransfer({ type: "tier", rowId: t.rowId, itemId: t.itemId }, { type: "inbox" });
             scheduleDockExpand(setIsExpanded);
           }
         } catch {
@@ -258,8 +256,7 @@ export function useInboxController(
       isAllView,
       isExpanded,
       handleInboxUpload,
-      handleMoveToInbox,
-      handleTierItemRemove,
+      handleItemTransfer,
     ]
   );
 

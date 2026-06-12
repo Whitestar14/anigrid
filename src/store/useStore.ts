@@ -7,8 +7,9 @@ import { GlobalState } from "@/types";
 import { createGlobalSlice, GlobalSlice } from "./slices/globalSlice";
 import { createRankSlice, RankSlice } from "./slices/rankSlice";
 import { createInboxSlice, InboxSlice } from "./slices/inboxSlice";
+import { createTransferSlice, TransferSlice } from "./slices/transferSlice";
 
-export interface AppState extends GlobalState, GlobalSlice, RankSlice, InboxSlice { }
+export interface AppState extends GlobalState, GlobalSlice, RankSlice, InboxSlice, TransferSlice { }
 
 const initialDefaultState = createDefaultState();
 
@@ -20,6 +21,7 @@ export const useStore = create<AppState>()(
         ...createGlobalSlice(set as any, get as any, api as any),
         ...createRankSlice(set as any, get as any, api as any),
         ...createInboxSlice(set as any, get as any, api as any),
+        ...createTransferSlice(set as any, get as any, api as any),
       })),
       {
         name: "anime-ranker-state",
@@ -29,10 +31,10 @@ export const useStore = create<AppState>()(
       }
     ),
     {
-      partialize: (state) => {
-        const { interactionState, duplicateModalConfig, ...rest } = state;
-        return rest;
-      },
+      partialize: (state) => ({
+        ranks: state.ranks,
+        inbox: state.inbox,
+      }),
     }
   )
 );

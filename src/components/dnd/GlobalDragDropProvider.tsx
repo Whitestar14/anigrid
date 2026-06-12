@@ -142,7 +142,7 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
       const itemId = active.data.current?.id;
       const colId = active.data.current?.collectionId;
       if (idx !== undefined && itemId && colId) {
-        store.handleInboxDrop(itemId, colId, idx);
+        store.handleItemTransfer({ type: "inbox", collectionId: colId, itemId }, { type: "cell", index: idx });
       }
     }
 
@@ -151,11 +151,11 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
       const idx = over.data.current?.index;
       const imageSrc = active.data.current?.imageSrc;
       if (idx !== undefined && imageSrc) {
-        store.handleSearchDrop(imageSrc, idx);
+        store.handleItemTransfer({ type: "search", imageSrc }, { type: "cell", index: idx });
       }
     }
 
-    /* ── Cell → Cell (swap) ─────────────────────────────── */
+    /* ── Cell → Cell (swap/reorder) ─────────────────────── */
     if (aType === DRAG_TYPE.CELL && oType === DROP_TYPE.CELL) {
       const fromIdx = active.data.current?.index;
       const toIdx = over.data.current?.index;
@@ -172,7 +172,7 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
     if (aType === DRAG_TYPE.CELL && oType === DROP_TYPE.DOCK) {
       const fromIdx = active.data.current?.index;
       if (fromIdx !== undefined) {
-        store.handleMoveToInbox(fromIdx);
+        store.handleItemTransfer({ type: "cell", index: fromIdx }, { type: "inbox" });
       }
     }
 
@@ -183,7 +183,7 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
       const itemId = active.data.current?.id;
       const colId = active.data.current?.collectionId;
       if (rowId && itemId && colId) {
-        store.handleInboxDropToTier(itemId, colId, rowId, idx);
+        store.handleItemTransfer({ type: "inbox", collectionId: colId, itemId }, { type: "tier", rowId, targetIndex: idx });
       }
     }
 
@@ -193,7 +193,7 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
       const idx = over.data.current?.index ?? -1;
       const imageSrc = active.data.current?.imageSrc;
       if (rowId && imageSrc) {
-        store.handleSearchDropToTier(imageSrc, rowId, idx);
+        store.handleItemTransfer({ type: "search", imageSrc }, { type: "tier", rowId, targetIndex: idx });
       }
     }
 
@@ -204,7 +204,7 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
       const tgtRowId = over.data.current?.rowId;
       const tgtIdx = over.data.current?.index ?? -1;
       if (srcRowId && srcItemId && tgtRowId) {
-        store.handleInternalTierMove(srcRowId, srcItemId, tgtRowId, tgtIdx);
+        store.handleItemTransfer({ type: "tier", rowId: srcRowId, itemId: srcItemId }, { type: "tier", rowId: tgtRowId, targetIndex: tgtIdx });
       }
     }
 
@@ -213,7 +213,7 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
       const srcRowId = active.data.current?.rowId;
       const srcItemId = active.data.current?.id;
       if (srcRowId && srcItemId) {
-        store.handleTierMoveToInbox(srcRowId, srcItemId);
+        store.handleItemTransfer({ type: "tier", rowId: srcRowId, itemId: srcItemId }, { type: "inbox" });
       }
     }
 
@@ -221,23 +221,19 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
     if (aType === DRAG_TYPE.TIER_ITEM && oType === DROP_TYPE.CELL) {
       const srcRowId = active.data.current?.rowId;
       const srcItemId = active.data.current?.id;
-      const imageSrc = active.data.current?.imageSrc;
       const idx = over.data.current?.index;
-      if (srcRowId && srcItemId && imageSrc && idx !== undefined) {
-        store.handleSearchDrop(imageSrc, idx);
-        store.handleTierMoveToInbox(srcRowId, srcItemId);
+      if (srcRowId && srcItemId && idx !== undefined) {
+        store.handleItemTransfer({ type: "tier", rowId: srcRowId, itemId: srcItemId }, { type: "cell", index: idx });
       }
     }
 
     /* ── Cell → Tier ───────────────────────────────────── */
     if (aType === DRAG_TYPE.CELL && oType === DROP_TYPE.TIER_CELL) {
       const fromIdx = active.data.current?.index;
-      const imageSrc = active.data.current?.imageSrc;
       const rowId = over.data.current?.rowId;
       const tgtIdx = over.data.current?.index ?? -1;
-      if (fromIdx !== undefined && imageSrc && rowId) {
-        store.handleSearchDropToTier(imageSrc, rowId, tgtIdx);
-        store.handleCellClear(fromIdx);
+      if (fromIdx !== undefined && rowId) {
+        store.handleItemTransfer({ type: "cell", index: fromIdx }, { type: "tier", rowId, targetIndex: tgtIdx });
       }
     }
   }, []);

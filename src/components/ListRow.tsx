@@ -27,7 +27,7 @@ export const ListRow = React.memo(function ListRow({
 
   const handleCellClear = useStore(s => s.handleCellClear);
   const handleUpdateCell = useStore(s => s.handleUpdateCell);
-  const handleMoveToInbox = useStore(s => s.handleMoveToInbox);
+  const handleItemTransfer = useStore(s => s.handleItemTransfer);
   const handleCellUpload = useStore(s => s.handleCellUpload);
 
   const rowRef = useRef<HTMLDivElement>(null);
@@ -102,7 +102,7 @@ export const ListRow = React.memo(function ListRow({
   const actions = data.imageSrc ? [
     { label: 'Replace', icon: Upload, onClick: triggerPicker },
     { label: 'Crop & Adjust', icon: Move, onClick: startAdjusting },
-    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => handleMoveToInbox(index) },
+    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => handleItemTransfer({ type: "cell", index }, { type: "inbox" }) },
     { label: 'Remove', icon: Trash2, onClick: () => handleCellClear(index), variant: 'danger' as const },
   ] : [
     { label: 'Local File', icon: Upload, onClick: triggerPicker },
