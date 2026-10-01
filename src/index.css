@@ -585,19 +585,6 @@
 }
 
 
-@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  :where(:root) .material,
-  :where(:root) .material-thin,
-  :where(:root) .material-card {
-    background-color: var(--color-surface);
-  }
-  :where(:root) .material-thick {
-    background-color: var(--color-surface-elevated);
-  }
-  :where(:root) .material-chrome {
-    background-color: var(--color-background);
-  }
-}
 
 html[data-reduce-glass] :where(.material, .material-thin, .material-card) {
   background-color: var(--color-surface);
