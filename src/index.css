@@ -585,16 +585,16 @@
 }
 
 
-@supports not (backdrop-filter: blur(1px)) {
-  .material,
-  .material-thin,
-  .material-card {
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  :where(:root) .material,
+  :where(:root) .material-thin,
+  :where(:root) .material-card {
     background-color: var(--color-surface);
   }
-  .material-thick {
+  :where(:root) .material-thick {
     background-color: var(--color-surface-elevated);
   }
-  .material-chrome {
+  :where(:root) .material-chrome {
     background-color: var(--color-background);
   }
 }
