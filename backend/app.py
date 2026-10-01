@@ -4,7 +4,10 @@ from flask_cors import CORS
 import requests
 from io import BytesIO
 import hashlib
+import json
 import os
+import threading
+import time
 from datetime import datetime
 
 app = Flask(__name__)
@@ -15,6 +18,103 @@ CORS(app)  # Enable CORS for all routes
 image_cache = {}
 CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
 os.makedirs(CACHE_DIR, exist_ok=True)
+
+# ── AniList passthrough ───────────────────────────────────────────────────────
+# AniList is a free service on donated infrastructure and regularly degrades,
+# so the app must never be the reason it is hit harder. Requests are serialised
+# behind a lock with a minimum gap between outbound calls, identical queries are
+# cached on disk, and AniList's own Retry-After is honoured.
+#
+# This also removes the CORS failures the browser hit when talking to
+# graphql.anilist.co directly, and gives AniList the same server-side guards
+# the MyAnimeList path already had.
+ANILIST_ENDPOINT = 'https://graphql.anilist.co'
+ANILIST_MIN_INTERVAL = 1.5  # seconds between outbound calls
+_anilist_lock = threading.Lock()
+_last_anilist_call = 0.0
+
+
+def _read_json_cache(cache_file):
+    try:
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f'Cache read error: {e}')
+        return None
+
+
+def _write_json_cache(cache_file, payload):
+    try:
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(payload, f)
+    except Exception as e:
+        print(f'Cache write error: {e}')
+
+
+@app.route('/proxy/anilist', methods=['POST', 'OPTIONS'])
+def proxy_anilist():
+    """Forward a GraphQL query to AniList, with caching and rate discipline."""
+    if request.method == 'OPTIONS':
+        return ('', 204)
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get('query'), str):
+        return jsonify({'error': 'Missing GraphQL query'}), 400
+
+    cache_key = hashlib.md5(
+        json.dumps(payload, sort_keys=True).encode()
+    ).hexdigest()
+    cache_file = os.path.join(CACHE_DIR, f'anilist-{cache_key}.json')
+
+    cached = _read_json_cache(cache_file)
+    if cached is not None:
+        return jsonify(cached)
+
+    global _last_anilist_call
+    with _anilist_lock:
+        wait = ANILIST_MIN_INTERVAL - (time.time() - _last_anilist_call)
+        if wait > 0:
+            time.sleep(wait)
+
+        try:
+            response = requests.post(
+                ANILIST_ENDPOINT,
+                json=payload,
+                headers={
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'User-Agent': 'Ranku/1.0 (+https://ranku.app)',
+                },
+                timeout=12,
+            )
+        except requests.exceptions.Timeout:
+            return jsonify({'error': 'AniList timed out'}), 504
+        except requests.exceptions.RequestException as e:
+            print(f'AniList fetch error: {e}')
+            return jsonify({'error': 'AniList unreachable'}), 502
+        finally:
+            _last_anilist_call = time.time()
+
+    retry_after = response.headers.get('retry-after')
+    if retry_after:
+        # Surfaced so the client can back off rather than retry blindly.
+        pass
+
+    if response.status_code == 429:
+        result = response.headers.get('retry-after')
+        return jsonify({'error': 'AniList rate limited'}), 429, {'Retry-After': result or '60'}
+
+    try:
+        data = response.json()
+    except ValueError:
+        return jsonify({'error': 'AniList returned a non-JSON response'}), 502
+
+    # Cache successful lookups only: caching a failure for the whole TTL would
+    # keep the app degraded long after AniList recovered.
+    if response.status_code == 200 and not data.get('errors'):
+        _write_json_cache(cache_file, data)
+
+    return jsonify(data), response.status_code
 
 @app.route('/proxy/image', methods=['GET'])
 def proxy_image():
@@ -28,8 +128,13 @@ def proxy_image():
         return jsonify({'error': 'Invalid URL'}), 400
 
     allowed_domains = [
-        'myanimelist.net', 
-        's4.anilist.co', 
+        'myanimelist.net',
+        's4.anilist.co',
+        # AniList serves character art and some covers from these hosts, not
+        # only s4 — without them those images were refused with a 403 and the
+        # dock showed empty tiles.
+        'anilist.co',
+        'anilistcdn.com',
         'cdn.myanimelist.net',
         'imgur.com',
         'discordapp.com',

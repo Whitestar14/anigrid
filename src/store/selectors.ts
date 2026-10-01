@@ -40,13 +40,6 @@ export const selectActiveCollection = createSelector(
     collections.find(c => c.id === activeCollectionId)
 );
 
-// Parameterized selectors (Note: these are not memoized across different parameters by default in reselect 5)
-// But they provide a clean API for components
-export const selectCellByIndex = (index: number) => createSelector(
-  [selectCells],
-  (cells) => cells[index]
-);
-
 export const selectTierRowById = (rowId: string) => createSelector(
   [selectTierRows],
   (rows) => rows.find(r => r.id === rowId)

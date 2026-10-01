@@ -12,14 +12,10 @@ import { useToast } from "@/context/ToastContext";
 import { useImagePresenceSets } from "@/hooks/useImagePresenceSets";
 import { useInboxItemInteraction } from "@/hooks/useInboxItemInteraction";
 import { readFileAsDataURL } from "@/utils/imageUtils";
-import {
-  maybeCollapseDockOnDrag,
-  scheduleDockExpand,
-  writeInboxMultiDragData,
-  writeSearchDragData,
-} from "@/utils/inboxDrag";
-import type { InboxItem, JikanResult } from "@/types";
+import { scheduleDockExpand, DOCK_EXPAND_EVENT } from "@/utils/inboxDrag";
+import type { ImageSourcePreference, InboxItem } from "@/types";
 import type { DockSurface, InboxTab } from "@/components/Inbox/types";
+import { runActivity, useActivityState } from "@/state/activityState";
 
 const OPEN_SEARCH_EVENT = "open-inbox-search";
 
@@ -28,9 +24,6 @@ export function useInboxController(
 ) {
   const addToast = useToast();
   const onInteract = useInboxItemInteraction();
-  const autoCloseDockDesktop = useStore(
-    (s) => s.preferences.autoCloseDockOnDragDesktop
-  );
   const { inboxImageSet: usedImageSrcs, boardImageSet: usedOnBoard } =
     useImagePresenceSets();
 
@@ -47,12 +40,14 @@ export function useInboxController(
     moveItemsToCollection,
     handleItemTransfer,
     handleAddToCollection,
-    recallItemByImageSrc,
+    handleRecallFromBoard,
     handleUpdateLastTarget,
     handleRestoreItem,
     handleInboxUpload,
     setIsDraggingFromDock,
     isDraggingFromDock,
+    searchSource,
+    updatePreferences,
   } = useStore(
     useShallow((s) => ({
       collections: s.inbox.collections,
@@ -67,12 +62,15 @@ export function useInboxController(
       moveItemsToCollection: s.moveItemsToCollection,
       handleItemTransfer: s.handleItemTransfer,
       handleAddToCollection: s.handleAddToCollection,
-      recallItemByImageSrc: s.recallItemByImageSrc,
+      handleRecallFromBoard: s.handleRecallFromBoard,
       handleUpdateLastTarget: s.handleUpdateLastTarget,
       setIsDraggingFromDock: s.setIsDraggingFromDock,
       isDraggingFromDock: s.inbox.isDraggingFromDock,
       handleRestoreItem: s.handleRestoreItem,
       handleInboxUpload: s.handleInboxUpload,
+      searchSource: (s.preferences.imageSource ??
+        "auto") as ImageSourcePreference,
+      updatePreferences: s.updatePreferences,
     }))
   );
 
@@ -85,7 +83,6 @@ export function useInboxController(
   const [searchMode, setSearchMode] = useState<"anime" | "characters">(
     "characters"
   );
-  const [searchResults, setSearchResults] = useState<JikanResult[]>([]);
 
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [tempName, setTempName] = useState("");
@@ -124,6 +121,12 @@ export function useInboxController(
       window.removeEventListener(OPEN_SEARCH_EVENT, handleOpenSearch);
   }, []);
 
+  useEffect(() => {
+    const handleExpand = () => setIsExpanded(true);
+    window.addEventListener(DOCK_EXPAND_EVENT, handleExpand);
+    return () => window.removeEventListener(DOCK_EXPAND_EVENT, handleExpand);
+  }, []);
+
 
 
   const handleItemClick = useCallback(
@@ -157,34 +160,41 @@ export function useInboxController(
 
 
 
+  const toastAddedToCollection = useCallback(
+    (imageSrc: string, colId: string) => {
+      const colName =
+        collections.find((c) => c.id === colId)?.name || "Collection";
+      addToast("success", `Added to ${colName}`, "Change", () => {
+        setPendingPickerImage(imageSrc);
+        setActiveTab("picker");
+      });
+    },
+    [collections, addToast]
+  );
+
   const handleSmartAdd = useCallback(
     (imageSrc: string) => {
       if (
         lastTargetCollectionId &&
         collections.some((c) => c.id === lastTargetCollectionId)
       ) {
-        const targetName =
-          collections.find((c) => c.id === lastTargetCollectionId)?.name ||
-          "Collection";
         handleAddToCollection(imageSrc, lastTargetCollectionId);
-        addToast("success", `Added to ${targetName}`, "Change", () => {
-          setPendingPickerImage(imageSrc);
-          setActiveTab("picker");
-        });
+        toastAddedToCollection(imageSrc, lastTargetCollectionId);
       } else {
         setPendingPickerImage(imageSrc);
         setActiveTab("picker");
       }
     },
-    [lastTargetCollectionId, collections, handleAddToCollection, addToast]
+    [lastTargetCollectionId, collections, handleAddToCollection, toastAddedToCollection]
   );
 
+  /** Takes the poster off the board and leaves it in the library. */
   const handleRecall = useCallback(
     (imageSrc: string) => {
-      recallItemByImageSrc(imageSrc);
-      addToast("info", "Image recalled from board");
+      handleRecallFromBoard(imageSrc);
+      addToast("info", "Returned to stash");
     },
-    [recallItemByImageSrc, addToast]
+    [handleRecallFromBoard, addToast]
   );
 
   const handleDeleteItem = useCallback(
@@ -211,6 +221,50 @@ export function useInboxController(
     ]
   );
 
+  const ingestFiles = useCallback(
+    (files: FileList) => {
+      const list = Array.from(files);
+      if (list.length === 0) return;
+
+      if (list.length === 1 && list[0].size < 512_000) {
+        void (async () => {
+          try {
+            handleInboxUpload(await readFileAsDataURL(list[0]));
+          } catch (err) {
+            console.error("Failed to parse file", err);
+          }
+        })();
+        return;
+      }
+
+      void runActivity(
+        list.length === 1
+          ? "Processing image"
+          : `Importing ${list.length} images`,
+        async () => {
+          let failed = 0;
+          for (let i = 0; i < list.length; i++) {
+            try {
+              handleInboxUpload(await readFileAsDataURL(list[i]));
+            } catch (err) {
+              failed++;
+              console.error("Failed to parse file", err);
+            }
+            useActivityState.getState().setProgress((i + 1) / list.length);
+          }
+          if (failed === list.length) throw new Error("No images could be read");
+        },
+        {
+          successLabel: `${list.length} ${
+            list.length === 1 ? "image" : "images"
+          } added`,
+          errorLabel: "Import failed",
+        }
+      );
+    },
+    [handleInboxUpload]
+  );
+
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
@@ -218,17 +272,7 @@ export function useInboxController(
 
       if (activeTab === "stash" && !isAllView) {
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-          const files = e.dataTransfer.files;
-          void (async () => {
-            for (let i = 0; i < files.length; i++) {
-              try {
-                const src = await readFileAsDataURL(files[i]);
-                handleInboxUpload(src);
-              } catch (err) {
-                console.error("Failed to parse file", err);
-              }
-            }
-          })();
+          ingestFiles(e.dataTransfer.files);
           if (!isExpanded) setIsExpanded(true);
           return;
         }
@@ -255,38 +299,55 @@ export function useInboxController(
       activeTab,
       isAllView,
       isExpanded,
-      handleInboxUpload,
+      ingestFiles,
       handleItemTransfer,
     ]
+  );
+
+  /**
+   * An external drag is one the app did not start — a file from the desktop or
+   * an image from another window. dnd-kit drags use pointer events, so they
+   * never reach the native drag handlers; anything that does is external.
+   */
+  const handleDragEnter = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(true);
+      // Open the dock so a collapsed bar is not a 48px target you have to hit.
+      if (!isExpanded) setIsExpanded(true);
+    },
+    [isExpanded]
   );
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
       setIsDragOver(true);
       if (!isExpanded) setIsExpanded(true);
     },
     [isExpanded]
   );
 
+  const handleDragLeave = useCallback(() => setIsDragOver(false), []);
+
   const toggleExpand = useCallback(() => setIsExpanded((v) => !v), []);
 
   const handleCollectionPick = useCallback(
     (colId: string) => {
       if (!pendingPickerImage) return;
-      handleAddToCollection(pendingPickerImage, colId);
+      const imageSrc = pendingPickerImage;
+      handleAddToCollection(imageSrc, colId);
       handleUpdateLastTarget(colId);
       setPendingPickerImage(null);
       setActiveTab("search");
-      const colName = collections.find((c) => c.id === colId)?.name;
-      addToast("success", `Added to ${colName}`);
+      toastAddedToCollection(imageSrc, colId);
     },
     [
       pendingPickerImage,
       handleAddToCollection,
       handleUpdateLastTarget,
-      collections,
-      addToast,
+      toastAddedToCollection,
     ]
   );
 
@@ -308,21 +369,11 @@ export function useInboxController(
 
   const onFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (!e.target.files) return;
-      void (async () => {
-        const files = e.target.files;
-        if (!files) return;
-        for (let i = 0; i < files.length; i++) {
-          try {
-            const src = await readFileAsDataURL(files[i]);
-            handleInboxUpload(src);
-          } catch (err) {
-            console.error("Failed to parse file", err);
-          }
-        }
-      })();
+      if (e.target.files?.length) ingestFiles(e.target.files);
+      // Let the same file be chosen twice in a row.
+      e.target.value = "";
     },
-    [handleInboxUpload]
+    [ingestFiles]
   );
 
   return {
@@ -348,8 +399,9 @@ export function useInboxController(
     setSearchQuery,
     searchMode,
     setSearchMode,
-    searchResults,
-    setSearchResults,
+    searchSource,
+    setSearchSource: (source: ImageSourcePreference) =>
+      updatePreferences({ imageSource: source }),
     editingNameId,
     setEditingNameId,
     tempName,
@@ -364,7 +416,9 @@ export function useInboxController(
     handleDeleteItem,
     handleRecall,
     handleDrop,
+    handleDragEnter,
     handleDragOver,
+    handleDragLeave,
     toggleExpand,
     handleCollectionPick,
     requestDeleteCollection,

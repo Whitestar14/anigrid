@@ -1,248 +1,631 @@
 @import "tailwindcss";
 
+
 @font-face {
   font-family: 'Inter';
   src: url('./assets/InterVariable.woff2') format('woff2');
   font-display: swap;
 }
 
-@theme {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  --font-size-base: 1rem;
-  --font-size-sm: 0.875rem;
-  --font-size-lg: 1.125rem;
-
-  --color-systemBackground: var(--systemBackground);
-  --color-secondarySystemBackground: var(--secondarySystemBackground);
-  --color-tertiarySystemBackground: var(--tertiarySystemBackground);
-
-  --color-systemGroupedBackground: var(--systemGroupedBackground);
-  --color-secondarySystemGroupedBackground: var(--secondarySystemGroupedBackground);
-  --color-tertiarySystemGroupedBackground: var(--tertiarySystemGroupedBackground);
-
-  --color-label: var(--label);
-  --color-secondaryLabel: var(--secondaryLabel);
-  --color-tertiaryLabel: var(--tertiaryLabel);
-
-  --color-separator: var(--separator);
-  --color-opaqueSeparator: var(--opaqueSeparator);
-
-  --color-systemFill: var(--systemFill);
-  --color-secondarySystemFill: var(--secondarySystemFill);
-  --color-tintColor: var(--tintColor);
-  --color-destructive: var(--color-destructive);
-
-  /* Legacy mapped colors */
-  --color-background: var(--color-background);
-  --color-surface: var(--color-surface);
-  --color-surface-elevated: var(--color-surface-elevated);
-  --color-surface-secondary: var(--color-surface-secondary);
-  --color-border: var(--color-border);
-  --color-text: var(--color-text);
-  --color-muted: var(--color-muted);
-  --color-primary: var(--color-primary);
-  --color-hover: var(--color-hover);
-  --color-overlay: var(--color-overlay);
-
-  --animate-in: in 0.2s ease-out;
-  --animate-out: out 0.15s ease-in;
-}
-
 :root {
-  /* iOS Dark Theme Semantic Tokens */
-  --systemBackground: #000000;
-  --secondarySystemBackground: #1c1c1e;
-  --tertiarySystemBackground: #2c2c2e;
+  color-scheme: dark;
 
-  --systemGroupedBackground: #000000;
-  --secondarySystemGroupedBackground: #1c1c1e;
-  --tertiarySystemGroupedBackground: #2c2c2e;
+  --material-thin-blur: 14px;
+  --material-regular-blur: 28px;
+  --material-thick-blur: 44px;
+  --material-saturation: 180%;
 
-  --label: #ffffff;
-  --secondaryLabel: rgba(235, 235, 245, 0.6);
-  --tertiaryLabel: rgba(235, 235, 245, 0.3);
+  --material-regular-tint: rgba(30, 30, 32, 0.68);
+  --material-thin-tint: rgba(30, 30, 32, 0.5);
+  --material-thick-tint: rgba(32, 32, 34, 0.8);
+  --material-chrome-tint: rgba(18, 18, 20, 0.78);
 
-  --separator: rgba(84, 84, 88, 0.65);
-  --opaqueSeparator: #38383a;
+  /* Cards are not a blurred panel. They are a light veil sitting on the app
+     background, exactly as the original `.glass-card` did — that is what made a
+     grid of tiles read as glass rather than as a set of opaque slabs, and it is
+     free: no per-tile backdrop sampling, which is what made a large board slow. */
+  --material-card-tint: rgba(255, 255, 255, 0.06);
 
-  --systemFill: rgba(120, 120, 128, 0.36);
-  --secondarySystemFill: rgba(120, 120, 128, 0.32);
-
-  --tintColor: #0a84ff;
-
-  /* Legacy Aliases */
-  --color-background: var(--systemBackground);
-  --color-surface: var(--secondarySystemGroupedBackground);
-  --color-surface-elevated: var(--tertiarySystemGroupedBackground);
-  --color-surface-secondary: var(--systemFill);
-  --color-border: var(--separator);
-  --color-text: var(--label);
-  --color-muted: var(--secondaryLabel);
-  --color-primary: var(--tintColor);
-  --color-hover: var(--systemFill);
-  --color-overlay: rgba(0, 0, 0, 0.6);
-  --color-focus-ring: var(--tintColor);
-  --color-destructive: #FF453A;
-  /* iOS Dark Destructive */
-
-  --z-dropdown: 30;
-  --z-dock: 40;
-  --z-modal: 100;
-  --z-toast: 200;
-
-  --glass-bg: rgba(30, 30, 32, 0.75);
-  --glass-card-bg: rgba(255, 255, 255, 0.06);
-  --glass-blur: 40px;
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  /* The specular highlight that gives Liquid Glass its wet, lensed edge.
+     Shadows deliberately stay close to the original values — the heavier
+     0.55/0.65 alphas turned the whole dark UI muddy. */
+  --material-edge: rgba(255, 255, 255, 0.12);
+  --material-edge-strong: rgba(255, 255, 255, 0.2);
+  --material-hairline: rgba(255, 255, 255, 0.08);
+  --material-shadow: 0 4px 24px rgba(0, 0, 0, 0.32);
+  --material-shadow-high: 0 12px 40px rgba(0, 0, 0, 0.42);
 }
 
 .light {
-  /* iOS Light Theme Semantic Tokens */
-  --systemBackground: #ffffff;
-  --secondarySystemBackground: #f2f2f7;
-  --tertiarySystemBackground: #ffffff;
+  color-scheme: light;
 
-  --systemGroupedBackground: #f2f2f7;
-  --secondarySystemGroupedBackground: #ffffff;
-  --tertiarySystemGroupedBackground: #f2f2f7;
+  --color-background: #f2f2f7;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+  --color-surface-secondary: rgba(120, 120, 128, 0.12);
+  --color-border: rgba(60, 60, 67, 0.29);
+  --color-separator-opaque: #c6c6c8;
+  --color-text: #000000;
+  --color-muted: rgba(60, 60, 67, 0.6);
+  --color-faint: rgba(60, 60, 67, 0.3);
+  --color-primary: #007aff;
+  --color-hover: rgba(120, 120, 128, 0.08);
+  --color-overlay: rgba(0, 0, 0, 0.24);
+  --color-destructive: #ff3b30;
+  --color-focus-ring: #007aff;
+  --color-accent-blue: #007aff;
+  --color-accent-green: #34c759;
+  --color-accent-indigo: #5856d6;
+  --color-accent-orange: #ff9500;
+  --color-accent-pink: #ff2d55;
+  --color-accent-purple: #af52de;
+  --color-accent-red: #ff3b30;
+  --color-accent-teal: #5ac8fa;
+  --color-accent-yellow: #ffcc00;
 
-  --label: #000000;
-  --secondaryLabel: rgba(60, 60, 67, 0.6);
-  --tertiaryLabel: rgba(60, 60, 67, 0.3);
+  --material-regular-tint: rgba(255, 255, 255, 0.66);
+  --material-thin-tint: rgba(255, 255, 255, 0.48);
+  --material-thick-tint: rgba(255, 255, 255, 0.8);
+  --material-chrome-tint: rgba(249, 249, 251, 0.76);
 
-  --separator: rgba(60, 60, 67, 0.29);
-  --opaqueSeparator: #c6c6c8;
+  /* Light mode has nothing to lighten, so the card veil is a neutral grey wash
+     one step *below* the white canvas — the same relationship dark mode has in
+     the opposite direction. */
+  --material-card-tint: rgba(120, 120, 128, 0.07);
 
-  --systemFill: rgba(120, 120, 128, 0.2);
-  --secondarySystemFill: rgba(120, 120, 128, 0.16);
-
-  --tintColor: #007aff;
-
-  /* Legacy Aliases */
-  --color-background: var(--systemGroupedBackground);
-  --color-surface: var(--secondarySystemGroupedBackground);
-  --color-surface-elevated: var(--tertiarySystemGroupedBackground);
-  --color-surface-secondary: var(--systemFill);
-  --color-border: var(--separator);
-  --color-text: var(--label);
-  --color-muted: var(--secondaryLabel);
-  --color-primary: var(--tintColor);
-  --color-hover: var(--secondarySystemFill);
-  --color-overlay: rgba(0, 0, 0, 0.2);
-  --color-focus-ring: var(--tintColor);
-  --color-destructive: #FF3B30;
-  /* iOS Light Destructive */
-
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-card-bg: rgba(255, 255, 255, 0.1);
-  --glass-blur: 40px;
-  --glass-border: rgba(0, 0, 0, 0.1);
-  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  /* In light mode the edge must be a shadow, not a highlight. A 75%-white
+     hairline drawn on a white card reads as a glowing ring around every
+     surface, which is what made light mode look wrong. */
+  --material-edge: rgba(0, 0, 0, 0.05);
+  --material-edge-strong: rgba(0, 0, 0, 0.08);
+  --material-hairline: rgba(0, 0, 0, 0.07);
+  --material-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  --material-shadow-high: 0 12px 36px rgba(0, 0, 0, 0.16);
 }
 
-/* Responsive Text Scaling overrides */
-@media (max-width: 639px) {
-  .text-\[8px\] {
-    font-size: 7px !important;
+/* ── Tailwind theme bridge ───────────────────────────────────────────────── */
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+    'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    'Liberation Mono', 'Courier New', monospace;
+
+  /* Dynamic Type scale (pt → rem at a 16px root) */
+  --text-caption-2: 0.6875rem;
+  --text-caption-2--line-height: 0.8125rem;
+  --text-caption-1: 0.75rem;
+  --text-caption-1--line-height: 1rem;
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.125rem;
+  --text-subheadline: 0.9375rem;
+  --text-subheadline--line-height: 1.25rem;
+  --text-callout: 1rem;
+  --text-callout--line-height: 1.3125rem;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.375rem;
+  --text-headline: 1.0625rem;
+  --text-headline--line-height: 1.375rem;
+  --text-title-3: 1.25rem;
+  --text-title-3--line-height: 1.5625rem;
+  --text-title-2: 1.375rem;
+  --text-title-2--line-height: 1.75rem;
+  --text-title-1: 1.75rem;
+  --text-title-1--line-height: 2.125rem;
+  --text-large-title: 2.125rem;
+  --text-large-title--line-height: 2.5625rem;
+
+  --color-background: #000000;
+  --color-surface: #1c1c1e;
+  --color-surface-elevated: #2c2c2e;
+  --color-surface-secondary: rgba(120, 120, 128, 0.24);
+  --color-border: rgba(84, 84, 88, 0.65);
+  /* Sub-pixel separators. `border-border` is a real 1px line and, repeated
+     down a settings list, it reads as harsh; cards and rows use this. */
+  --color-hairline: var(--material-hairline);
+  --color-separator-opaque: #38383a;
+  --color-text: #ffffff;
+  --color-muted: rgba(235, 235, 245, 0.6);
+  --color-faint: rgba(235, 235, 245, 0.3);
+  --color-primary: #0a84ff;
+  --color-on-accent: #ffffff;
+  --color-hover: rgba(120, 120, 128, 0.18);
+  --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-destructive: #ff453a;
+  --color-focus-ring: #0a84ff;
+  --color-accent-blue: #0a84ff;
+  --color-accent-green: #30d158;
+  --color-accent-indigo: #5e5ce6;
+  --color-accent-orange: #ff9f0a;
+  --color-accent-pink: #ff375f;
+  --color-accent-purple: #bf5af2;
+  --color-accent-red: #ff453a;
+  --color-accent-teal: #64d2ff;
+  --color-accent-yellow: #ffd60a;
+
+  --radius-hairline: 6px;
+  --radius-chip: 10px;
+  --radius-control: 14px;
+  --radius-tile: 18px;
+  --radius-card: 22px;
+  --radius-panel: 30px;
+  --radius-bar: 26px;
+
+  /* Depth layering. These have to live in `@theme` or Tailwind emits no `z-*`
+     class at all. `rail-panel` is a step above `rail` so the settings rail
+     outranks the dock; `chrome` is the header, and `modal` sits above both. */
+  --z-index-rail: 40;
+  --z-index-rail-panel: 60;
+  --z-index-chrome: 50;
+  --z-index-modal: 100;
+  --z-index-toast: 200;
+
+  /* Width of the settings rail, and how far the floating dock is pushed clear
+     of it. The dock centres inside the content column rather than the viewport,
+     so the rail cannot cover it on a desktop window. */
+  --rail-width: 20rem;
+
+  /* Motion — Apple's fluid, interruptible springs, expressed as easings. */
+  --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --duration-quick: 160ms;
+  --duration-standard: 260ms;
+  --duration-emphasized: 420ms;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .text-\[9px\] {
-    font-size: 8px !important;
+  html,
+  body {
+    height: 100%;
   }
 
-  .text-\[10px\] {
-    font-size: 9px !important;
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    letter-spacing: -0.011em;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
-  .text-\[11px\] {
-    font-size: 10px !important;
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
   }
 
-  .text-\[12px\] {
-    font-size: 11px !important;
+  input,
+  textarea,
+  [contenteditable='true'],
+  .selectable {
+    user-select: text;
+    -webkit-user-select: text;
   }
 
-  .text-\[13px\],
-  .text-\[13\.5px\] {
-    font-size: 12px !important;
+  button {
+    font: inherit;
+    color: inherit;
   }
 
-  .text-\[14px\] {
-    font-size: 13px !important;
-  }
-
-  .text-\[15px\] {
-    font-size: 13px !important;
-  }
-
-  .text-\[17px\] {
-    font-size: 15px !important;
-  }
-
-  .text-\[20px\] {
-    font-size: 18px !important;
+  img {
+    -webkit-user-drag: none;
   }
 }
 
-body {
-  font-family: var(--font-sans);
+@layer components {
+  .material {
+    background-color: var(--material-regular-tint);
+  }
+  .material-card {
+    background-color: var(--material-card-tint);
+  }
+  .material-thin {
+    background-color: var(--material-thin-tint);
+  }
+  .material-thick {
+    background-color: var(--material-thick-tint);
+  }
+  .material-chrome {
+    background-color: var(--material-chrome-tint);
+  }
+
+  .media-scrim {
+    background-color: rgba(0, 0, 0, 0.46);
+    color: #ffffff;
+    backdrop-filter: blur(10px) saturate(160%);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.16);
+  }
+}
+
+@layer utilities {
+  .material {
+    backdrop-filter: blur(var(--material-regular-blur))
+      saturate(var(--material-saturation));
+    -webkit-backdrop-filter: blur(var(--material-regular-blur))
+      saturate(var(--material-saturation));
+    box-shadow:
+      inset 0 0 0 0.5px var(--material-edge),
+      var(--material-shadow);
+  }
+
+  /* The veil alone, with no edge of its own. For surfaces that sit inside a
+     tile whose border is drawn by something else, so the two cannot double. */
+  .card-veil {
+    background-color: var(--material-card-tint);
+  }
+
+  /* A card: a veil plus a hairline, and deliberately no `backdrop-filter`. The
+     veil is what lets the app background and whatever is behind the card tint
+     it, which is the whole visual effect — but sampling the backdrop once per
+     tile is also what made a 40-tile board crawl. This is the cheap half of
+     glass, and the half that actually reads as glass. */
+  .material-card {
+    box-shadow: inset 0 0 0 0.5px var(--material-hairline);
+  }
+
+  .material-thin {
+    backdrop-filter: blur(var(--material-thin-blur))
+      saturate(var(--material-saturation));
+    -webkit-backdrop-filter: blur(var(--material-thin-blur))
+      saturate(var(--material-saturation));
+    box-shadow: inset 0 0 0 0.5px var(--material-hairline);
+  }
+
+  .material-thick {
+    backdrop-filter: blur(var(--material-thick-blur))
+      saturate(var(--material-saturation));
+    -webkit-backdrop-filter: blur(var(--material-thick-blur))
+      saturate(var(--material-saturation));
+    box-shadow:
+      inset 0 0 0 0.5px var(--material-edge),
+      var(--material-shadow-high);
+  }
+
+  /* Chrome: the translucent bar behind navigation (toolbars, tab bars). */
+  .material-chrome {
+    backdrop-filter: blur(var(--material-regular-blur))
+      saturate(var(--material-saturation));
+    -webkit-backdrop-filter: blur(var(--material-regular-blur))
+      saturate(var(--material-saturation));
+    box-shadow: inset 0 -0.5px 0 0 var(--material-hairline);
+  }
+
+  .squircle {
+    corner-shape: initial;
+  }
+
+  .img-sheen {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background-color: var(--material-card-tint);
+  }
+  .img-sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 25%,
+      color-mix(in srgb, var(--color-text) 13%, transparent) 50%,
+      transparent 75%
+    );
+    animation: sheen 1.3s var(--ease-standard) infinite;
+  }
+
+  .tile-number {
+    position: absolute;
+    top: -0.05em;
+    left: 0;
+    z-index: 5;
+    font-size: 38cqi;
+    line-height: 0.8;
+    font-weight: 800;
+    letter-spacing: -0.07em;
+    font-variant-numeric: tabular-nums;
+
+    color: #ffffff;
+    text-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.55),
+      0 2px 12px rgba(0, 0, 0, 0.4);
+
+
+    /* The *tail* of the numeral dissolves rather than being cut off square:
+       only the bottom quarter fades, so the numeral stays a solid, legible glyph
+       everywhere it is actually visible and just melts into the artwork at the
+       far end. The first attempt faded from 42%, i.e. most of the glyph, which
+       on a bright poster left almost nothing to read. */
+    -webkit-mask-image: linear-gradient(to bottom, #000 74%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 74%, transparent 100%);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Landing pulse for a tile that just received a drop. Remounted (via `key`)
+     on every drop so the animation replays without any state machine. */
+  .drop-land {
+    animation: drop-land 460ms var(--ease-emphasized) forwards;
+  }
+
+  /* The target under a drag. A drag in flight should look like the board is
+     opening up to receive it, not like a ring appeared. */
+  .drop-target {
+    animation: drop-target 900ms var(--ease-standard) infinite;
+  }
+
+  .focus-ring {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Guarantees the 44pt minimum target Apple asks for without changing the
+     visual size of small controls. */
+  .touch-target::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Dock drop states. Outline is used rather than box-shadow so the
+     material's own edge highlight is never clobbered. */
+  .dock-drop-hot {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+    outline-offset: 2px;
+  }
+  .dock-drop-active {
+    outline: 2.5px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* A control that appears on hover/focus — and stays visible on touch
+     devices, where hover does not exist. */
+  .affordance {
+    opacity: 0;
+    transition: opacity var(--duration-quick) var(--ease-standard);
+  }
+  .tile:hover .affordance,
+  .tile:focus .affordance,
+  .tile:focus-within .affordance,
+  .affordance-host:hover .affordance,
+  .affordance-host:focus-within .affordance {
+    opacity: 1;
+  }
+  @media (pointer: coarse) {
+    .affordance {
+      opacity: 1;
+    }
+  }
+
+  /* NOTE: a material also paints `box-shadow`, and that part *does* still lose
+     to itself — i.e. `ring-*` on the same element is painted over by the
+     material's edge highlight. Use `outline` (see `.dock-drop-*` below) or an
+     inner border when an element needs both a material and a ring. */
+
+  .scrollbar-ios,
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-ios:hover,
+  .custom-scrollbar:hover {
+    scrollbar-color: var(--color-separator-opaque) transparent;
+  }
+  .scrollbar-ios::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-ios::-webkit-scrollbar-track,
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-ios::-webkit-scrollbar-thumb,
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .scrollbar-ios:hover::-webkit-scrollbar-thumb,
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: var(--color-separator-opaque);
+  }
+
+  .scrollbar-none,
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar,
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* ── Status island ─────────────────────────────────────────────────────── */
+@keyframes spin-ring {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The sweep arm has to rotate about the ring's centre. `transform-box:
+   view-box` makes `transform-origin` resolve against the SVG viewBox rather
+   than the element's own box, which is what the previous motion-driven rotation
+   got wrong — the arm orbited a point outside the ring and span off its path. */
+.ring-sweep {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: spin-ring 900ms linear infinite;
+}
+
+@keyframes sheen {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes drop-land {
+  0% {
+    opacity: 1;
+    transform: scale(1.055);
+    box-shadow:
+      0 0 0 2px var(--color-primary),
+      0 0 0 12px color-mix(in srgb, var(--color-primary) 26%, transparent);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+    box-shadow:
+      0 0 0 2px transparent,
+      0 0 0 0 transparent;
+  }
+}
+
+@keyframes drop-target {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--color-primary),
+      0 0 0 6px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--color-primary),
+      0 0 0 11px color-mix(in srgb, var(--color-primary) 12%, transparent);
+  }
+}
+
+@keyframes item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+.item-enter {
+  animation: item-enter 440ms var(--ease-emphasized) backwards;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+/* ── Entrance motion ─────────────────────────────────────────────────────
+   A single composed keyframe so utilities such as `animate-in fade-in
+   zoom-in-95` work together, mirroring tailwindcss-animate without the
+   dependency. */
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(
+        var(--tw-enter-translate-x, 0),
+        var(--tw-enter-translate-y, 0),
+        0
+      )
+      scale(var(--tw-enter-scale, 1));
+  }
+}
+
+@layer utilities {
+  /* `--tw-duration` is what Tailwind's `duration-*` utilities set, so an
+     explicit `duration-300` overrides the default instead of being ignored. */
+  .animate-in {
+    animation: enter var(--tw-duration, var(--duration-standard))
+      var(--ease-emphasized) both;
+  }
+  .animate-out {
+    animation: enter var(--tw-duration, var(--duration-quick))
+      var(--ease-emphasized) reverse both;
+  }
+  .fade-in {
+    --tw-enter-opacity: 0;
+  }
+  .fade-out {
+    --tw-enter-opacity: 0;
+  }
+  .zoom-in-95 {
+    --tw-enter-scale: 0.95;
+  }
+  .slide-in-from-left-2 {
+    --tw-enter-translate-x: -0.5rem;
+  }
+  .slide-in-from-right-2 {
+    --tw-enter-translate-x: 0.5rem;
+  }
+  .slide-in-from-right-4 {
+    --tw-enter-translate-x: 1rem;
+  }
+  .slide-in-from-bottom-2 {
+    --tw-enter-translate-y: 0.5rem;
+  }
+}
+
+
+@supports not (backdrop-filter: blur(1px)) {
+  .material,
+  .material-thin,
+  .material-card {
+    background-color: var(--color-surface);
+  }
+  .material-thick {
+    background-color: var(--color-surface-elevated);
+  }
+  .material-chrome {
+    background-color: var(--color-background);
+  }
+}
+
+html[data-reduce-glass] :where(.material, .material-thin, .material-card) {
+  background-color: var(--color-surface);
+  box-shadow: inset 0 0 0 0.5px var(--material-hairline);
+}
+
+/* The tile veil, explicitly, so it cannot be re-absorbed into the ladder above by
+   a later edit. It keeps the tint it always had. */
+html[data-reduce-glass] :where(.card-veil) {
+  background-color: var(--material-card-tint);
+  box-shadow: none;
+}
+
+/* Sheets and modals sit a step higher and keep a soft lift: an opaque dialog
+   that casts nothing still reads as floating, where a blurred shadow behind it
+   on a black page is only ever visible as a smudge. */
+html[data-reduce-glass] :where(.material-thick) {
+  background-color: var(--color-surface-elevated);
+  box-shadow:
+    inset 0 0 0 0.5px var(--material-hairline),
+    var(--material-shadow-high);
+}
+
+/* Bars collapse all the way to the page background — the only mapping that
+   does not put a bright grey band across the top and bottom of a black screen. */
+html[data-reduce-glass] :where(.material-chrome) {
   background-color: var(--color-background);
-  color: var(--color-text);
-  @apply text-[14px] sm:text-[16px] leading-relaxed;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
-  overscroll-behavior-y: none;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-::selection {
-  background-color: var(--color-primary);
-  color: white;
-}
-
-/* Re-enable selection for inputs and explicit selectable text */
-input,
-textarea,
-[contenteditable="true"],
-.selectable {
-  user-select: text;
-  -webkit-user-select: text;
-}
-
-button,
-a {
-  -webkit-touch-callout: none;
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-muted);
-}
-
-html[data-reduce-glass] {
-  --glass-bg: var(--color-surface);
-  --glass-card-bg: var(--color-surface-elevated);
-  --glass-blur: 0px;
-  --glass-border: var(--color-border);
-  --glass-shadow: none;
+  box-shadow: inset 0 -0.5px 0 0 var(--material-hairline);
 }
 
 html[data-reduce-glass] * {
@@ -250,36 +633,21 @@ html[data-reduce-glass] * {
   -webkit-backdrop-filter: none !important;
 }
 
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-@layer utilities {
-  .glass {
-    background-color: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
-  }
-
-  .glass-panel {
-    background-color: var(--glass-bg);
-    backdrop-filter: blur(calc(var(--glass-blur) * 0.75));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
-  }
-
-  .glass-card {
-    background-color: var(--glass-card-bg);
-    border: 1px solid var(--glass-border);
-  }
-
-  .focus-ring {
-    box-shadow: 0 0 0 3px var(--color-background), 0 0 0 6px var(--color-focus-ring) !important;
+/* The rail only takes layout space from `md` up; below that it is an overlay, so
+   the dock keeps centring on the full viewport. */
+@media (min-width: 768px) {
+  :root[data-sidebar-open] {
+    --dock-inset-left: var(--rail-width);
   }
 }

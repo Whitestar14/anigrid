@@ -28,7 +28,7 @@ export const InboxStashToolbar: React.FC<InboxStashToolbarProps> = ({
   onMoveItemsToCollection,
   ...tabs
 }) => (
-  <div className="flex items-center gap-2 px-2 sm:px-6 py-3 border-b border-border shrink-0 hide-scrollbar bg-surface/50 relative h-14 z-10 overflow-visible">
+  <div className="flex items-center gap-2 px-2 sm:px-6 py-3 border-b border-border shrink-0 hide-scrollbar material-thin relative h-14 z-10 overflow-visible">
     <AnimatePresence mode="popLayout" initial={false}>
       {selectedItemIds.size > 0 ? (
         <motion.div
@@ -40,7 +40,7 @@ export const InboxStashToolbar: React.FC<InboxStashToolbarProps> = ({
           className="flex items-center gap-1 justify-between sm:gap-3 w-full py-1"
         >
           <div className="flex gap-1">
-            <span className="text-[13px] font-medium text-primary bg-primary/10 px-3 sm:px-4 py-1.5 rounded-full">
+            <span className="text-footnote font-medium text-primary bg-primary/10 px-3 sm:px-4 py-1.5 rounded-full">
               {selectedItemIds.size} Selected
             </span>
             <div className="relative flex items-center justify-center">
@@ -65,7 +65,7 @@ export const InboxStashToolbar: React.FC<InboxStashToolbarProps> = ({
                     </option>
                   ))}
               </select>
-              <div className="flex items-center gap-1.5 text-[13px] font-medium text-text hover:bg-hover px-3 sm:px-4 py-1.5 rounded-full transition-colors pointer-events-none border border-border">
+              <div className="flex items-center gap-1.5 text-footnote font-medium text-text hover:bg-hover px-3 sm:px-4 py-1.5 rounded-full transition-colors pointer-events-none border border-border">
                 <FolderInput size={14} className="text-muted" />
                 Move To
               </div>
@@ -75,7 +75,7 @@ export const InboxStashToolbar: React.FC<InboxStashToolbarProps> = ({
             <button
               type="button"
               onClick={onBulkDelete}
-              className="flex items-center gap-1.5 text-[13px] font-medium text-red-500 hover:bg-red-500/10 px-3 sm:px-4 py-1.5 rounded-full transition-colors ml-auto"
+              className="flex items-center gap-1.5 text-footnote font-medium text-red-500 hover:bg-red-500/10 px-3 sm:px-4 py-1.5 rounded-full transition-colors ml-auto"
             >
               <Trash size={14} />
               <span className="hidden sm:inline">Delete</span>
@@ -83,7 +83,7 @@ export const InboxStashToolbar: React.FC<InboxStashToolbarProps> = ({
             <button
               type="button"
               onClick={onClearSelection}
-              className="flex items-center gap-1.5 text-[13px] font-medium text-muted hover:text-text hover:bg-hover px-3 sm:px-4 py-1.5 rounded-full transition-colors"
+              className="flex items-center gap-1.5 text-footnote font-medium text-muted hover:text-text hover:bg-hover px-3 sm:px-4 py-1.5 rounded-full transition-colors"
             >
               <X size={14} />
               <span className="hidden sm:inline">Cancel</span>

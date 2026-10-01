@@ -1,8 +1,12 @@
 import { StateCreator } from "zustand";
 import { AppState } from "../useStore";
-import { TierRow, ProjectType, GridConfig, CellData, InboxItem } from "@/types";
-import { checkAndRescueImages, ensureCells, findInboxItem, findInboxItems } from "@/utils/storeUtils";
-import { createBlankRank } from "@/utils/storage";
+import { TierRow, ProjectType, GridConfig, CellData } from "@/types";
+import { ensureCells } from "@/utils/storeUtils";
+import {
+  createBlankRank,
+  createRankLike,
+  defaultBoardBackground,
+} from "@/utils/storage";
 
 export interface RankSlice {
   updateActiveRank: (updates: Partial<AppState["ranks"][string]>) => void;
@@ -17,11 +21,15 @@ export interface RankSlice {
   handleCellClear: (index: number) => void;
   handleSwapCells: (fromIndex: number, toIndex: number) => void;
   handleReorderCells: (fromIndex: number, toIndex: number) => void;
+  handleRecallFromBoard: (imageSrc: string) => void;
   handleUpdateTierItem: (rowId: string, itemId: string, data: Partial<CellData>) => void;
   handleUpdateTierRows: (rows: TierRow[]) => void;
+  handleReorderTierRows: (fromIndex: number, toIndex: number) => void;
   handleTierItemRemove: (rowId: string, itemId: string) => void;
 
   handleNewRank: (type: ProjectType) => void;
+  /** Blank project inheriting the active project's schema. Returns its id. */
+  handleNewRankLikeCurrent: () => string | undefined;
   handleDeleteRank: (id: string) => void;
   setActiveRankId: (id: string) => void;
 }
@@ -117,6 +125,52 @@ export const createRankSlice: StateCreator<
         current.updatedAt = Date.now();
       }
     }),
+  handleRecallFromBoard: (imageSrc) =>
+    set((state) => {
+      const current = state.ranks[state.activeRankId];
+      if (!current || !imageSrc) return;
+
+      let cleared = false;
+
+      current.cells.forEach((cell) => {
+        if (cell.imageSrc !== imageSrc) return;
+        cell.imageSrc = null;
+        cell.textLabel = undefined;
+        cell.rating = undefined;
+        cell.zoom = undefined;
+        cell.objectPosition = undefined;
+        cleared = true;
+      });
+
+      current.tierRows.forEach((row) => {
+        if (!row.items.some((i) => i.imageSrc === imageSrc)) return;
+        row.items = row.items.filter((i) => i.imageSrc !== imageSrc);
+        cleared = true;
+      });
+
+      if (!cleared) return;
+
+      /* The point of a recall is that the image is still yours afterwards, so if
+         it was never in the library (it arrived from a URL or a direct upload)
+         it is filed into the stash now rather than evaporating. */
+      const alreadyTracked = state.inbox.collections.some((c) =>
+        c.items.some((i) => i.imageSrc === imageSrc)
+      );
+      if (!alreadyTracked) {
+        const targetId =
+          state.inbox.activeCollectionId === "all-images"
+            ? state.inbox.lastTargetCollectionId ?? state.inbox.collections[0]?.id
+            : state.inbox.activeCollectionId;
+        const col = state.inbox.collections.find((c) => c.id === targetId);
+        col?.items.unshift({
+          id: `inbox-recalled-${Date.now()}`,
+          imageSrc,
+          createdAt: Date.now(),
+        });
+      }
+
+      current.updatedAt = Date.now();
+    }),
   handleReorderCells: (fromIndex, toIndex) =>
     set((state) => {
       const current = state.ranks[state.activeRankId];
@@ -148,6 +202,24 @@ export const createRankSlice: StateCreator<
         current.updatedAt = Date.now();
       }
     }),
+  handleReorderTierRows: (fromIndex, toIndex) =>
+    set((state) => {
+      const current = state.ranks[state.activeRankId];
+      if (!current) return;
+      const rows = current.tierRows;
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= rows.length ||
+        toIndex >= rows.length
+      ) {
+        return;
+      }
+      const [moved] = rows.splice(fromIndex, 1);
+      rows.splice(toIndex, 0, moved);
+      current.updatedAt = Date.now();
+    }),
   handleTierItemRemove: (rowId, itemId) =>
     set((state) => {
       const current = state.ranks[state.activeRankId];
@@ -162,16 +234,35 @@ export const createRankSlice: StateCreator<
 
   handleNewRank: (type) =>
     set((state) => {
-      const newRank = createBlankRank(type);
+      // A new project is created *into* the current appearance, so a board made
+      // in light mode does not open as a black rectangle.
+      const newRank = createBlankRank(
+        type,
+        defaultBoardBackground(state.theme?.isDark ?? true)
+      );
       state.activeRankId = newRank.id;
       state.ranks[newRank.id] = newRank as any;
     }),
+  handleNewRankLikeCurrent: () => {
+    const source = get().ranks[get().activeRankId];
+    if (!source) return undefined;
+    const newRank = createRankLike(source);
+    set((state) => {
+      state.activeRankId = newRank.id;
+      state.ranks[newRank.id] = newRank as any;
+    });
+    return newRank.id;
+  },
+
   handleDeleteRank: (id) =>
     set((state) => {
       delete state.ranks[id];
       const remainingIds = Object.keys(state.ranks);
       if (remainingIds.length === 0) {
-        const newRank = createBlankRank("ranking");
+        const newRank = createBlankRank(
+          "ranking",
+          defaultBoardBackground(state.theme?.isDark ?? true)
+        );
         state.activeRankId = newRank.id;
         state.ranks[newRank.id] = newRank as any;
       } else if (state.activeRankId === id) {

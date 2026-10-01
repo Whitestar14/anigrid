@@ -1,224 +1,442 @@
-import React, { useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { Plus, X, Upload, Download, Crop, Check, Globe, Search, Trash2, ArrowDownToLine } from 'lucide-react';
-import { CellData, GridStyle } from '@/types';
-import { getProxiedImageUrl } from '@/utils/imageProxy';
-import { ASPECT_MAP } from '@/utils/ui';
-import { UrlInputModal } from '@/components/ui/UrlInputModal';
-import { useStore } from '@/store/useStore';
-import { selectCellByIndex, selectActiveRank } from '@/store/selectors';
-import { PopoverMenu } from '@/components/ui/PopoverMenu';
-import { usePanZoom } from '@/hooks/usePanZoom';
-import { useCellInteraction } from '@/hooks/useCellInteraction';
-import { useCellMediaUpload } from '@/hooks/useCellMediaUpload';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { Plus, Check, X, MoreHorizontal } from "lucide-react";
+import { useStore } from "@/store/useStore";
+import { selectActiveRank } from "@/store/selectors";
+import { downloadImage } from "@/utils/imageProxy";
+import { UrlInputModal } from "@/components/ui/UrlInputModal";
+import { RemoteImage } from "@/components/ui/RemoteImage";
+import { PopoverMenu } from "@/components/ui/PopoverMenu";
+import { usePanZoom } from "@/hooks/usePanZoom";
+import { useCellInteraction } from "@/hooks/useCellInteraction";
+import { useCellMediaUpload } from "@/hooks/useCellMediaUpload";
+import {
+  filledImageActions,
+  emptyImageActions,
+} from "@/components/ui/imageActions";
+import { useIsDragging, useDropPulse } from "@/state/dragState";
 
 interface CellProps {
   index: number;
+  cols: number;
+  /** Total tiles, so the last row can draw the board's bottom rule. */
+  count: number;
+  tabbable: boolean;
+  onFocusTile: (index: number) => void;
 }
+
+const aspectToCss = (ratio?: string) =>
+  ratio ? ratio.replace(":", " / ") : "3 / 4";
 
 export const Cell = React.memo(function Cell({
   index,
+  cols,
+  count,
+  tabbable,
+  onFocusTile,
 }: CellProps) {
-  const data = useStore(selectCellByIndex(index));
-  const activeRank = useStore(selectActiveRank);
+  const cell = useStore((s) => s.ranks[s.activeRankId]?.cells[index]);
+  const rank = useStore(selectActiveRank);
+  const isDraggingAny = useIsDragging();
 
-  const handleCellClear = useStore(s => s.handleCellClear);
-  const handleUpdateCell = useStore(s => s.handleUpdateCell);
-  const handleItemTransfer = useStore(s => s.handleItemTransfer);
-  const handleCellUpload = useStore(s => s.handleCellUpload);
+  const handleCellClear = useStore((s) => s.handleCellClear);
+  const handleUpdateCell = useStore((s) => s.handleUpdateCell);
+  const handleCellUpload = useStore((s) => s.handleCellUpload);
+  const handleItemTransfer = useStore((s) => s.handleItemTransfer);
 
-
-  if (!data || !activeRank) return null;
-
-  const cellRef = useRef<HTMLDivElement>(null);
+  const tileRef = useRef<HTMLDivElement>(null);
   const [isFileDragOver, setIsFileDragOver] = useState(false);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
 
-  const borderRadius = activeRank.borderRadius ?? 12;
-  const aspectRatio = activeRank.aspectRatio || '3:4';
-  const showRankNumber = activeRank.showNumbers ?? true;
-  const borderless = activeRank.borderless ?? false;
+  const { isSelected, handleInteraction, clearInteraction } =
+    useCellInteraction({ type: "cell", index });
 
-  const { isSelected, localClickPoint, handleInteraction, clearInteraction } = useCellInteraction({
-    type: 'cell',
-    index
-  });
-
-  const { fileInputRef, triggerPicker, handleFileChange } = useCellMediaUpload((base64) => {
-    handleCellUpload(index, base64 as string);
-    clearInteraction();
-  });
+  const { fileInputRef, triggerPicker, handleFileChange } = useCellMediaUpload(
+    (base64) => {
+      handleCellUpload(index, base64 as string);
+      clearInteraction();
+    }
+  );
 
   const {
     isAdjusting,
-    setIsAdjustDragging,
-    zoom,
-    posX,
-    posY,
-    handleWheel,
+    imageStyle,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerCancel,
     startAdjusting,
     stopAdjusting,
-    saveAdjustments
+    saveAdjustments,
   } = usePanZoom(
-    { zoom: data.zoom, posX: data.objectPosition ? parseInt(data.objectPosition.split(' ')[0]) : 50, posY: data.objectPosition ? parseInt(data.objectPosition.split(' ')[1]) : 50 },
-    cellRef,
-    (state) => handleUpdateCell(index, { zoom: state.zoom, objectPosition: `${state.posX}% ${state.posY}%` })
+    {
+      zoom: cell?.zoom,
+      posX: cell?.objectPosition
+        ? parseInt(cell.objectPosition.split(" ")[0])
+        : 50,
+      posY: cell?.objectPosition
+        ? parseInt(cell.objectPosition.split(" ")[1])
+        : 50,
+    },
+    tileRef,
+    (state) =>
+      handleUpdateCell(index, {
+        zoom: state.zoom,
+        objectPosition: `${state.posX}% ${state.posY}%`,
+      })
   );
 
+  const dropId = `cell-drop-${cell?.id ?? index}`;
   const { isOver, setNodeRef: setDroppableRef } = useDroppable({
-    id: `cell-drop-${data.id}`,
-    data: { type: 'cell', index }
+    id: dropId,
+    data: { type: "cell", index },
   });
+  const dropPulse = useDropPulse(dropId);
 
-  const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } = useDraggable({
-    id: `cell-drag-${data.id}`,
-    data: {
-      type: 'cell',
-      index,
-      imageSrc: data.imageSrc,
-      width: cellRef.current?.offsetWidth || 120,
-      aspectRatio: aspectRatio.replace(':', '/')
+  const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } =
+    useDraggable({
+      id: `cell-drag-${cell?.id ?? index}`,
+      data: {
+        type: "cell",
+        index,
+        imageSrc: cell?.imageSrc,
+        width: tileRef.current?.offsetWidth || 120,
+        aspectRatio: (rank?.aspectRatio || "3:4").replace(":", "/"),
+      },
+      disabled: !cell?.imageSrc || isAdjusting,
+    });
+
+  const setRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      (tileRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      setDroppableRef(node);
+      setDraggableRef(node);
     },
-    disabled: !data.imageSrc || isAdjusting
-  });
+    [setDroppableRef, setDraggableRef]
+  );
 
-  const setRefs = (node: HTMLDivElement | null) => {
-    (cellRef as any).current = node;
-    setDroppableRef(node);
-    setDraggableRef(node);
-  };
+  const wasSelectedRef = useRef(isSelected);
+  useEffect(() => {
+    const wasSelected = wasSelectedRef.current;
+    wasSelectedRef.current = isSelected;
+    if (wasSelected && !isSelected) setIsMenuOpen(false);
+  }, [isSelected]);
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    handleInteraction(e.clientX, e.clientY, e.target as HTMLElement);
-  };
+  const openMenu = useCallback(
+    (e: React.MouseEvent, anchorTo?: HTMLElement | null) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (anchorTo) {
+        const rect = anchorTo.getBoundingClientRect();
+        setAnchor({ x: rect.left + rect.width / 2, y: rect.bottom + 4 });
+      } else if (e.clientX || e.clientY) {
+        setAnchor({ x: e.clientX, y: e.clientY });
+      } else {
+        const rect = tileRef.current?.getBoundingClientRect();
+        if (rect) setAnchor({ x: rect.left + rect.width / 2, y: rect.top + 12 });
+      }
+      setIsMenuOpen(true);
+    },
+    []
+  );
 
-  const handleTap = (e: any, info: any) => {
-    if (e.stopPropagation) e.stopPropagation();
-    handleInteraction(info.point.x, info.point.y, e.target as HTMLElement);
-  };
+  const handleActivate = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (isAdjusting) return;
+      handleInteraction(e.clientX, e.clientY, e.target as HTMLElement);
+    },
+    [handleInteraction, isAdjusting]
+  );
 
-  const actions = data.imageSrc ? [
-    { label: 'Replace', icon: Upload, onClick: triggerPicker },
-    { label: 'Crop & Adjust', icon: Crop, onClick: startAdjusting },
-    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => handleItemTransfer({ type: "cell", index }, { type: "inbox" }) },
-    { label: 'Download', icon: Download, onClick: () => { } },
-    { label: 'Remove', icon: Trash2, onClick: () => handleCellClear(index), variant: 'danger' as const },
-  ] : [
-    { label: 'Local File', icon: Upload, onClick: triggerPicker },
-    { label: 'From URL', icon: Globe, onClick: () => setIsUrlModalOpen(true) },
-    { label: 'Search Online', icon: Search, onClick: () => window.dispatchEvent(new CustomEvent('open-inbox-search')) },
-  ];
+  const handleDownload = useCallback(() => {
+    if (!cell?.imageSrc) return;
+    void downloadImage(
+      cell.imageSrc,
+      `${rank?.title?.replace(/\s+/g, "-").toLowerCase() || "image"}-${
+        index + 1
+      }.jpg`
+    );
+  }, [cell?.imageSrc, rank?.title, index]);
+
+  if (!cell || !rank) return null;
+
+  const hasImage = !!cell.imageSrc;
+  const isSeamless = (rank.style ?? "seamless") === "seamless";
+  // Seamless tiles have square corners so a ranked board reads as a single
+  // collage; card tiles are individually rounded.
+  const radius = isSeamless ? 0 : rank.borderRadius ?? 16;
+  /* Whether to draw rules is an independent choice from the tile style. Seamless
+     used to force it off, which meant a seamless board could never be ruled. */
+  const borderless = rank.borderless ?? false;
+  const showNumber = rank.showNumbers ?? true;
+  const gap = rank.gap ?? 0;
+
+  const hairline = "var(--material-hairline)";
+  const restingShadow = borderless
+    ? undefined
+    : gap > 0
+      ? // Tiles are separated, so each is its own object and gets a full rule.
+        `0 0 0 0.5px ${hairline}`
+      : [
+          `0 -0.5px 0 0 ${hairline}`,
+          `-0.5px 0 0 0 ${hairline}`,
+          index % cols === cols - 1 ? `0.5px 0 0 0 ${hairline}` : null,
+          index + cols >= count ? `0 0.5px 0 0 ${hairline}` : null,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+  const actions = hasImage
+    ? filledImageActions({
+        onReplace: triggerPicker,
+        onAdjust: startAdjusting,
+        onDownload: handleDownload,
+        onReturnToLibrary: () =>
+          handleItemTransfer({ type: "cell", index }, { type: "inbox" }),
+        onRemove: () => handleCellClear(index),
+      })
+    : emptyImageActions({
+        onChooseFile: triggerPicker,
+        onFromUrl: () => setIsUrlModalOpen(true),
+        onSearchOnline: () =>
+          window.dispatchEvent(new CustomEvent("open-inbox-search")),
+      });
 
   return (
-    <motion.div
+    <div
       ref={setRefs}
-      layout
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
+      /* dnd-kit's attributes set role="button" and its own tabIndex; they are
+         spread first so the grid semantics below win. */
       {...attributes}
       {...listeners}
-      className={`
-        relative group/cell select-none cursor-pointer touch-none
-        ${ASPECT_MAP[aspectRatio] || 'aspect-[3/4]'}
-        ${isDragging ? 'z-50' : 'z-0'}
-      `}
-      onClick={handleClick}
-      onTap={handleTap}
-      onDragOver={(e) => { e.preventDefault(); setIsFileDragOver(true); }}
+      role="gridcell"
+      tabIndex={tabbable ? 0 : -1}
+      aria-rowindex={Math.floor(index / cols) + 1}
+      aria-colindex={(index % cols) + 1}
+      aria-selected={isSelected}
+      /* dnd-kit marks a non-draggable cell aria-disabled, but an empty cell is
+         still selectable, so it must stay enabled to assistive tech. */
+      aria-disabled={isAdjusting || undefined}
+      aria-label={
+        hasImage ? `Position ${index + 1}, filled` : `Position ${index + 1}, empty`
+      }
+      data-cell-index={index}
+      className={`tile item-enter group/tile relative select-none outline-none [container-type:inline-size] ${
+        hasImage ? "touch-none" : ""
+      } ${isDragging ? "z-30 opacity-25" : "z-0"}`}
+      style={{
+        aspectRatio: aspectToCss(rank.aspectRatio),
+        // Capped so a large board still finishes settling quickly, and reads as
+        // a sweep from the top-left rather than an endless ripple.
+        "--enter-delay": `${Math.min(index, 14) * 26}ms`,
+      } as React.CSSProperties}
+      onClick={handleActivate}
+      /* Double-click replaces the image in one gesture. The tile menu can do it
+         too, but replacing is the single most common edit and making it two
+         clicks plus a menu was the kind of friction that adds up. */
+      onDoubleClick={(e) => {
+        if (!hasImage || isAdjusting) return;
+        e.stopPropagation();
+        triggerPicker();
+      }}
+      onFocus={() => onFocusTile(index)}
+      onContextMenu={openMenu}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsFileDragOver(true);
+      }}
       onDragLeave={() => setIsFileDragOver(false)}
       onDrop={(e) => {
         e.preventDefault();
         setIsFileDragOver(false);
-        if (e.dataTransfer.files?.[0]) {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            if (event.target?.result) {
-              handleCellUpload(index, event.target.result as string);
-            }
-          };
-          reader.readAsDataURL(e.dataTransfer.files[0]);
-        }
+        const file = e.dataTransfer.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          if (ev.target?.result)
+            handleCellUpload(index, ev.target.result as string);
+        };
+        reader.readAsDataURL(file);
       }}
     >
       <div
-        className={`
-          w-full h-full overflow-hidden transition-all duration-300 relative
-          ${borderless ? '' : 'border border-border shadow-lg'}
-          ${isDragging ? 'opacity-30 grayscale z-0' : 'z-10'}
-          ${isSelected ? 'ring-2 ring-primary scale-[1.02] z-10' : 'hover:scale-[1.01] hover:border-primary'}
-          ${isFileDragOver ? 'focus-ring bg-primary/20 scale-105 z-20' : ''}
-          ${isOver ? 'focus-ring scale-105 z-20' : ''}
-        `}
-        style={{ borderRadius }}
+        className={`relative w-full h-full overflow-hidden squircle ${
+          isOver ? "drop-target" : ""
+        } ${isOver ? "scale-[1.03]" : ""} transition-transform duration-150 ease-spring`}
+        style={{
+          borderRadius: radius,
+          boxShadow: isSelected
+            ? "0 0 0 2px var(--color-primary)"
+            : isFileDragOver && !isOver
+              ? "0 0 0 2px var(--color-primary), 0 0 0 6px color-mix(in srgb, var(--color-primary) 22%, transparent)"
+              : restingShadow,
+        }}
       >
-        {data.imageSrc ? (
-          <>
-            <img
-              src={getProxiedImageUrl(data.imageSrc)}
-              alt=""
-              className={`w-full h-full object-cover transition-transform duration-200 pointer-events-none ${isDragging ? 'opacity-40' : 'opacity-100'}`}
-              style={{
-                objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || 'center'),
-                transform: `scale(${isAdjusting ? zoom : (data.zoom || 1)})`,
-                transformOrigin: 'center'
-              }}
-              referrerPolicy="no-referrer"
-            />
-            <AnimatePresence initial={false}>
-              {showRankNumber && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="absolute top-2 left-2 bg-surface-elevated text-text text-xs font-bold size-6 flex items-center justify-center rounded-md border border-border shadow-lg z-10 pointer-events-none"
-                >
-                  #{index + 1}
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {hasImage ? (
+          <RemoteImage
+            src={cell.imageSrc!}
+            alt=""
+            decoding="async"
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            style={imageStyle}
+          />
 
-            <AnimatePresence>
-              {isAdjusting && (
-                <motion.div
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="adjust-controls absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-between p-2 z-40 cursor-move"
-                  onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
-                  onWheel={handleWheel}
-                >
-                  <div className="bg-surface-elevated text-text text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-full border border-border shadow-2xl mt-2">Pan & Zoom</div>
-                  <div className="flex gap-2">
-                    <button onClick={(e) => { e.stopPropagation(); stopAdjusting(); }} className="p-2 bg-surface-elevated hover:bg-hover text-text rounded-full border border-border shadow-xl backdrop-blur-xl transition-all active:scale-90"><X size={18} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); saveAdjustments(); clearInteraction(); }} className="p-2 bg-primary hover:bg-primary/80 text-white rounded-full shadow-xl transition-all active:scale-90"><Check size={18} /></button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-muted group-hover/cell:text-text transition-colors export-hidden pointer-events-none bg-surface">
-            <Plus size={32} className="mb-2 opacity-30 group-hover/cell:opacity-100 transition-opacity" />
-            <span className="text-xs hidden sm:flex font-bold uppercase tracking-wider opacity-50">Add</span>
+          <button
+            type="button"
+            aria-label={`Add image to position ${index + 1}`}
+            onClick={openMenu}
+            className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1.5
+                       card-veil hover:bg-hover transition-colors duration-150
+                       text-muted hover:text-text cursor-pointer"
+          >
+            {/* `media-scrim`, not `material-thin`: this control is drawn on the
+                board sheet, whose colour the user chose, so a material that
+                tracks the *appearance* rather than the surface underneath it is
+                invisible over half the boards we allow. See `.media-scrim`. */}
+            <span
+              className={`flex items-center justify-center rounded-full media-scrim
+                          w-[19cqi] h-[19cqi] min-w-8 min-h-8 max-w-14 max-h-14
+                          transition-transform duration-200 ease-spring ${
+                            isDraggingAny
+                              ? "scale-110"
+                              : "group-hover/tile:scale-105"
+                          }`}
+              style={
+                isDraggingAny
+                  ? {
+                      boxShadow:
+                        "0 0 0 1.5px var(--color-primary), inset 0 0 0 0.5px rgba(255,255,255,0.2)",
+                      color: "var(--color-primary)",
+                    }
+                  : undefined
+              }
+            >
+              <Plus size={18} strokeWidth={2.5} className="w-[46%] h-[46%]" />
+            </span>
+            <span className="text-caption-1 font-medium">Add</span>
+          </button>
+        )}
+
+        {/* The rank numeral: set large, hung off the corner so the tile clips
+            it, and filled with a gradient so it reads over any artwork without
+            a plate behind it. See `.tile-number`. */}
+        {hasImage && showNumber && (
+          <span aria-hidden className="tile-number">
+            {index + 1}
+          </span>
+        )}
+
+        {hasImage && (
+          <button
+            type="button"
+            aria-label="Tile actions"
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+            onClick={(e) => openMenu(e, e.currentTarget)}
+            className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center w-[22px] h-[22px]
+                       media-scrim squircle hover:brightness-125 active:scale-95
+                       transition-transform duration-150 affordance touch-target"
+            style={{ borderRadius: 8 }}
+          >
+            <MoreHorizontal size={14} strokeWidth={2.5} />
+          </button>
+        )}
+
+        {isAdjusting && (
+          <div
+            className="absolute inset-0 z-20 flex flex-col justify-between p-2 cursor-move select-none touch-none"
+            style={{ background: "rgba(0,0,0,0.45)" }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          >
+            <span className="self-center media-scrim text-caption-2 font-semibold px-2.5 py-1 rounded-full">
+              Drag to reposition · Scroll to zoom
+            </span>
+            <div className="self-center flex gap-2">
+              <button
+                type="button"
+                aria-label="Cancel adjustments"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  stopAdjusting();
+                }}
+                className="flex items-center justify-center w-9 h-9 media-scrim rounded-full active:scale-90 transition-transform"
+              >
+                <X size={17} />
+              </button>
+              <button
+                type="button"
+                aria-label="Save adjustments"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  saveAdjustments();
+                  clearInteraction();
+                }}
+                className="flex items-center justify-center w-9 h-9 rounded-full text-on-accent active:scale-90 transition-transform"
+                style={{ background: "var(--color-primary)" }}
+              >
+                <Check size={17} />
+              </button>
+            </div>
           </div>
         )}
 
-        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+        {!hasImage && (isOver || isFileDragOver) && (
+          <div
+            className="absolute inset-0 z-20 pointer-events-none"
+            style={{
+              background:
+                "color-mix(in srgb, var(--color-primary) 14%, transparent)",
+            }}
+          />
+        )}
 
-        <PopoverMenu
-          isOpen={isSelected && !isAdjusting}
-          onClose={clearInteraction}
-          actions={actions}
-          triggerPoint={localClickPoint}
-          className={localClickPoint ? "" : "mt-[-20px]"}
-        />
+        {/* Landing pulse. Keyed on the drop sequence so it replays even when
+            the same tile receives two drops in a row. */}
+        {dropPulse > 0 && (
+          <span
+            key={dropPulse}
+            aria-hidden
+            className="drop-land absolute inset-0 z-30 pointer-events-none"
+            style={{ borderRadius: radius }}
+          />
+        )}
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      <PopoverMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        actions={actions}
+        triggerPoint={anchor}
+      />
 
       <UrlInputModal
         isOpen={isUrlModalOpen}
         onClose={() => setIsUrlModalOpen(false)}
-        onSubmit={(url) => { handleItemTransfer({ type: "search", imageSrc: url }, { type: "cell", index }); clearInteraction(); }}
+        onSubmit={(url) => {
+          handleItemTransfer(
+            { type: "search", imageSrc: url },
+            { type: "cell", index }
+          );
+          clearInteraction();
+        }}
       />
-    </motion.div>
+    </div>
   );
 });

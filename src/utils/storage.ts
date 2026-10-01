@@ -3,7 +3,28 @@ import { StateStorage } from 'zustand/middleware';
 import { GlobalState, TierRow, Rank, ProjectType } from '@/types';
 
 
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
+
+export const ACCENT_BLUE_DARK = '#0a84ff';
+export const ACCENT_BLUE_LIGHT = '#007aff';
+
+/** The rose this app shipped as its untouched default before version 4. */
+export const LEGACY_DEFAULT_ACCENT = '#f43f5e';
+
+export const systemAccentFor = (isDark: boolean) =>
+  isDark ? ACCENT_BLUE_DARK : ACCENT_BLUE_LIGHT;
+
+export const defaultBoardBackground = (isDark: boolean) =>
+  isDark ? '#1c1c1e' : '#ffffff';
+
+export const migratePersistedState = (persisted: any) => {
+  if (!persisted || typeof persisted !== 'object') return persisted;
+  const theme = persisted.theme;
+  if (theme && theme.accentColor === LEGACY_DEFAULT_ACCENT) {
+    theme.accentColor = systemAccentFor(theme.isDark ?? true);
+  }
+  return persisted;
+};
 
 // Custom storage for idb-keyval
 export const idbStorage: StateStorage = {
@@ -31,7 +52,11 @@ const createDefaultTierRows = (): TierRow[] => [
     { id: 'tier-f', label: 'F', color: '#7fffff', items: [] },
 ];
 
-export const createBlankRank = (type: ProjectType = 'ranking'): Rank => {
+export const createBlankRank = (
+  type: ProjectType = 'ranking',
+  /** Board sheet for the new project; follows the active appearance. */
+  backgroundColor: string = defaultBoardBackground(true)
+): Rank => {
   const rankId = `rank-${Date.now()}`;
   return {
     id: rankId,
@@ -49,11 +74,55 @@ export const createBlankRank = (type: ProjectType = 'ranking'): Rank => {
     showTitle: true,
     showDate: true,
     gap: 0,
-    backgroundColor: '#1c1c1e',
+    backgroundColor,
     tierRows: createDefaultTierRows(),
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
+};
+
+export const createRankLike = (source: Rank): Rank => {
+  const type = source.type;
+  const blank = createBlankRank(type);
+  const cellCount = source.cells?.length || (type === "list" ? 5 : 9);
+  const now = Date.now();
+
+  return {
+    ...blank,
+    title: nextUntitled(source.title),
+    // A project's shape is its own, not its content.
+    config: { ...source.config },
+    cells: Array.from({ length: cellCount }).map((_, i) => ({
+      id: `cell-${i}-${now}`,
+      imageSrc: null,
+      position: i,
+    })),
+    style: source.style,
+    showNumbers: source.showNumbers,
+    showTitle: source.showTitle,
+    showDate: source.showDate,
+    showWatermark: source.showWatermark,
+    showTiers: source.showTiers,
+    borderless: source.borderless,
+    aspectRatio: source.aspectRatio,
+    cellWidth: source.cellWidth,
+    borderRadius: source.borderRadius,
+    gap: source.gap,
+    gridJustify: source.gridJustify,
+    backgroundColor: source.backgroundColor,
+    tierRows: source.tierRows.map((row) => ({
+      ...row,
+      id: `tier-${row.label}-${now}-${Math.random().toString(36).slice(2, 6)}`,
+      items: [],
+    })),
+  };
+};
+
+/** "My Ranking" -> "My Ranking 2"; never returns the source title itself. */
+const nextUntitled = (title: string): string => {
+  const match = /^(.*?)\s+(\d+)$/.exec(title.trim());
+  if (match) return `${match[1]} ${Number(match[2]) + 1}`;
+  return `${title.trim()} 2`;
 };
 
 export const createDefaultState = (): GlobalState => {
@@ -63,7 +132,7 @@ export const createDefaultState = (): GlobalState => {
     version: CURRENT_VERSION,
     activeRankId: rank.id,
     theme: {
-      accentColor: '#f43f5e',
+      accentColor: ACCENT_BLUE_DARK,
       paletteId: 'ios-dark',
       isDark: true
     },

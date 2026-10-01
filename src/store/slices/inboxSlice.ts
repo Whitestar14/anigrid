@@ -1,7 +1,6 @@
 import { StateCreator } from "zustand";
 import { AppState } from "../useStore";
 import { InboxCollection, InboxItem } from "@/types";
-import { findInboxItem, findInboxItems } from "@/utils/storeUtils";
 
 export interface InboxSlice {
   updateActiveCollection: (updates: Partial<InboxCollection>) => void;
@@ -17,7 +16,6 @@ export interface InboxSlice {
   renameCollection: (id: string, name: string) => void;
   removeInboxItem: (id: string) => void;
   moveItemsToCollection: (itemIds: string[], targetColId: string) => void;
-  recallItemByImageSrc: (imageSrc: string) => void;
 }
 
 export const createInboxSlice: StateCreator<
@@ -25,7 +23,7 @@ export const createInboxSlice: StateCreator<
   [["zustand/immer", never]],
   [],
   InboxSlice
-> = (set, get) => ({
+> = (set) => ({
   updateActiveCollection: (updates) =>
     set((state) => {
       const collection = state.inbox.collections.find(
@@ -124,12 +122,5 @@ export const createInboxSlice: StateCreator<
       });
 
       targetCol.items.unshift(...itemsToMove);
-    }),
-
-  recallItemByImageSrc: (imageSrc) =>
-    set((state) => {
-      state.inbox.collections.forEach((col) => {
-        col.items = col.items.filter((i) => i.imageSrc !== imageSrc);
-      });
     }),
 });

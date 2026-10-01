@@ -20,7 +20,7 @@ interface ToastProps {
 
 export const ToastContainer: React.FC<ToastProps> = ({ toasts, onRemove }) => {
   return (
-    <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[200] flex flex-col items-center gap-2 pointer-events-none">
+    <div className="fixed inset-x-0 top-16 z-toast flex flex-col items-center gap-2 px-4 pointer-events-none">
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
           <Toast key={toast.id} toast={toast} onRemove={onRemove} />
@@ -41,9 +41,9 @@ const Toast: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> =
   }, [toast.id, onRemove]);
 
   const icons = {
-    success: <div className="bg-green-500 rounded-full p-0.5"><Check size={14} className="text-white" strokeWidth={3} /></div>,
-    error: <div className="bg-red-500 rounded-full p-0.5"><AlertCircle size={14} className="text-white" strokeWidth={3} /></div>,
-    info: <div className="bg-primary rounded-full p-0.5"><Info size={14} className="text-white" strokeWidth={3} /></div>,
+    success: <div className="bg-accent-green rounded-full p-0.5"><Check size={14} className="text-white" strokeWidth={3} /></div>,
+    error: <div className="bg-destructive rounded-full p-0.5"><AlertCircle size={14} className="text-white" strokeWidth={3} /></div>,
+    info: <div className="bg-primary rounded-full p-0.5"><Info size={14} className="text-on-accent" strokeWidth={3} /></div>,
   };
 
   return (
@@ -53,20 +53,24 @@ const Toast: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> =
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.9 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className={`pointer-events-auto flex items-center gap-3 px-4 py-3 border border-border shadow-2xl rounded-2xl max-w-[90vw] ${reduceGlass
-        ? 'bg-surface-elevated'
-        : 'bg-surface-elevated/90 backdrop-blur-xl'
+      className={`pointer-events-auto flex w-full max-w-md items-center gap-3 px-4 py-3 rounded-card ${reduceGlass
+        ? 'bg-surface-elevated border border-border'
+        : 'material-thick squircle'
         }`}
     >
       {icons[toast.type]}
-      <span className="text-[14px] font-medium text-text">{toast.message}</span>
+      {/* `flex-1` so the message owns the free width and the optional action
+          sits at the trailing edge instead of floating after the text. */}
+      <span className="flex-1 min-w-0 text-subheadline font-medium text-text">
+        {toast.message}
+      </span>
       {toast.action && toast.actionLabel && (
         <button
           onClick={() => {
             toast.action!();
             onRemove(toast.id);
           }}
-          className="ml-2 text-[13px] font-semibold text-primary hover:text-primary/80 transition-colors"
+          className="ml-2 text-footnote font-semibold text-primary hover:text-primary/80 transition-colors"
         >
           {toast.actionLabel}
         </button>

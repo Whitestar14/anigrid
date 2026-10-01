@@ -4,11 +4,41 @@ import { useShallow } from "zustand/react/shallow";
 import { Toggle } from "@/components/ui/Toggle";
 import { ColorPicker } from "@/components/ui/ColorPicker";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { Palette, Layers, Minimize2, Moon, Sun, Info, ChevronRight } from "lucide-react";
-import { exportStateToJson } from "@/utils/storage";
+import {
+  Palette,
+  Layers,
+  Minimize2,
+  Moon,
+  Sun,
+  Info,
+  ChevronRight,
+  Keyboard,
+  Command,
+} from "lucide-react";
+import {
+  ACCENT_BLUE_DARK,
+  ACCENT_BLUE_LIGHT,
+  exportStateToJson,
+} from "@/utils/storage";
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 import { ImportChoiceModal } from "@/components/ImportChoiceModal";
 import { useToast } from "@/context/ToastContext";
+import { useCommandState } from "@/state/commandState";
+
+/** A pair of keycaps, mirroring the ones inside the cheat sheet. */
+const ShortcutKeys: React.FC<{ keys: string[] }> = ({ keys }) => (
+  <span className="flex items-center gap-1 shrink-0">
+    {keys.map((k) => (
+      <kbd
+        key={k}
+        className="inline-grid place-items-center min-w-6 h-6 px-1.5 rounded-hairline
+                   bg-surface-secondary text-caption-1 font-medium text-muted tabular-nums"
+      >
+        {k}
+      </kbd>
+    ))}
+  </span>
+);
 
 
 export const SettingsDockPanel: React.FC<{
@@ -18,7 +48,7 @@ export const SettingsDockPanel: React.FC<{
   const { accent, reduceGlass, autoCloseDesktop, isDark, updateTheme, updatePreferences } =
     useStore(
       useShallow((s) => ({
-        accent: s.theme?.accentColor ?? "#3b82f6",
+        accent: s.theme?.accentColor ?? ACCENT_BLUE_DARK,
         isDark: s.theme?.isDark ?? true,
         reduceGlass: s.preferences.reduceGlassEffects ?? false,
         autoCloseDesktop: s.preferences.autoCloseDockOnDragDesktop ?? false,
@@ -51,13 +81,13 @@ export const SettingsDockPanel: React.FC<{
   };
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-5 pb-12 flex flex-col gap-6">
+    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar overscroll-contain p-5 pb-12 flex flex-col gap-6">
 
       <div className="flex flex-col gap-2 relative">
-        <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
+        <span className="text-footnote font-medium text-muted uppercase tracking-wide pl-4">
           Appearance
         </span>
-        <SettingButtonGroup className="glass-card rounded-[20px] overflow-hidden">
+        <SettingButtonGroup className="material-card rounded-card overflow-hidden">
           <SettingRow
             as="div"
             icon={isDark ? <Moon size={16} /> : <Sun size={16} />}
@@ -69,9 +99,18 @@ export const SettingsDockPanel: React.FC<{
                   value={isDark ? "dark" : "light"}
                   onChange={(v) => {
                     const mode = v === "dark";
+                    const isADefaultBlue =
+                      accent === ACCENT_BLUE_DARK || accent === ACCENT_BLUE_LIGHT;
                     updateTheme({
                       isDark: mode,
-                      paletteId: mode ? "ios-dark" : "ios-light"
+                      paletteId: mode ? "ios-dark" : "ios-light",
+                      ...(isADefaultBlue
+                        ? {
+                            accentColor: mode
+                              ? ACCENT_BLUE_DARK
+                              : ACCENT_BLUE_LIGHT,
+                          }
+                        : {}),
                     });
                   }}
                   options={[
@@ -127,14 +166,14 @@ export const SettingsDockPanel: React.FC<{
       </div>
 
       <div className="flex flex-col gap-2 relative">
-        <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
+        <span className="text-footnote font-medium text-muted uppercase tracking-wide pl-4">
           Data Actions
         </span>
-        <div className="glass-card rounded-[20px] overflow-hidden flex flex-col items-stretch">
+        <div className="material-card rounded-card overflow-hidden flex flex-col items-stretch">
           <button
             type="button"
             onClick={handleExportJson}
-            className="w-full py-3.5 text-[15px] font-medium text-primary hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors"
+            className="w-full py-3.5 text-subheadline font-medium text-primary hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors"
           >
             Backup Data
           </button>
@@ -142,7 +181,7 @@ export const SettingsDockPanel: React.FC<{
           <button
             type="button"
             onClick={() => jsonInputRef.current?.click()}
-            className="w-full py-3.5 text-[15px] font-medium text-primary hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors"
+            className="w-full py-3.5 text-subheadline font-medium text-primary hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors"
           >
             Restore Data
           </button>
@@ -162,7 +201,7 @@ export const SettingsDockPanel: React.FC<{
                 );
               }
             }}
-            className="w-full py-3.5 text-[15px] font-medium text-red-500 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
+            className="w-full py-3.5 text-subheadline font-medium text-red-500 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
           >
             Wipe All App Data
           </button>
@@ -170,10 +209,33 @@ export const SettingsDockPanel: React.FC<{
       </div>
 
       <div className="flex flex-col gap-2 relative">
-        <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
+        <span className="text-footnote font-medium text-muted uppercase tracking-wide pl-4">
           App
         </span>
-        <SettingButtonGroup className="glass-card rounded-[20px] overflow-hidden">
+        <SettingButtonGroup className="material-card rounded-card overflow-hidden">
+          {/* The keyboard was the one surface with no visible door. Both the
+              palette (⌘K) and the cheat sheet (⌘/) existed, but only a user who
+              already knew the shortcut could reach them — which is precisely
+              backwards for a discoverability feature. Named rows with the keys
+              printed beside them are the door. */}
+          <SettingRow
+            as="button"
+            onClick={() => useCommandState.getState().toggle()}
+            icon={<Command size={16} />}
+            iconBg="bg-indigo-500/15 text-indigo-400"
+            label="Command palette"
+            sublabel="Jump to any project or action"
+            right={<ShortcutKeys keys={["⌘", "K"]} />}
+          />
+          <SettingRow
+            as="button"
+            onClick={() => useCommandState.getState().toggleShortcuts()}
+            icon={<Keyboard size={16} />}
+            iconBg="bg-primary/10 text-primary"
+            label="Keyboard shortcuts"
+            sublabel="Every shortcut the app implements"
+            right={<ShortcutKeys keys={["⌘", "/"]} />}
+          />
           <SettingRow
             as="button"
             onClick={onOpenAbout}

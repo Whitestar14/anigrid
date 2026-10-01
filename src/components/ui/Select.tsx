@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { cn } from '@/utils';
-import { ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect } from "react";
+import { cn } from "@/utils";
+import { ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 
 export interface SelectOption {
   label: string;
@@ -47,9 +47,9 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className={cn(
-              "flex items-center justify-between w-full h-10 px-4 py-2 text-sm text-left bg-surface-elevated/40 border border-border rounded-full",
-              "hover:bg-hover focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50",
-              "backdrop-blur-md transition-all duration-200 text-text"
+              "flex items-center justify-between w-full h-10 px-3.5 text-subheadline text-left",
+              "material-thin squircle rounded-control text-text",
+              "transition-colors duration-150 focus-visible:focus-ring hover:brightness-110"
             )}
           >
             <span className={cn("block truncate", !selectedOption && "text-muted")}>
@@ -67,28 +67,31 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -5, scale: 0.95 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className={cn("absolute z-50 mt-2 overflow-hidden bg-surface/95 backdrop-blur-xl border border-border p-1 rounded-2xl shadow-2xl",
+            transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.65 }}
+            className={cn(
+              "absolute z-50 mt-1.5 overflow-hidden p-1",
+              "material squircle rounded-card scrollbar-ios",
               dropdownClassName || "w-full min-w-[140px]",
-              alignOffset === 'right' ? "right-0" : "left-0"
-          )}>
-            <ul className="max-h-60 overflow-auto flex flex-col">
-              {options.map((option, idx) => (
-                <React.Fragment key={option.value}>
-                  <li
-                    onClick={() => {
-                      onChange(option.value);
-                      setIsOpen(false);
-                    }}
-                    className={cn(
-                      "flex items-center p-3 hover:bg-hover rounded-xl text-[13px] font-medium text-text transition-colors cursor-pointer",
-                      value === option.value && "bg-surface-elevated"
-                    )}
-                  >
-                    <span className="block truncate">{option.label}</span>
-                  </li>
-                  {idx < options.length - 1 && <div className="h-px bg-border mx-2 my-0.5 shrink-0" />}
-                </React.Fragment>
+              alignOffset === "right" ? "right-0" : "left-0"
+            )}>
+            <ul role="listbox" className="max-h-60 overflow-auto flex flex-col">
+              {options.map((option) => (
+                <li
+                  key={option.value}
+                  role="option"
+                  aria-selected={value === option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center px-3 py-2.5 rounded-chip text-subheadline",
+                    "text-text transition-colors cursor-pointer active:bg-hover",
+                    value === option.value && "bg-surface-secondary font-medium"
+                  )}
+                >
+                  <span className="block truncate">{option.label}</span>
+                </li>
               ))}
             </ul>
           </motion.div>

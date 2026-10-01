@@ -3,6 +3,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ImageFormat } from "@/utils/imageUtils";
 import { FileImage, Copy } from "lucide-react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { Button } from "@/components/ui/Button";
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -29,17 +30,17 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     >
       <div className="flex flex-col">
         <div className="p-5 pb-3 text-center border-b border-border">
-          <h3 className="text-[17px] font-semibold text-text leading-tight">
+          <h3 className="text-body font-semibold text-text leading-tight">
             Export Project
           </h3>
-          <p className="text-[13px] text-muted mt-1">
+          <p className="text-footnote text-muted mt-1">
             Choose how you want to save your work.
           </p>
         </div>
 
         <div className="p-4 flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <span className="text-[12px] font-medium text-muted uppercase tracking-wider ml-1">
+            <span className="text-caption-1 font-medium text-muted uppercase tracking-wider ml-1">
               Image Format
             </span>
             <SegmentedControl
@@ -53,7 +54,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="text-[12px] font-medium text-muted uppercase tracking-wider ml-1">
+            <span className="text-caption-1 font-medium text-muted uppercase tracking-wider ml-1">
               Export Quality
             </span>
             <SegmentedControl
@@ -68,26 +69,29 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
 
           <div className="flex flex-col gap-2 mt-2">
-            <button
+            <Button
+              fullWidth
+              size="lg"
+              icon={<FileImage size={18} />}
               onClick={() => {
                 onExportImage(format, quality);
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-primary hover:bg-primary/90 text-white rounded-full font-semibold text-[15px] transition-colors shadow-md shadow-primary/20"
             >
-              <FileImage size={18} />
               Save as Image
-            </button>
-            <button
+            </Button>
+            <Button
+              fullWidth
+              size="lg"
+              variant="gray"
+              icon={<Copy size={18} />}
               onClick={() => {
                 if (onCopyImage) onCopyImage(quality);
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-surface-elevated hover:bg-hover text-text border border-border rounded-full font-semibold text-[15px] transition-colors"
             >
-              <Copy size={18} />
               Copy to Clipboard
-            </button>
+            </Button>
           </div>
         </div>
       </div>

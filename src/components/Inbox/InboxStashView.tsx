@@ -1,6 +1,9 @@
 import React from "react";
-import type { InboxCollection, InboxItem } from "@/types";
-import type { InteractionState } from "@/types";
+import type {
+  InboxCollection,
+  InboxItem,
+  InteractionState,
+} from "@/types";
 import { InboxStashToolbar } from "./InboxStashToolbar";
 import { InboxStashGrid } from "./InboxStashGrid";
 

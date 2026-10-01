@@ -1,155 +1,307 @@
-import React, { useRef } from "react";
-import { motion } from "motion/react";
-import { useDraggable, useDroppable } from '@dnd-kit/core';
+import React, { useCallback, useRef, useState } from "react";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { Check, X, MoreHorizontal } from "lucide-react";
 import { CellData } from "@/types";
 import { PopoverMenu } from "./ui/PopoverMenu";
+import { RemoteImage } from "./ui/RemoteImage";
+import { filledImageActions } from "./ui/imageActions";
 import { useCellInteraction } from "@/hooks/useCellInteraction";
+import { useCellMediaUpload } from "@/hooks/useCellMediaUpload";
 import { usePanZoom } from "@/hooks/usePanZoom";
-import { X, Crop, Check } from "lucide-react";
-import { getProxiedImageUrl } from "@/utils/imageProxy";
-import { TIER_ASPECT_MAP } from "@/utils/ui";
+import { useDropPulse } from "@/state/dragState";
 import { useStore } from "@/store/useStore";
+import { downloadImage } from "@/utils/imageProxy";
+import { widthForHeight } from "@/utils/ui";
+
+/** Shared rail height so every tier row lines up regardless of aspect ratio. */
+export const TIER_TILE_HEIGHT = 88;
+
+interface TierItemProps {
+  rowId: string;
+  idx: number;
+  item: CellData;
+  aspectRatio: string;
+}
 
 export const TierItem = React.memo(function TierItem({
   rowId,
   idx,
   item,
   aspectRatio,
-}: {
-  rowId: string;
-  idx: number;
-  item: CellData;
-  aspectRatio: string;
-}) {
-  const handleItemTransfer = useStore(s => s.handleItemTransfer);
-  const onUpdateItem = useStore(s => s.handleUpdateTierItem);
+}: TierItemProps) {
+  const handleItemTransfer = useStore((s) => s.handleItemTransfer);
+  const handleUpdateTierItem = useStore((s) => s.handleUpdateTierItem);
+  const handleTierItemRemove = useStore((s) => s.handleTierItemRemove);
 
-  const tierRef = useRef<HTMLDivElement>(null);
+  const tileRef = useRef<HTMLDivElement>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
 
-  const { isSelected, localClickPoint, handleInteraction, clearInteraction } = useCellInteraction({
-    type: 'tier-item',
+  const { isSelected, handleInteraction, clearInteraction } = useCellInteraction({
+    type: "tier-item",
     index: idx,
     rowId,
-    itemId: item.id
+    itemId: item.id,
   });
+
+  /* Tier items could not be swapped for a different image at all — the menu
+     offered Crop and nothing else. Same picker as a grid tile, writing back to
+     the tier position. */
+  const { fileInputRef, triggerPicker, handleFileChange } = useCellMediaUpload(
+    (base64) => {
+      handleUpdateTierItem(rowId, item.id, { imageSrc: base64 as string });
+      clearInteraction();
+    }
+  );
 
   const {
     isAdjusting,
-    setIsAdjustDragging,
-    zoom,
-    posX,
-    posY,
-    handleWheel,
+    imageStyle,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerCancel,
     startAdjusting,
     stopAdjusting,
-    saveAdjustments
+    saveAdjustments,
   } = usePanZoom(
-    { zoom: item?.zoom, posX: item?.objectPosition ? parseInt(item.objectPosition.split(" ")[0]) : 50, posY: item?.objectPosition ? parseInt(item.objectPosition.split(" ")[1]) : 50 },
-    tierRef,
-    (state) => onUpdateItem(rowId, item.id, { zoom: state.zoom, objectPosition: `${state.posX}% ${state.posY}%` })
+    {
+      zoom: item.zoom,
+      posX: item.objectPosition ? parseInt(item.objectPosition.split(" ")[0]) : 50,
+      posY: item.objectPosition ? parseInt(item.objectPosition.split(" ")[1]) : 50,
+    },
+    tileRef,
+    (state) =>
+      handleUpdateTierItem(rowId, item.id, {
+        zoom: state.zoom,
+        objectPosition: `${state.posX}% ${state.posY}%`,
+      })
   );
 
+  const dropId = `tier-drop-${rowId}-${idx}`;
   const { isOver, setNodeRef: setDroppableRef } = useDroppable({
-    id: `tier-drop-${rowId}-${idx}`,
-    data: { type: 'tier-cell', rowId, index: idx }
+    id: dropId,
+    data: { type: "tier-cell", rowId, index: idx },
   });
+  const dropPulse = useDropPulse(dropId);
 
-  const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } = useDraggable({
-    id: `tier-drag-${rowId}-${item?.id || idx}`,
-    data: {
-      type: 'tier-item',
-      rowId,
-      id: item?.id,
-      imageSrc: item?.imageSrc,
-      width: tierRef.current?.offsetWidth,
-      aspectRatio: aspectRatio.replace(':', '/')
-    },
-    disabled: !item?.imageSrc || isAdjusting
-  });
+  const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } =
+    useDraggable({
+      id: `tier-drag-${rowId}-${item.id}`,
+      data: {
+        type: "tier-item",
+        rowId,
+        id: item.id,
+        imageSrc: item.imageSrc,
+        width: widthForHeight(aspectRatio, TIER_TILE_HEIGHT),
+        aspectRatio: (aspectRatio || "3:4").replace(":", "/"),
+      },
+      disabled: !item.imageSrc || isAdjusting,
+    });
 
-  const setRefs = (node: HTMLDivElement | null) => {
-    (tierRef as any).current = node;
-    setDroppableRef(node);
-    if (!isAdjusting && item?.imageSrc) {
+  const setRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      (tileRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      setDroppableRef(node);
       setDraggableRef(node);
-    } else {
-      setDraggableRef(null);
-    }
-  };
+    },
+    [setDroppableRef, setDraggableRef]
+  );
 
-  const objectPosStyle: React.CSSProperties = {
-    objectPosition: isAdjusting ? `${posX}% ${posY}%` : item?.objectPosition || "center",
-    transform: `scale(${isAdjusting ? zoom : item?.zoom || 1})`,
-    transformOrigin: "center",
-  };
+  const openMenu = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const rect = tileRef.current?.getBoundingClientRect();
+    if (rect) setAnchor({ x: rect.left + rect.width / 2, y: rect.top + 12 });
+    setIsMenuOpen(true);
+  }, []);
 
-  if (!item) return null;
+  const width = widthForHeight(aspectRatio, TIER_TILE_HEIGHT);
 
   return (
-    <motion.div
+    <div
       ref={setRefs}
-      layout={!isDragging}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ duration: 0.2 }}
-      className={`relative group/item ${isDragging ? "opacity-40 scale-95 grayscale" : ""} ${isOver ? "focus-ring bg-primary/20 scale-105 z-20 shadow-2xl" : ""}`}
+      {...attributes}
+      {...listeners}
+      role="button"
+      tabIndex={0}
+      aria-label={`Tier item, position ${idx + 1}`}
       onClick={(e) => {
         if (isAdjusting) return;
         handleInteraction(e.clientX, e.clientY, e.target as HTMLElement);
       }}
-      {...attributes}
-      {...listeners}
+      onContextMenu={openMenu}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openMenu(e as unknown as React.MouseEvent);
+        }
+      }}
+      /* Draggable, so the touch sensor needs to own the gesture; without
+         `touch-none` a phone treats the drag as a scroll. */
+      className={`relative shrink-0 group/tier outline-none touch-none ${
+        isDragging ? "opacity-25" : ""
+      }`}
+      style={{ width, height: TIER_TILE_HEIGHT }}
     >
-      <div className={`${TIER_ASPECT_MAP[aspectRatio || "3:4"]} relative cursor-grab active:cursor-grabbing overflow-hidden select-none bg-surface-secondary`}>
-        <img
-          src={getProxiedImageUrl(item.imageSrc!)}
-          className="w-full h-full object-cover pointer-events-none transition-all duration-200"
-          style={objectPosStyle}
+      <div
+        className="relative w-full h-full overflow-hidden squircle"
+        style={{
+          borderRadius: 10,
+          boxShadow: isSelected
+            ? "0 0 0 2px var(--color-primary)"
+            : isOver
+              ? "0 0 0 2px var(--color-primary), 0 0 0 6px color-mix(in srgb, var(--color-primary) 22%, transparent)"
+              : "inset 0 0 0 0.5px var(--material-hairline)",
+        }}
+      >
+        <RemoteImage
+          src={item.imageSrc!}
+          alt=""
+          decoding="async"
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={imageStyle}
         />
+
+        <button
+          type="button"
+          aria-label="Item actions"
+          onClick={openMenu}
+          className="absolute top-1 right-1 z-10 flex items-center justify-center w-6 h-6
+                     media-scrim squircle hover:brightness-125 active:scale-95
+                     transition-transform duration-150 affordance touch-target"
+          style={{ borderRadius: 7 }}
+        >
+          <MoreHorizontal size={13} strokeWidth={2.5} />
+        </button>
+
+        {dropPulse > 0 && (
+          <span
+            key={dropPulse}
+            aria-hidden
+            className="drop-land absolute inset-0 z-30 pointer-events-none"
+            style={{ borderRadius: 10 }}
+          />
+        )}
+
         {isAdjusting && (
-          <div className="absolute inset-0 bg-surface/50 flex flex-col items-center justify-between p-1 z-30" onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }} onWheel={handleWheel}>
-            <div className="bg-surface-elevated text-text text-[8px] uppercase font-bold px-2 py-0.5 rounded-full">Pan & Zoom</div>
-            <div className="flex gap-1 mb-1">
-              <button onClick={(e) => { e.stopPropagation(); stopAdjusting(); }} className="p-1.5 bg-surface-elevated rounded-full text-text"><X size={12} /></button>
-              <button onClick={(e) => { e.stopPropagation(); saveAdjustments(); clearInteraction(); }} className="p-1.5 bg-primary rounded-full text-white"><Check size={12} /></button>
+          <div
+            className="absolute inset-0 z-20 flex flex-col items-center justify-between p-1 select-none touch-none cursor-move"
+            style={{ background: "rgba(0,0,0,0.45)" }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          >
+            <span className="media-scrim text-caption-2 font-semibold px-2 py-0.5 rounded-full">
+              Move
+            </span>
+            <div className="flex gap-1.5 mb-1">
+              <button
+                type="button"
+                aria-label="Cancel"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  stopAdjusting();
+                }}
+                className="flex items-center justify-center w-7 h-7 media-scrim rounded-full"
+              >
+                <X size={13} />
+              </button>
+              <button
+                type="button"
+                aria-label="Save"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  saveAdjustments();
+                  clearInteraction();
+                }}
+                className="flex items-center justify-center w-7 h-7 rounded-full text-on-accent"
+                style={{ background: "var(--color-primary)" }}
+              >
+                <Check size={13} />
+              </button>
             </div>
           </div>
         )}
       </div>
-      {isSelected && !isAdjusting && (
-        <PopoverMenu
-          isOpen={true}
-          onClose={clearInteraction}
-          triggerPoint={localClickPoint}
-          actions={[
-            { label: 'Adjust', icon: Crop, onClick: startAdjusting },
-            { label: 'Remove', icon: X, onClick: () => { handleItemTransfer({ type: "tier", rowId, itemId: item.id }, { type: "inbox" }); clearInteraction(); }, variant: 'danger' }
-          ]}
-        />
-      )}
-    </motion.div>
+
+      <PopoverMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        actions={filledImageActions({
+          onReplace: triggerPicker,
+          onAdjust: startAdjusting,
+          onDownload: () =>
+            void downloadImage(item.imageSrc!, `tier-${idx + 1}.jpg`),
+          onReturnToLibrary: () => {
+            handleItemTransfer(
+              { type: "tier", rowId, itemId: item.id },
+              { type: "inbox" }
+            );
+            clearInteraction();
+          },
+          onRemove: () => {
+            handleTierItemRemove(rowId, item.id);
+            clearInteraction();
+          },
+        })}
+        triggerPoint={anchor}
+      />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+    </div>
   );
 });
 
-export const TierRowWrapper: React.FC<{ rowId: string; children: React.ReactNode; justify?: "left" | "center" | "right" }> = ({ rowId, children, justify }) => {
+/**
+ * The droppable lane a tier row's items sit in. Dropping anywhere in the lane
+ * appends to that tier (`index: -1`).
+ */
+export const TierRail: React.FC<{
+  rowId: string;
+  children: React.ReactNode;
+  justify?: "left" | "center" | "right";
+}> = ({ rowId, children, justify }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: `tier-row-body-${rowId}`,
-    data: { type: 'tier-cell', rowId, index: -1 }
+    data: { type: "tier-cell", rowId, index: -1 },
   });
 
   const { handleInteraction } = useCellInteraction({
-    type: 'tier-item',
+    type: "tier-item",
     index: -1,
     rowId,
   });
 
-  const justifyClass = justify === 'left' ? 'justify-start text-left' : 
-                       justify === 'right' ? 'justify-end text-right' : 
-                       'justify-center text-center';
+  const justifyClass =
+    justify === "left"
+      ? "justify-start"
+      : justify === "right"
+        ? "justify-end"
+        : "justify-center";
 
   return (
-    <div ref={setNodeRef} className={`relative flex-1 flex flex-wrap content-start ${justifyClass} items-start min-h-[6rem] transition-all bg-surface ${isOver ? "bg-primary/5 focus-ring scale-[1.01] z-10 shadow-inner" : ""}`} onClick={(e) => handleInteraction(e.clientX, e.clientY, e.target as HTMLElement)}>
+    <div
+      ref={setNodeRef}
+      onClick={(e) => handleInteraction(e.clientX, e.clientY, e.target as HTMLElement)}
+      className={`relative flex-1 min-w-0 flex flex-wrap content-start items-start gap-1.5 p-2
+                  transition-colors duration-150 ${justifyClass}`}
+      style={{
+        minHeight: TIER_TILE_HEIGHT + 16,
+        backgroundColor: isOver
+          ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
+          : undefined,
+      }}
+    >
       {children}
     </div>
   );

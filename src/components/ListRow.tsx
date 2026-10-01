@@ -1,18 +1,26 @@
-import React, { useRef, useState } from 'react';
-import { Upload, X, ArrowDownToLine, Plus, Star, Move, Check, GripVertical, Globe, Trash2, Search } from 'lucide-react';
-import { getProxiedImageUrl } from '@/utils/imageProxy';
-import { UrlInputModal } from '@/components/ui/UrlInputModal';
-import { motion, AnimatePresence } from 'motion/react';
-import { useStore } from '@/store/useStore';
-import { selectActiveRank } from '@/store/selectors';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { PopoverMenu } from '@/components/ui/PopoverMenu';
-import { usePanZoom } from '@/hooks/usePanZoom';
-import { useCellInteraction } from '@/hooks/useCellInteraction';
-import { useCellMediaUpload } from '@/hooks/useCellMediaUpload';
-import { LIST_ASPECT_MAP } from '@/utils/ui';
-import { CellData } from '@/types';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Upload, Check, X, MoreHorizontal } from "lucide-react";
+import { CellData } from "@/types";
+import { useStore } from "@/store/useStore";
+import { selectActiveRank } from "@/store/selectors";
+import { UrlInputModal } from "@/components/ui/UrlInputModal";
+import { PopoverMenu } from "@/components/ui/PopoverMenu";
+import {
+  filledImageActions,
+  emptyImageActions,
+} from "@/components/ui/imageActions";
+import { downloadImage } from "@/utils/imageProxy";
+import { Slider } from "@/components/ui/Slider";
+import { RemoteImage } from "@/components/ui/RemoteImage";
+import { usePanZoom } from "@/hooks/usePanZoom";
+import { useCellInteraction } from "@/hooks/useCellInteraction";
+import { useCellMediaUpload } from "@/hooks/useCellMediaUpload";
+import { useDropPulse } from "@/state/dragState";
+import { widthForHeight } from "@/utils/ui";
+
+const THUMB_HEIGHT = 56;
 
 export interface ListRowProps {
   index: number;
@@ -23,245 +31,356 @@ export const ListRow = React.memo(function ListRow({
   index,
   data,
 }: ListRowProps) {
-  const activeRank = useStore(selectActiveRank);
-
-  const handleCellClear = useStore(s => s.handleCellClear);
-  const handleUpdateCell = useStore(s => s.handleUpdateCell);
-  const handleItemTransfer = useStore(s => s.handleItemTransfer);
-  const handleCellUpload = useStore(s => s.handleCellUpload);
+  const rank = useStore(selectActiveRank);
+  const handleCellClear = useStore((s) => s.handleCellClear);
+  const handleUpdateCell = useStore((s) => s.handleUpdateCell);
+  const handleItemTransfer = useStore((s) => s.handleItemTransfer);
+  const handleCellUpload = useStore((s) => s.handleCellUpload);
 
   const rowRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
 
-  const { isSelected, localClickPoint, handleInteraction, clearInteraction } = useCellInteraction({
-    type: 'cell',
-    index
-  });
+  const { isSelected, handleInteraction, clearInteraction } =
+    useCellInteraction({ type: "cell", index });
 
-  const { fileInputRef, triggerPicker, handleFileChange } = useCellMediaUpload((base64) => {
-    handleCellUpload(index, base64 as string);
-    clearInteraction();
-  });
+  const { fileInputRef, triggerPicker, handleFileChange } = useCellMediaUpload(
+    (base64) => {
+      handleCellUpload(index, base64 as string);
+      clearInteraction();
+    }
+  );
 
-  const [localText, setLocalText] = useState(data?.textLabel || '');
-  React.useEffect(() => {
-    setLocalText(data?.textLabel || '');
+  const [localText, setLocalText] = useState(data?.textLabel || "");
+  useEffect(() => {
+    setLocalText(data?.textLabel || "");
   }, [data?.textLabel]);
-
-  if (!data || !activeRank) return null;
-
-  const borderRadius = activeRank.borderRadius ?? 12;
-  const aspectRatio = activeRank.aspectRatio || '3:4';
-  const showNumbers = activeRank.showNumbers ?? true;
-  const rankStyle = activeRank.style || 'card';
-  const borderless = activeRank.borderless ?? false;
 
   const {
     isAdjusting,
-    setIsAdjustDragging,
-    zoom,
-    posX,
-    posY,
-    handleWheel,
+    imageStyle,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerCancel,
     startAdjusting,
     stopAdjusting,
-    saveAdjustments
+    saveAdjustments,
   } = usePanZoom(
-    { zoom: data?.zoom, posX: data?.objectPosition ? parseInt(data.objectPosition.split(' ')[0]) : 50, posY: data?.objectPosition ? parseInt(data.objectPosition.split(' ')[1]) : 50 },
+    {
+      zoom: data?.zoom,
+      posX: data?.objectPosition
+        ? parseInt(data.objectPosition.split(" ")[0])
+        : 50,
+      posY: data?.objectPosition
+        ? parseInt(data.objectPosition.split(" ")[1])
+        : 50,
+    },
     imageContainerRef,
-    (state) => handleUpdateCell(index, { zoom: state.zoom, objectPosition: `${state.posX}% ${state.posY}%` })
+    (state) =>
+      handleUpdateCell(index, {
+        zoom: state.zoom,
+        objectPosition: `${state.posX}% ${state.posY}%`,
+      })
   );
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-    isOver,
-  } = useSortable({
-    id: data?.id || `cell-${index}`,
-    data: {
-      type: 'cell',
-      index,
-      imageSrc: data?.imageSrc,
-      textLabel: data?.textLabel,
-      width: rowRef.current?.offsetWidth,
-      isRow: true
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
+    useSortable({
+      id: data?.id || `cell-${index}`,
+      data: {
+        type: "cell",
+        index,
+        imageSrc: data?.imageSrc,
+        textLabel: data?.textLabel,
+        rating: data?.rating,
+        width: rowRef.current?.offsetWidth,
+        isRow: true,
+      },
+      disabled: isAdjusting,
+    });
+
+  const setRowRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      (rowRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      setNodeRef(node);
     },
-    disabled: isAdjusting
-  });
+    [setNodeRef]
+  );
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const dropPulse = useDropPulse(data?.id ?? `cell-${index}`);
 
-  const actions = data.imageSrc ? [
-    { label: 'Replace', icon: Upload, onClick: triggerPicker },
-    { label: 'Crop & Adjust', icon: Move, onClick: startAdjusting },
-    { label: 'To Inbox', icon: ArrowDownToLine, onClick: () => handleItemTransfer({ type: "cell", index }, { type: "inbox" }) },
-    { label: 'Remove', icon: Trash2, onClick: () => handleCellClear(index), variant: 'danger' as const },
-  ] : [
-    { label: 'Local File', icon: Upload, onClick: triggerPicker },
-    { label: 'From URL', icon: Globe, onClick: () => setIsUrlModalOpen(true) },
-    { label: "Search Online", icon: Search, onClick: () => window.dispatchEvent(new CustomEvent('open-inbox-search')) },
-  ];
+  const openMenu = useCallback(
+    (e: React.MouseEvent, target?: HTMLElement | null) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const rect = (target ?? rowRef.current)?.getBoundingClientRect();
+      if (rect) setAnchor({ x: rect.left + rect.width / 2, y: rect.top + 12 });
+      setIsMenuOpen(true);
+    },
+    []
+  );
+
+  if (!data || !rank) return null;
+
+  const aspectRatio = rank.aspectRatio || "3:4";
+  const radius = rank.borderRadius ?? 12;
+  const showNumbers = rank.showNumbers ?? true;
+  const isCard = (rank.style || "card") === "card";
+  const borderless = rank.borderless ?? false;
+  const thumbWidth = widthForHeight(aspectRatio, THUMB_HEIGHT);
+
+  const actions = data.imageSrc
+    ? filledImageActions({
+        onReplace: triggerPicker,
+        onAdjust: startAdjusting,
+        onDownload: () =>
+          void downloadImage(
+            data.imageSrc!,
+            `${rank.title.replace(/\s+/g, "-").toLowerCase() || "image"}-${
+              index + 1
+            }.jpg`
+          ),
+        onReturnToLibrary: () =>
+          handleItemTransfer({ type: "cell", index }, { type: "inbox" }),
+        onRemove: () => handleCellClear(index),
+      })
+    : emptyImageActions({
+        onChooseFile: triggerPicker,
+        onFromUrl: () => setIsUrlModalOpen(true),
+        onSearchOnline: () =>
+          window.dispatchEvent(new CustomEvent("open-inbox-search")),
+      });
 
   return (
     <div
-      ref={(node) => {
-        setNodeRef(node);
-        (rowRef as any).current = node;
-      }}
-      style={style}
-      className={`
-        group relative flex items-center gap-4
-        ${rankStyle === 'card' ? 'p-3 bg-surface rounded-2xl' : 'p-3 bg-transparent hover:bg-hover'}
-        ${rankStyle === 'seamless' && borderless ? 'border-none' : rankStyle === 'seamless' ? 'border-b border-border' : ''}
-        ${isDragging ? 'opacity-20 grayscale z-0' : 'z-10'}
-        ${isSelected ? 'bg-primary/5 ring-1 ring-primary/20 shadow-lg' : ''}
-        ${isOver ? 'focus-ring bg-primary/5 scale-[1.02] z-20 shadow-xl' : 'hover:bg-hover'}
-      `}
+      ref={setRowRefs}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        borderRadius: isCard ? radius : undefined,
+        // Capped so a long list still finishes settling promptly.
+        "--enter-delay": `${Math.min(index, 14) * 26}ms`,
+      } as React.CSSProperties}
       onClick={(e) => {
         if (isAdjusting) return;
         handleInteraction(e.clientX, e.clientY, e.target as HTMLElement);
       }}
+      className={`group item-enter relative flex items-center gap-3 px-3 py-2.5
+        ${isCard ? "bg-surface" : `bg-surface ${index > 0 ? "border-t border-border" : ""}`}
+        ${!isCard && borderless ? "border-t-0" : ""}
+        ${isDragging ? "opacity-25 z-0" : "z-10"}
+        ${isOver ? "z-20" : ""}
+        ${isSelected ? "bg-primary/5" : ""}
+        transition-colors duration-150
+      `}
     >
-      <div className="flex items-center gap-2 shrink-0" {...attributes} {...listeners}>
-        <GripVertical size={16} className="text-muted group-hover:text-text cursor-grab active:cursor-grabbing transition-colors" />
-        <AnimatePresence mode="popLayout" initial={false}>
-          {showNumbers && (
-            <motion.div
-              initial={{ opacity: 0, x: -10, width: 0, marginRight: 0 }}
-              animate={{ opacity: 1, x: 0, width: 'auto', marginRight: 12 }}
-              exit={{ opacity: 0, x: -10, width: 0, marginRight: 0 }}
-              transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-              className="shrink-0 text-center overflow-hidden"
-            >
-              <span className="text-xl sm:text-2xl font-black text-muted leading-none select-none">
-                #{index + 1}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Selection / drop indication drawn as an inset ring so the row never
+          reflows when it lights up. */}
+      {(isSelected || isOver) && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-20"
+          style={{
+            boxShadow: `inset 0 0 0 ${
+              isOver ? 2 : 1.5
+            }px color-mix(in srgb, var(--color-primary) ${
+              isOver ? 100 : 55
+            }%, transparent)`,
+            borderRadius: isCard ? radius : undefined,
+          }}
+        />
+      )}
+
+      {/* Landing pulse — the row versions of the grid tile's drop feedback. */}
+      {dropPulse > 0 && (
+        <span
+          key={dropPulse}
+          aria-hidden
+          className="drop-land pointer-events-none absolute inset-0 z-30"
+          style={{ borderRadius: isCard ? radius : undefined }}
+        />
+      )}
+
+      {/* ── Drag handle ─────────────────────────────────────────────── */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="shrink-0 flex items-center gap-1 cursor-grab active:cursor-grabbing touch-none"
+      >
+        <GripVertical
+          size={16}
+          className="text-faint group-hover:text-muted transition-colors"
+        />
+        {showNumbers && (
+          <span className="hidden sm:block w-6 text-center text-footnote font-semibold text-muted tabular-nums select-none">
+            {index + 1}
+          </span>
+        )}
       </div>
 
+      {/* ── Thumbnail ───────────────────────────────────────────────── */}
       <div
         ref={imageContainerRef}
-        className={`relative shrink-0 ${LIST_ASPECT_MAP[aspectRatio] || 'aspect-[3/4] w-16 sm:w-20'}`}
+        className="relative shrink-0"
+        style={{ width: thumbWidth, height: THUMB_HEIGHT }}
       >
         {data.imageSrc ? (
           <div
-            className={`w-full h-full relative cursor-pointer group/image overflow-hidden border border-border shadow-sm transition-all ${isSelected && !isAdjusting ? 'scale-[1.02] ring-2 ring-primary' : 'hover:scale-[1.02]'}`}
-            style={{ borderRadius }}
+            className="w-full h-full relative overflow-hidden cursor-pointer squircle"
+            style={{
+              borderRadius: radius,
+              boxShadow: isAdjusting
+                ? "0 0 0 2px var(--color-primary)"
+                : "inset 0 0 0 0.5px var(--material-hairline)",
+            }}
           >
-            <img
-              src={getProxiedImageUrl(data.imageSrc)}
+            <RemoteImage
+              src={data.imageSrc}
               alt=""
+              decoding="async"
               className="w-full h-full object-cover pointer-events-none"
-              style={{
-                objectPosition: isAdjusting ? `${posX}% ${posY}%` : (data.objectPosition || 'center'),
-                transform: `scale(${isAdjusting ? zoom : (data.zoom || 1)})`,
-                transformOrigin: 'center'
-              }}
-              referrerPolicy="no-referrer"
+              style={imageStyle}
             />
 
             {isAdjusting && (
               <div
-                className="adjust-controls absolute inset-0 bg-surface/50 backdrop-blur-[2px] flex flex-col items-center justify-between p-2 z-30 cursor-move"
-                onMouseDown={(e) => { e.stopPropagation(); setIsAdjustDragging(true); }}
-                onWheel={handleWheel}
+                className="absolute inset-0 z-30 flex flex-col items-center justify-between p-1 select-none touch-none cursor-move"
+                style={{ background: "rgba(0,0,0,0.45)" }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerCancel}
               >
-                <div className="bg-surface-elevated text-text text-[9px] uppercase font-black tracking-widest px-3 py-1 rounded-full border border-border shadow-2xl mt-1">Pan & Zoom</div>
-                <div className="flex gap-2 mb-1">
-                  <button onClick={(e) => { e.stopPropagation(); stopAdjusting(); }} className="p-1.5 bg-surface-elevated hover:bg-hover text-text rounded-full border border-border"><X size={14} /></button>
-                  <button onClick={(e) => { e.stopPropagation(); saveAdjustments(); clearInteraction(); }} className="p-1.5 bg-primary hover:bg-primary/80 text-white rounded-full shadow-lg"><Check size={14} /></button>
+                <span className="media-scrim text-caption-2 font-semibold px-2 py-0.5 rounded-full">
+                  Move
+                </span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    aria-label="Cancel"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      stopAdjusting();
+                    }}
+                    className="flex items-center justify-center w-6 h-6 media-scrim rounded-full"
+                  >
+                    <X size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Save"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      saveAdjustments();
+                      clearInteraction();
+                    }}
+                    className="flex items-center justify-center w-6 h-6 rounded-full text-on-accent"
+                    style={{ background: "var(--color-primary)" }}
+                  >
+                    <Check size={12} />
+                  </button>
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <div
-            className="w-full h-full bg-surface-secondary border border-border shadow-sm flex flex-col items-center justify-center text-muted gap-2 cursor-pointer hover:bg-hover transition-colors group/empty"
-            style={{ borderRadius }}
+          <button
+            type="button"
+            aria-label={`Add image to row ${index + 1}`}
+            onClick={(e) => openMenu(e, e.currentTarget)}
+            className="w-full h-full flex items-center justify-center squircle
+                       bg-surface-secondary text-muted hover:text-text hover:bg-hover
+                       transition-colors duration-150"
+            style={{ borderRadius: radius }}
           >
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-            <Plus size={24} className="opacity-30 group-hover/empty:opacity-100 transition-opacity" />
-            <span className="text-[10px] uppercase font-black tracking-widest opacity-30 group-hover/empty:opacity-100">Add</span>
-          </div>
+            <Upload size={16} strokeWidth={2.2} />
+          </button>
         )}
-
-        <PopoverMenu
-          isOpen={isSelected && !isAdjusting}
-          onClose={clearInteraction}
-          actions={actions}
-          triggerPoint={localClickPoint}
-          align={data.imageSrc ? 'center' : 'bottom'}
-          className={data.imageSrc ? 'mt-[-10px]' : ''}
-        />
       </div>
 
-      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+      {/* ── Title ───────────────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
         <input
           type="text"
-          placeholder="Enter Title..."
+          aria-label={`Title for row ${index + 1}`}
+          placeholder="Untitled"
           value={localText}
           onChange={(e) => setLocalText(e.target.value)}
           onBlur={() => {
-            if (localText !== (data.textLabel || '')) {
+            if (localText !== (data.textLabel || "")) {
               handleUpdateCell(index, { textLabel: localText });
             }
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === "Enter") e.currentTarget.blur();
+            e.stopPropagation();
           }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full bg-transparent text-lg sm:text-xl font-bold text-text focus:outline-none placeholder:text-muted truncate py-1 transition-colors border-none focus:ring-0 p-0"
+          className="w-full bg-transparent text-callout font-medium text-text truncate
+                     placeholder:text-faint outline-none border-none p-0"
         />
-        <div className="sm:hidden flex items-center gap-1 text-xs font-bold text-yellow-500/80">
-          <Star size={10} className="fill-yellow-500" />
-          {data.rating ? <span>{data.rating}/10</span> : <span className="text-muted">No Rating</span>}
-        </div>
       </div>
 
-      <div className="relative shrink-0 flex items-center justify-center px-2">
-        <div className="hidden sm:flex gap-1">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
-            <button
-              key={star}
-              onClick={(e) => { e.stopPropagation(); handleUpdateCell(index, { rating: star === data.rating ? 0 : star }); }}
-              className="focus:outline-none group/star p-0.5 hover:scale-125 transition-transform"
-            >
-              <Star
-                size={14}
-                className={`${(data.rating || 0) >= star ? 'fill-yellow-500 text-yellow-500' : 'text-muted/30 group-hover/star:text-yellow-500/40'} transition-colors`}
-              />
-            </button>
-          ))}
-        </div>
-        <div className="sm:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface border border-transparent hover:border-border">
-          <Star size={20} className={`${data.rating ? 'fill-yellow-500 text-yellow-500' : 'text-muted/30'}`} />
-          <select
-            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+      {/* ── Score ───────────────────────────────────────────────────── */}
+      <div className="shrink-0 flex items-center gap-2.5">
+        <div className="w-24 sm:w-36">
+          <Slider
+            aria-label={`Score for row ${index + 1}`}
+            min={0}
+            max={10}
+            step={1}
             value={data.rating || 0}
-            onChange={(e) => { e.stopPropagation(); handleUpdateCell(index, { rating: Number(e.target.value) }); }}
-          >
-            <option value="0">No Rating</option>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(r => (
-              <option key={r} value={r}>{r} Stars</option>
-            ))}
-          </select>
+            onChange={(v) => handleUpdateCell(index, { rating: v })}
+          />
         </div>
+        <span
+          className={`w-9 text-right text-caption-1 font-semibold tabular-nums ${
+            data.rating ? "text-text" : "text-faint"
+          }`}
+        >
+          {data.rating ? data.rating : "—"}
+        </span>
       </div>
+
+      {/* ── Row menu ────────────────────────────────────────────────── */}
+      <button
+        type="button"
+        aria-label={`Row ${index + 1} options`}
+        aria-haspopup="menu"
+        aria-expanded={isMenuOpen}
+        onClick={(e) => openMenu(e, e.currentTarget)}
+        className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full
+                   text-muted hover:text-text hover:bg-hover transition-colors
+                   affordance touch-target"
+      >
+        <MoreHorizontal size={17} />
+      </button>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      <PopoverMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        actions={actions}
+        triggerPoint={anchor}
+      />
 
       <UrlInputModal
         isOpen={isUrlModalOpen}
         onClose={() => setIsUrlModalOpen(false)}
-        onSubmit={(url) => { handleCellUpload(index, url); clearInteraction(); }}
+        onSubmit={(url) => {
+          handleCellUpload(index, url);
+          clearInteraction();
+        }}
       />
     </div>
   );

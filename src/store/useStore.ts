@@ -2,7 +2,11 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { temporal } from "zundo";
-import { idbStorage, createDefaultState } from "@/utils/storage";
+import {
+  idbStorage,
+  createDefaultState,
+  migratePersistedState,
+} from "@/utils/storage";
 import { GlobalState } from "@/types";
 import { createGlobalSlice, GlobalSlice } from "./slices/globalSlice";
 import { createRankSlice, RankSlice } from "./slices/rankSlice";
@@ -31,8 +35,9 @@ export const useStore = create<AppState>()(
       {
         name: "anime-ranker-state",
         storage: createJSONStorage(() => idbStorage),
-        version: 3,
-        migrate: (persistedState: any) => persistedState as AppState,
+        version: 4,
+        migrate: (persistedState: any) =>
+          migratePersistedState(persistedState) as AppState,
       }
     ),
     {
@@ -40,6 +45,8 @@ export const useStore = create<AppState>()(
         ranks: state.ranks,
         inbox: state.inbox,
       }),
+      // Bounded so a long session cannot grow the history without limit.
+      limit: 100,
     }
   )
 );

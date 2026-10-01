@@ -36,11 +36,6 @@ export interface TierRow {
   items: CellData[];
 }
 
-export interface TierData {
-  label: string;
-  color: string;
-}
-
 export interface Rank {
   id: string;
   title: string;
@@ -62,8 +57,6 @@ export interface Rank {
   gridJustify?: "left" | "center" | "right";
   backgroundColor: string;
 
-  tiers?: TierData[];
-
   tierRows: TierRow[];
 
   createdAt: number;
@@ -75,6 +68,12 @@ export interface GlobalTheme {
   paletteId: string;
   isDark: boolean;
 }
+
+/**
+ * Where poster search looks first. "auto" is MyAnimeList with AniList behind
+ * it; the named values promote one and keep the other as the fallback.
+ */
+export type ImageSourcePreference = "auto" | "myanimelist" | "anilist";
 
 export interface GlobalState {
   version: number;
@@ -93,6 +92,7 @@ export interface GlobalState {
     reduceGlassEffects: boolean;
     /** When true, dock collapses on drag start on desktop too (not only mobile). */
     autoCloseDockOnDragDesktop: boolean;
+    imageSource?: ImageSourcePreference;
   };
 }
 
@@ -106,18 +106,6 @@ export type TransferTarget =
   | { type: "inbox" }
   | { type: "cell"; index: number }
   | { type: "tier"; rowId: string; targetIndex: number };
-
-export interface JikanResult {
-  mal_id: number;
-  images: {
-    jpg: {
-      image_url: string;
-      large_image_url: string;
-    };
-  };
-  title?: string;
-  name?: string;
-}
 
 // Interaction State
 export type InteractionState =

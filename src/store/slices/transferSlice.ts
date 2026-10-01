@@ -1,7 +1,7 @@
 import { StateCreator } from "zustand";
 import { AppState } from "../useStore";
 import { TransferSource, TransferTarget, CellData } from "@/types";
-import { findInboxItem, findInboxItems, checkAndRescueImages } from "@/utils/storeUtils";
+import { findInboxItem, findInboxItems } from "@/utils/storeUtils";
 
 export interface TransferSlice {
   handleItemTransfer: (
@@ -23,9 +23,8 @@ export const createTransferSlice: StateCreator<
     if (!activeRank) return;
 
     let imagesToTransfer: string[] = [];
-    let itemsToRemoveFromSource: (() => void)[] = [];
+    const itemsToRemoveFromSource: (() => void)[] = [];
     let itemsAreFromInbox = false;
-    let singleInboxItemId = "";
 
     // 1. Gather Images & Prepare Source Deletions
     if (source.type === "cell") {
@@ -112,7 +111,16 @@ export const createTransferSlice: StateCreator<
                 : draft.inbox.activeCollectionId;
             const col = draft.inbox.collections.find((c) => c.id === targetColId);
             if (col) {
+              // An image that is already tracked anywhere in the library is not
+              // re-added — sending a poster back to the Library used to push a
+              // duplicate copy of it every time.
+              const tracked = new Set<string>();
+              draft.inbox.collections.forEach((c) =>
+                c.items.forEach((i) => tracked.add(i.imageSrc))
+              );
               imagesToTransfer.forEach((img, idx) => {
+                if (tracked.has(img)) return;
+                tracked.add(img);
                 col.items.push({
                   id: `inbox-moved-${Date.now()}-${idx}`,
                   imageSrc: img,
@@ -130,7 +138,7 @@ export const createTransferSlice: StateCreator<
           const row = dRank.tierRows.find((r) => r.id === target.rowId);
           if (row) {
             const itemsToAdd: CellData[] = imagesToTransfer.map((img) => ({
-              id: `cell-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              id: `cell-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
               imageSrc: img,
               position: 0,
             }));
@@ -160,8 +168,8 @@ export const createTransferSlice: StateCreator<
       });
     };
 
-    // 3. Duplicate check if targeting Tier/Cell
-    if (target.type === "tier" || target.type === "cell") {
+    const cameFromBoard = source.type === "cell" || source.type === "tier";
+    if (!cameFromBoard && (target.type === "tier" || target.type === "cell")) {
       state.checkDuplicateAndProceed(imageSrc, executeTransfer);
     } else {
       executeTransfer();

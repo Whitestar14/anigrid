@@ -2,6 +2,37 @@ import { toPng, toJpeg } from "html-to-image";
 
 export type ImageFormat = "png" | "jpeg" | "webp";
 
+/** Marks the element that is the board itself, inside the export sheet. */
+export const EXPORT_BOARD_ATTR = "data-export-board";
+
+export async function withBoardHuggingLayout<T>(
+  sheet: HTMLElement,
+  run: () => Promise<T>
+): Promise<T> {
+  const board = sheet.querySelector<HTMLElement>(`[${EXPORT_BOARD_ATTR}]`);
+  const target = board ?? sheet;
+  const styles = getComputedStyle(sheet);
+  const horizontalPadding =
+    parseFloat(styles.paddingLeft || "0") +
+    parseFloat(styles.paddingRight || "0");
+  const boardWidth = Math.ceil(target.getBoundingClientRect().width);
+
+  const previousWidth = sheet.style.width;
+  if (boardWidth > 0) {
+    sheet.style.width = `${boardWidth + horizontalPadding}px`;
+  }
+
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  );
+
+  try {
+    return await run();
+  } finally {
+    sheet.style.width = previousWidth;
+  }
+}
+
 export const readFileAsDataURL = (file: File | Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -56,9 +87,6 @@ export const downloadGrid = async (
   qualityScale: number = 2
 ) => {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    let dataUrl = "";
     const options = {
       pixelRatio: qualityScale,
       cacheBust: false,
@@ -66,11 +94,14 @@ export const downloadGrid = async (
       httpTimeout: 5000,
     };
 
-    if (format === "jpeg" || format === "jpg") {
-      dataUrl = await toJpeg(element, { ...options, quality: 0.95 });
-    } else {
-      dataUrl = await toPng(element, options);
-    }
+    // The board sits inside the sheet; the sheet is what gets captured, pinned
+    // to the board's own width so the background wraps the artwork.
+    const dataUrl = await withBoardHuggingLayout(element, async () => {
+      if (format === "jpeg" || format === "jpg") {
+        return toJpeg(element, { ...options, quality: 0.95 });
+      }
+      return toPng(element, options);
+    });
 
     const link = document.createElement("a");
     link.download = `${title
@@ -91,8 +122,6 @@ export const copyGrid = async (
   qualityScale: number = 2
 ) => {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
     const options = {
       pixelRatio: qualityScale,
       cacheBust: false,
@@ -100,7 +129,9 @@ export const copyGrid = async (
       httpTimeout: 5000,
     };
 
-    const dataUrl = await toPng(element, options);
+    const dataUrl = await withBoardHuggingLayout(element, () =>
+      toPng(element, options)
+    );
     const res = await fetch(dataUrl);
     const blob = await res.blob();
     

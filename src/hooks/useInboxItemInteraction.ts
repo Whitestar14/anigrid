@@ -1,16 +1,6 @@
 import { useCallback } from "react";
 import { useStore } from "@/store/useStore";
 
-/**
- * Click handler for stash items.
- *
- * Placement rules (iOS-style intentional interaction):
- *  - If a CELL is already selected → place item there and advance to next cell.
- *  - If a TIER-ITEM is selected → place into that tier row.
- *  - Otherwise → just mark the inbox item as "selected" (inbox interaction state).
- *    This prevents accidental bulk-add when the user is trying to select items
- *    for deletion or inspection without having a grid target in mind.
- */
 export function useInboxItemInteraction() {
   const activeRankId = useStore((s) => s.activeRankId);
 

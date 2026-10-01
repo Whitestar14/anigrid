@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Edit2, FolderPlus, Package } from "lucide-react";
+import { ArrowLeft, Check, Edit2, FolderPlus, Package } from "lucide-react";
 import type { InboxCollection } from "@/types";
 
 export interface InboxCollectionPickerPanelProps {
@@ -31,92 +31,126 @@ export const InboxCollectionPickerPanel: React.FC<
   onCommitRename,
   onCancelRename,
 }) => {
-    return (
-      <div className="absolute inset-0 bg-surface flex flex-col p-6 animate-in fade-in slide-in-from-right-4 z-20">
-        <div className="flex items-center gap-3 mb-6 shrink-0">
-          <button
-            type="button"
-            onClick={onBack}
-            className="p-2 hover:bg-hover rounded-full text-primary hover:text-primary/80 transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h3 className="text-[15px] font-semibold text-text">Select Collection</h3>
-        </div>
+  return (
+    <div className="absolute inset-0 bg-surface flex flex-col animate-in fade-in slide-in-from-right-4 z-20">
+      <header className="flex items-center gap-1 pl-1 pr-3 h-12 shrink-0 border-b border-hairline">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back to search"
+          className="grid place-items-center w-9 h-9 rounded-full text-primary hover:bg-hover transition-colors touch-target"
+        >
+          <ArrowLeft size={19} />
+        </button>
+        <h3 className="text-headline font-semibold text-text">
+          Add to collection
+        </h3>
+      </header>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto custom-scrollbar">
-          {collections.map((col) => {
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar p-3">
+        <div className="material-card rounded-card overflow-hidden">
+          {collections.map((col, i) => {
             const isEditing = editingNameId === col.id;
+            const isRecent = col.id === lastTargetCollectionId;
+            const count = col.items?.length ?? 0;
+
             return (
               <div
                 key={col.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => !isEditing && onPickCollection(col.id)}
-                onKeyDown={(e) => {
-                  if (!isEditing && (e.key === "Enter" || e.key === " ")) {
-                    e.preventDefault();
-                    onPickCollection(col.id);
-                  }
-                }}
-                className={`
-                                      group relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all gap-3 text-center h-32
-                                      ${col.id === lastTargetCollectionId
-                    ? "bg-primary/10 border-primary/50 text-primary"
-                    : "bg-surface-secondary border-transparent hover:border-border hover:bg-surface text-muted hover:text-text cursor-pointer"
-                  }
-                                  `}
+                className={`flex items-stretch transition-colors duration-150 ${
+                  isEditing ? "" : "hover:bg-hover"
+                }`}
+                style={
+                  i < collections.length - 1
+                    ? { borderBottom: "0.5px solid var(--material-hairline)" }
+                    : undefined
+                }
               >
-                <Package size={28} strokeWidth={1.5} />
                 {isEditing ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={tempName}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => onTempNameChange(e.target.value)}
-                    onBlur={() => onCommitRename(col.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") e.currentTarget.blur();
-                      if (e.key === "Escape") onCancelRename();
-                    }}
-                    className="w-full bg-surface border border-border rounded px-2 py-0.5 text-[13px] text-text outline-none focus:border-primary text-center"
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                  <div className="flex-1 flex items-center gap-3 px-3 py-2.5">
+                    <Package size={16} className="text-muted shrink-0" />
+                    <input
+                      autoFocus
+                      type="text"
+                      value={tempName}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => onTempNameChange(e.target.value)}
+                      onBlur={() => onCommitRename(col.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") onCancelRename();
+                      }}
+                      aria-label="Collection name"
+                      className="flex-1 min-w-0 h-8 px-2 rounded-chip bg-background text-subheadline
+                                 font-semibold text-text outline-none focus-visible:focus-ring"
+                    />
+                  </div>
                 ) : (
                   <>
-                    <span className="font-medium text-[13px] line-clamp-2">
-                      {col.name}
-                    </span>
-                    {col.id === lastTargetCollectionId && (
-                      <span className="text-[11px] font-medium text-primary/75 absolute bottom-2">
-                        Recent
-                      </span>
-                    )}
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onStartRename(col.id, col.name);
-                      }}
-                      className="absolute top-2 right-2 p-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-hover rounded-full text-muted hover:text-text transition-all"
+                      onClick={() => onPickCollection(col.id)}
+                      className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 text-left"
                     >
-                      <Edit2 size={12} />
+                      <span
+                        className="grid place-items-center w-8 h-8 rounded-chip squircle shrink-0"
+                        style={{
+                          backgroundColor: isRecent
+                            ? "color-mix(in srgb, var(--color-primary) 18%, transparent)"
+                            : "var(--color-surface-secondary)",
+                          color: isRecent ? "var(--color-primary)" : "var(--color-muted)",
+                        }}
+                      >
+                        <Package size={15} strokeWidth={2.2} />
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block truncate text-subheadline font-semibold text-text">
+                          {col.name}
+                        </span>
+                        <span className="block text-caption-1 text-muted">
+                          {count} {count === 1 ? "image" : "images"}
+                          {isRecent && (
+                            <span className="text-primary"> · Added last time</span>
+                          )}
+                        </span>
+                      </span>
+                      {isRecent && (
+                        <Check
+                          size={16}
+                          strokeWidth={3}
+                          className="text-primary shrink-0"
+                        />
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      aria-label={`Rename ${col.name}`}
+                      onClick={() => onStartRename(col.id, col.name)}
+                      className="shrink-0 grid place-items-center w-11 text-muted
+                                 hover:text-text transition-colors"
+                    >
+                      <Edit2 size={14} />
                     </button>
                   </>
                 )}
               </div>
             );
           })}
-          <button
-            type="button"
-            onClick={onAddCollection}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl border border-dashed border-border hover:border-blue-500 hover:text-blue-500 transition-all gap-3 text-center h-32 text-muted hover:bg-blue-500/5 cursor-pointer"
-          >
-            <FolderPlus size={28} strokeWidth={1.5} />
-            <span className="font-medium text-[13px]">Create New</span>
-          </button>
         </div>
+
+        <button
+          type="button"
+          onClick={onAddCollection}
+          className="mt-3 w-full flex items-center gap-3 px-3 py-3 rounded-card
+                     border border-dashed border-hairline text-muted
+                     hover:text-primary hover:border-primary hover:bg-primary/5
+                     transition-colors duration-150"
+        >
+          <FolderPlus size={17} />
+          <span className="text-subheadline font-medium">New collection</span>
+        </button>
       </div>
-    );
-  };
+    </div>
+  );
+};

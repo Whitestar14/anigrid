@@ -1,33 +1,39 @@
-import React from 'react';
-import { AnimatePresence } from 'motion/react';
-import { useStore } from '@/store/useStore';
-import { selectActiveRank, selectCells } from '@/store/selectors';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import React from "react";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useStore } from "@/store/useStore";
+import { selectActiveRank, selectCells } from "@/store/selectors";
+import { ListRow } from "@/components/ListRow";
 
-import { ListRow } from '@/components/ListRow';
-
-export const ListView: React.FC = () => {
+export const ListView = React.memo(function ListView() {
   const rank = useStore(selectActiveRank);
   const cells = useStore(selectCells);
 
   if (!rank) return null;
 
+  const isCard = rank.style === "card";
+
   return (
-    <div
-      className={`flex flex-col w-full max-w-5xl mx-auto px-4 sm:px-0 ${rank.style === 'card' ? 'gap-3' : 'divide-y divide-border'}`}
-      style={rank.style === 'card' ? { gap: rank.gap ?? 8 } : {}}
-    >
-      <SortableContext items={cells.map(c => c.id)} strategy={verticalListSortingStrategy}>
-        <AnimatePresence mode="popLayout">
+    <div data-export-board="" className="flex flex-col w-full max-w-3xl mx-auto">
+      <SortableContext
+        items={cells.map((c) => c.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div
+          className={
+            isCard
+              ? "flex flex-col"
+              : "flex flex-col rounded-panel overflow-hidden border border-border squircle"
+          }
+          style={isCard ? { gap: rank.gap || 8 } : undefined}
+        >
           {cells.map((cell, index) => (
-            <ListRow
-              key={cell.id}
-              index={index}
-              data={cell}
-            />
+            <ListRow key={cell.id} index={index} data={cell} />
           ))}
-        </AnimatePresence>
+        </div>
       </SortableContext>
     </div>
   );
-};
+});

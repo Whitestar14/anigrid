@@ -23,10 +23,10 @@ export const VisibilitySection: React.FC<VisibilitySectionProps> = ({
 }) => {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[13px] font-medium text-muted uppercase tracking-wide pl-4">
+      <span className="text-footnote font-medium text-muted uppercase tracking-wide pl-4">
         Visibility
       </span>
-      <SettingButtonGroup className="glass-card rounded-[20px] overflow-hidden mx-4">
+      <SettingButtonGroup className="material-card rounded-card overflow-hidden mx-4">
         {(projectType === "ranking" || projectType === "list") && <SettingRow
           asLabel
           icon={<Hash size={16} />}
