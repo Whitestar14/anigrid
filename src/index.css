@@ -243,17 +243,17 @@
   .media-scrim {
     background-color: rgba(0, 0, 0, 0.46);
     color: #ffffff;
-    backdrop-filter: blur(10px) saturate(160%);
     -webkit-backdrop-filter: blur(10px) saturate(160%);
+    backdrop-filter: blur(10px) saturate(160%);
     box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.16);
   }
 }
 
 @layer utilities {
   .material {
-    backdrop-filter: blur(var(--material-regular-blur))
-      saturate(var(--material-saturation));
     -webkit-backdrop-filter: blur(var(--material-regular-blur))
+      saturate(var(--material-saturation));
+    backdrop-filter: blur(var(--material-regular-blur))
       saturate(var(--material-saturation));
     box-shadow:
       inset 0 0 0 0.5px var(--material-edge),
@@ -276,17 +276,17 @@
   }
 
   .material-thin {
-    backdrop-filter: blur(var(--material-thin-blur))
-      saturate(var(--material-saturation));
     -webkit-backdrop-filter: blur(var(--material-thin-blur))
+      saturate(var(--material-saturation));
+    backdrop-filter: blur(var(--material-thin-blur))
       saturate(var(--material-saturation));
     box-shadow: inset 0 0 0 0.5px var(--material-hairline);
   }
 
   .material-thick {
-    backdrop-filter: blur(var(--material-thick-blur))
-      saturate(var(--material-saturation));
     -webkit-backdrop-filter: blur(var(--material-thick-blur))
+      saturate(var(--material-saturation));
+    backdrop-filter: blur(var(--material-thick-blur))
       saturate(var(--material-saturation));
     box-shadow:
       inset 0 0 0 0.5px var(--material-edge),
@@ -295,9 +295,9 @@
 
   /* Chrome: the translucent bar behind navigation (toolbars, tab bars). */
   .material-chrome {
-    backdrop-filter: blur(var(--material-regular-blur))
-      saturate(var(--material-saturation));
     -webkit-backdrop-filter: blur(var(--material-regular-blur))
+      saturate(var(--material-saturation));
+    backdrop-filter: blur(var(--material-regular-blur))
       saturate(var(--material-saturation));
     box-shadow: inset 0 -0.5px 0 0 var(--material-hairline);
   }

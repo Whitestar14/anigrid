@@ -4,9 +4,6 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => {
-  // `mode`, not the literal string "mode" — passing a literal made Vite look for
-  // `.env.mode`, so every `.env.development` / `.env.production` value was
-  // silently ignored.
   const env = loadEnv(mode, ".", "");
 
   const proxyUrl =
@@ -24,11 +21,13 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      // Only the image proxy URL is inlined. The previous block also embedded
-      // `GEMINI_API_KEY` into the client bundle and nothing ever read it.
       "process.env.VITE_IMAGE_PROXY_URL": JSON.stringify(proxyUrl),
     },
-      build: {
+    css: {
+      transformer: "postcss",
+    },
+    build: {
+      target: "esnext",
       rolldownOptions: {
         output: {
           codeSplitting: {
