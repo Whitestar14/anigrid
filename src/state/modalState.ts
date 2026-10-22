@@ -1,8 +1,6 @@
 import { create } from "zustand";
 
-/** Visibility flags for the app's dialogs, and the confirm sheet's request.
- *  Kept out of `useAppController` so that opening a dialog does not re-render
- *  the board, rail, dock and every other modal. */
+/** Visibility flags for the app's dialogs, and the confirm sheet's request */
 interface ConfirmRequest {
   isOpen: boolean;
   title: string;

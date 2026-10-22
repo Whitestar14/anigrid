@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { imageCandidates, originOf, originPreference } from "@/utils/imageProxy";
+import {
+  imageCandidates,
+  originOf,
+  originPreference,
+} from "@/utils/imageProxy";
 import { dominantColor, subscribeDominantColor } from "@/utils/dominantColor";
+import { PixelIcon } from "@/components/pixel/PixelIcon";
 
-export interface RemoteImageProps
-  extends React.ImgHTMLAttributes<HTMLImageElement> {
+export interface RemoteImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   /** Rendered when every candidate fails. */
   fallback?: React.ReactNode;
@@ -23,7 +27,7 @@ const failedSrc = new Set<string>();
 
 export const RemoteImage: React.FC<RemoteImageProps> = ({
   src,
-  fallback = null,
+  fallback,
   onError,
   onLoad,
   className = "",
@@ -38,7 +42,7 @@ export const RemoteImage: React.FC<RemoteImageProps> = ({
   const startIndex = cachedUrl
     ? Math.max(
         0,
-        candidates.findIndex((c) => c.url === cachedUrl)
+        candidates.findIndex((c) => c.url === cachedUrl),
       )
     : origin
       ? (originIndex.get(origin) ?? 0)
@@ -49,8 +53,8 @@ export const RemoteImage: React.FC<RemoteImageProps> = ({
   // Seeded from the cache so a remount paints the image on its first frame
   // instead of fading in from nothing.
   const [loaded, setLoaded] = useState(() => loadedSrc.has(src));
-  const [placeholderColor, setPlaceholderColor] = useState<string | undefined>(() =>
-    loadedSrc.has(src) ? undefined : dominantColor(src)
+  const [placeholderColor, setPlaceholderColor] = useState<string | undefined>(
+    () => (loadedSrc.has(src) ? undefined : dominantColor(src)),
   );
   const imgRef = useRef<HTMLImageElement>(null);
 
@@ -74,11 +78,11 @@ export const RemoteImage: React.FC<RemoteImageProps> = ({
       cached
         ? Math.max(
             0,
-            candidates.findIndex((c) => c.url === cached)
+            candidates.findIndex((c) => c.url === cached),
           )
         : origin
           ? (originIndex.get(origin) ?? 0)
-          : 0
+          : 0,
     );
     setFailed(false);
     setLoaded(false);
@@ -95,7 +99,26 @@ export const RemoteImage: React.FC<RemoteImageProps> = ({
     }
   }, [src, candidate?.url]);
 
-  if (!src || failed || !candidate) return <>{fallback}</>;
+  if (!src || failed || !candidate) {
+    if (fallback !== undefined) return <>{fallback}</>;
+    return (
+      <span
+        className={`@container relative grid place-items-center overflow-hidden bg-surface-secondary text-faint ${className}`}
+        aria-label="Image unavailable"
+        role="img"
+      >
+        {/* Sized by its own box, not by a fixed px value: the same failure can
+            be a 112px dock card or a 40px thumbnail, and a full "No preview"
+            caption in the latter would be a smudge. */}
+        <span className="flex flex-col items-center gap-1 px-1 text-center leading-none">
+          <PixelIcon name="broken" size={16} className="shrink-0" />
+          <span className="hidden text-caption-2 font-medium leading-none select-none @[64px]:block">
+            No preview
+          </span>
+        </span>
+      </span>
+    );
+  }
 
   return (
     <span className={`relative block overflow-hidden ${className}`}>
@@ -138,9 +161,7 @@ export const RemoteImage: React.FC<RemoteImageProps> = ({
           aria-hidden
           className="img-sheen"
           style={
-            placeholderColor
-              ? { backgroundColor: placeholderColor }
-              : undefined
+            placeholderColor ? { backgroundColor: placeholderColor } : undefined
           }
         />
       )}

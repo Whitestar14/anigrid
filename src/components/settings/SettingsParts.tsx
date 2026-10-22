@@ -1,16 +1,6 @@
 import React from "react";
 import { Slider } from "@/components/ui/Slider";
 
-/**
- * The settings rail's shared vocabulary.
- *
- * Each of the rail's three sections grew its own copy of the section header, of
- * the card surface (`surface-elevated` plus an inset hairline) and of the
- * slider row. Three copies of the same three styles is how a rail drifts: one
- * header ends up a pixel taller, one card loses its hairline, and the whole
- * column stops reading as a single designed object. They live here once.
- */
-
 /** Section header — label with a hairline rule extending to the rail edge. */
 export const SectionHeader: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -35,7 +25,6 @@ export const settingsCardStyle: React.CSSProperties = {
   boxShadow: "inset 0 0 0 0.5px var(--material-hairline)",
 };
 
-/** A settings card: the shared surface, inset from the rail edges. */
 export const SettingsCard: React.FC<{
   className?: string;
   children: React.ReactNode;
@@ -88,6 +77,15 @@ export const NumberedSlider: React.FC<{
         {suffix}
       </span>
     </div>
-    <Slider min={min} max={max} step={step} value={value} onChange={onChange} />
+    {/* The visible label above is not a `<label>` and has no `htmlFor`, so the
+        slider needs its own accessible name or it announces as "slider". */}
+    <Slider
+      aria-label={label}
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={onChange}
+    />
   </div>
 );

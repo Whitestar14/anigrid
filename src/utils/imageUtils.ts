@@ -7,32 +7,37 @@ export const EXPORT_BOARD_ATTR = "data-export-board";
 
 export async function withBoardHuggingLayout<T>(
   sheet: HTMLElement,
-  run: () => Promise<T>
+  run: () => Promise<T>,
 ): Promise<T> {
-  const board = sheet.querySelector<HTMLElement>(`[${EXPORT_BOARD_ATTR}]`);
-  const target = board ?? sheet;
-  const styles = getComputedStyle(sheet);
-  const horizontalPadding =
-    parseFloat(styles.paddingLeft || "0") +
-    parseFloat(styles.paddingRight || "0");
-  // `offsetWidth` rather than `getBoundingClientRect`: the board sits under the
-  // scroll-linked scale wrapper, and a bounding rect would report the
-  // *transformed* width and export a board a couple of percent too narrow.
-  const boardWidth = Math.ceil(target.offsetWidth);
-
   const previousWidth = sheet.style.width;
-  if (boardWidth > 0) {
-    sheet.style.width = `${boardWidth + horizontalPadding}px`;
-  }
 
-  await new Promise<void>((resolve) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-  );
+  /* Hide interactive chrome *before* measuring, so the sheet hugs the artwork
+     rather than leaving a gutter where the controls used to be. */
+  sheet.setAttribute("data-exporting", "");
 
   try {
+    const board = sheet.querySelector<HTMLElement>(`[${EXPORT_BOARD_ATTR}]`);
+    const target = board ?? sheet;
+    const styles = getComputedStyle(sheet);
+    const horizontalPadding =
+      parseFloat(styles.paddingLeft || "0") +
+      parseFloat(styles.paddingRight || "0");
+    // using `offsetWidth` as `getBoundingClientRect` would return the scroll-linked
+    // width instead.
+    const boardWidth = Math.ceil(target.offsetWidth);
+
+    if (boardWidth > 0) {
+      sheet.style.width = `${boardWidth + horizontalPadding}px`;
+    }
+
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+
     return await run();
   } finally {
     sheet.style.width = previousWidth;
+    sheet.removeAttribute("data-exporting");
   }
 }
 
@@ -87,7 +92,7 @@ export const downloadGrid = async (
   element: HTMLElement,
   title: string,
   format: string = "png",
-  qualityScale: number = 2
+  qualityScale: number = 2,
 ) => {
   try {
     const options = {
@@ -115,14 +120,14 @@ export const downloadGrid = async (
   } catch (err) {
     console.error("Failed to download image", err);
     throw new Error(
-      "Export failed. External images cannot be embedded due to CORS restrictions."
+      "Export failed. External images cannot be embedded due to CORS restrictions.",
     );
   }
 };
 
 export const copyGrid = async (
   element: HTMLElement,
-  qualityScale: number = 2
+  qualityScale: number = 2,
 ) => {
   try {
     const options = {
@@ -133,18 +138,18 @@ export const copyGrid = async (
     };
 
     const dataUrl = await withBoardHuggingLayout(element, () =>
-      toPng(element, options)
+      toPng(element, options),
     );
     const res = await fetch(dataUrl);
     const blob = await res.blob();
-    
+
     await navigator.clipboard.write([
-      new window.ClipboardItem({ 'image/png': blob })
+      new window.ClipboardItem({ "image/png": blob }),
     ]);
   } catch (err) {
     console.error("Failed to copy image", err);
     throw new Error(
-      "Copy failed. Your browser might not support clipboard operations or external images cannot be embedded."
+      "Copy failed. Your browser might not support clipboard operations or external images cannot be embedded.",
     );
   }
 };

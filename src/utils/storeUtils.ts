@@ -3,11 +3,11 @@ import { GlobalState, CellData, InboxItem } from "@/types";
 export const checkAndRescueImages = (
   removedCells: (CellData | InboxItem)[],
   currentState: GlobalState,
-  _collectionToAddToId: string
+  _collectionToAddToId: string,
 ) => {
   const allKnownImages = new Set<string>();
   currentState.inbox.collections.forEach((col) =>
-    col.items.forEach((item) => allKnownImages.add(item.imageSrc))
+    col.items.forEach((item) => allKnownImages.add(item.imageSrc)),
   );
   const rescueItems: InboxItem[] = [];
   removedCells.forEach((cell, idx) => {
@@ -21,7 +21,11 @@ export const checkAndRescueImages = (
   });
   return rescueItems;
 };
-export const findInboxItem = (inbox: GlobalState['inbox'], itemId: string, sourceColId: string): InboxItem | undefined => {
+export const findInboxItem = (
+  inbox: GlobalState["inbox"],
+  itemId: string,
+  sourceColId: string,
+): InboxItem | undefined => {
   const collections = inbox.collections;
   if (sourceColId === "all" || sourceColId === "all-images") {
     for (const col of collections) {
@@ -29,19 +33,31 @@ export const findInboxItem = (inbox: GlobalState['inbox'], itemId: string, sourc
       if (item) return item;
     }
   } else {
-    return collections.find((c) => c.id === sourceColId)?.items.find((i) => i.id === itemId);
+    return collections
+      .find((c) => c.id === sourceColId)
+      ?.items.find((i) => i.id === itemId);
   }
   return undefined;
 };
 
-export const findInboxItems = (inbox: GlobalState['inbox'], itemIds: string[], sourceColId: string): InboxItem[] => {
+export const findInboxItems = (
+  inbox: GlobalState["inbox"],
+  itemIds: string[],
+  sourceColId: string,
+): InboxItem[] => {
   if (sourceColId === "all" || sourceColId === "all-images") {
-    return inbox.collections.flatMap((c) => c.items).filter((i) => itemIds.includes(i.id));
+    return inbox.collections
+      .flatMap((c) => c.items)
+      .filter((i) => itemIds.includes(i.id));
   } else {
     const col = inbox.collections.find((c) => c.id === sourceColId);
     return col ? col.items.filter((i) => itemIds.includes(i.id)) : [];
   }
 };
+
+export const newTierRowId = () =>
+  `tier-new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
 export const ensureCells = (cells: CellData[], toIndex: number) => {
   if (toIndex >= cells.length) {
     const toAdd = toIndex - cells.length + 1;

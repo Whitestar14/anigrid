@@ -10,11 +10,13 @@ export interface ScrollRailProps {
   align?: "start" | "center";
   /** Width of the trailing space that keeps the last item clear of the edge. */
   trailingSpace?: string;
+  /** Adds the floating paging pucks */
+  paging?: boolean;
 }
-
 
 /** How far the trailing/leading content fades into the surface, in px. */
 const EDGE_FADE = 34;
+
 export const ScrollRail: React.FC<ScrollRailProps> = ({
   children,
   className,
@@ -22,6 +24,7 @@ export const ScrollRail: React.FC<ScrollRailProps> = ({
   contentClassName,
   align = "start",
   trailingSpace = "pr-10",
+  paging = false,
 }) => {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: false, end: false });
@@ -35,7 +38,7 @@ export const ScrollRail: React.FC<ScrollRailProps> = ({
       end: scrollLeft < scrollWidth - clientWidth - 8,
     };
     setEdges((prev) =>
-      prev.start === next.start && prev.end === next.end ? prev : next
+      prev.start === next.start && prev.end === next.end ? prev : next,
     );
   }, []);
 
@@ -61,7 +64,10 @@ export const ScrollRail: React.FC<ScrollRailProps> = ({
   const page = (direction: -1 | 1) => {
     const el = scrollerRef.current;
     if (!el) return;
-    el.scrollBy({ left: direction * Math.max(240, el.clientWidth * 0.8), behavior: "smooth" });
+    el.scrollBy({
+      left: direction * Math.max(240, el.clientWidth * 0.8),
+      behavior: "smooth",
+    });
   };
 
   /* No `h-full` on the scroller by default: a rail inside a vertical scroller
@@ -75,8 +81,6 @@ export const ScrollRail: React.FC<ScrollRailProps> = ({
         className={`w-full overflow-x-auto overflow-y-hidden overscroll-x-contain
                     scrollbar-none touch-pan-x ${scrollerClassName ?? ""}`}
         style={{
-          // Only the edges that actually have content beyond them are masked, so
-          // a rail that fits is not faded at all.
           maskImage: edgeMask,
           WebkitMaskImage: edgeMask,
         }}
@@ -90,22 +94,21 @@ export const ScrollRail: React.FC<ScrollRailProps> = ({
         </div>
       </div>
 
-      {edges.start && (
-        <RailChevron label="Scroll left" onClick={() => page(-1)}>
+      {paging && edges.start && (
+        <RailPuck label="Scroll left" onClick={() => page(-1)}>
           <ChevronLeft size={18} strokeWidth={2.5} />
-        </RailChevron>
+        </RailPuck>
       )}
-      {edges.end && (
-        <RailChevron label="Scroll right" onClick={() => page(1)}>
+      {paging && edges.end && (
+        <RailPuck label="Scroll right" onClick={() => page(1)}>
           <ChevronRight size={18} strokeWidth={2.5} />
-        </RailChevron>
+        </RailPuck>
       )}
     </div>
   );
 };
 
-/** Floating paging button. Hidden on touch, where the swipe is the affordance. */
-const RailChevron: React.FC<{
+const RailPuck: React.FC<{
   label: string;
   onClick: () => void;
   children: React.ReactNode;
@@ -114,9 +117,11 @@ const RailChevron: React.FC<{
     type="button"
     aria-label={label}
     onClick={onClick}
-    className={`absolute top-1/2 -translate-y-1/2 z-20 hidden md:grid place-items-center w-9 h-9
-                material rounded-full text-text hover:scale-105 active:scale-95
-                transition-transform ease-spring animate-in fade-in duration-200
+    className={`absolute top-1/2 -translate-y-1/2 z-20 grid place-items-center
+                transition-[transform,background-color,color] ease-spring
+                animate-in fade-in duration-200
+                w-9 h-9 rounded-full material text-text hidden md:grid
+                hover:scale-105 active:scale-95
                 ${label === "Scroll left" ? "left-2" : "right-2"}`}
   >
     {children}

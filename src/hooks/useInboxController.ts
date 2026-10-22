@@ -20,7 +20,7 @@ import { runActivity, useActivityState } from "@/state/activityState";
 const OPEN_SEARCH_EVENT = "open-inbox-search";
 
 export function useInboxController(
-  requestConfirm: (title: string, message: string, action: () => void) => void
+  requestConfirm: (title: string, message: string, action: () => void) => void,
 ) {
   const addToast = useToast();
   const onInteract = useInboxItemInteraction();
@@ -71,7 +71,7 @@ export function useInboxController(
       searchSource: (s.preferences.imageSource ??
         "auto") as ImageSourcePreference,
       updatePreferences: s.updatePreferences,
-    }))
+    })),
   );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,22 +81,22 @@ export function useInboxController(
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<"anime" | "characters">(
-    "characters"
+    "characters",
   );
 
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [tempName, setTempName] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [pendingPickerImage, setPendingPickerImage] = useState<string | null>(
-    null
+    null,
   );
 
   const allItems = useMemo(
     () => collections.flatMap((c) => c.items),
-    [collections]
+    [collections],
   );
 
   const activeCollection = collections.find((c) => c.id === activeCollectionId);
@@ -127,8 +127,6 @@ export function useInboxController(
     return () => window.removeEventListener(DOCK_EXPAND_EVENT, handleExpand);
   }, []);
 
-
-
   const handleItemClick = useCallback(
     (e: React.MouseEvent, itemId: string) => {
       // Toggle selection for bulk actions
@@ -141,7 +139,7 @@ export function useInboxController(
       // Fire interaction event for tap-to-drop functionality
       onInteract(itemId, isAllView ? "all-images" : activeCollectionId);
     },
-    [onInteract, isAllView, activeCollectionId]
+    [onInteract, isAllView, activeCollectionId],
   );
 
   const handleBulkDelete = useCallback(() => {
@@ -154,11 +152,9 @@ export function useInboxController(
         selectedItemIds.forEach((id) => removeInboxItem(id));
         setSelectedItemIds(new Set());
         addToast("info", `Removed ${n} items`);
-      }
+      },
     );
   }, [selectedItemIds, removeInboxItem, addToast, requestConfirm]);
-
-
 
   const toastAddedToCollection = useCallback(
     (imageSrc: string, colId: string) => {
@@ -169,7 +165,7 @@ export function useInboxController(
         setActiveTab("picker");
       });
     },
-    [collections, addToast]
+    [collections, addToast],
   );
 
   const handleSmartAdd = useCallback(
@@ -185,7 +181,12 @@ export function useInboxController(
         setActiveTab("picker");
       }
     },
-    [lastTargetCollectionId, collections, handleAddToCollection, toastAddedToCollection]
+    [
+      lastTargetCollectionId,
+      collections,
+      handleAddToCollection,
+      toastAddedToCollection,
+    ],
   );
 
   /** Takes the poster off the board and leaves it in the library. */
@@ -194,7 +195,7 @@ export function useInboxController(
       handleRecallFromBoard(imageSrc);
       addToast("info", "Returned to stash");
     },
-    [handleRecallFromBoard, addToast]
+    [handleRecallFromBoard, addToast],
   );
 
   const handleDeleteItem = useCallback(
@@ -203,7 +204,7 @@ export function useInboxController(
       let originCollectionId = activeCollectionId;
       if (isAllView) {
         const foundCol = collections.find((c) =>
-          c.items.some((i) => i.id === item.id)
+          c.items.some((i) => i.id === item.id),
         );
         if (foundCol) originCollectionId = foundCol.id;
       }
@@ -218,7 +219,7 @@ export function useInboxController(
       collections,
       addToast,
       handleRestoreItem,
-    ]
+    ],
   );
 
   const ingestFiles = useCallback(
@@ -252,17 +253,18 @@ export function useInboxController(
             }
             useActivityState.getState().setProgress((i + 1) / list.length);
           }
-          if (failed === list.length) throw new Error("No images could be read");
+          if (failed === list.length)
+            throw new Error("No images could be read");
         },
         {
           successLabel: `${list.length} ${
             list.length === 1 ? "image" : "images"
           } added`,
           errorLabel: "Import failed",
-        }
+        },
       );
     },
-    [handleInboxUpload]
+    [handleInboxUpload],
   );
 
   const handleDrop = useCallback(
@@ -283,11 +285,17 @@ export function useInboxController(
         try {
           const source = JSON.parse(dragData) as { type?: string };
           if (source.type === "cell") {
-            handleItemTransfer({ type: "cell", index: (source as { index: number }).index }, { type: "inbox" });
+            handleItemTransfer(
+              { type: "cell", index: (source as { index: number }).index },
+              { type: "inbox" },
+            );
             scheduleDockExpand(setIsExpanded);
           } else if (source.type === "tier-item") {
             const t = source as { rowId: string; itemId: string };
-            handleItemTransfer({ type: "tier", rowId: t.rowId, itemId: t.itemId }, { type: "inbox" });
+            handleItemTransfer(
+              { type: "tier", rowId: t.rowId, itemId: t.itemId },
+              { type: "inbox" },
+            );
             scheduleDockExpand(setIsExpanded);
           }
         } catch {
@@ -295,13 +303,7 @@ export function useInboxController(
         }
       }
     },
-    [
-      activeTab,
-      isAllView,
-      isExpanded,
-      ingestFiles,
-      handleItemTransfer,
-    ]
+    [activeTab, isAllView, isExpanded, ingestFiles, handleItemTransfer],
   );
 
   /**
@@ -316,7 +318,7 @@ export function useInboxController(
       // Open the dock so a collapsed bar is not a 48px target you have to hit.
       if (!isExpanded) setIsExpanded(true);
     },
-    [isExpanded]
+    [isExpanded],
   );
 
   const handleDragOver = useCallback(
@@ -326,7 +328,7 @@ export function useInboxController(
       setIsDragOver(true);
       if (!isExpanded) setIsExpanded(true);
     },
-    [isExpanded]
+    [isExpanded],
   );
 
   const handleDragLeave = useCallback(() => setIsDragOver(false), []);
@@ -348,7 +350,7 @@ export function useInboxController(
       handleAddToCollection,
       handleUpdateLastTarget,
       toastAddedToCollection,
-    ]
+    ],
   );
 
   const requestDeleteCollection = useCallback(
@@ -359,12 +361,12 @@ export function useInboxController(
         return;
       }
       requestConfirm(
-        `Delete "${col.name}"?`, 
-        `This will permanently delete the collection and its ${itemCount} item${itemCount === 1 ? '' : 's'}. This action cannot be undone.`, 
-        () => deleteCollection(col.id)
+        `Delete "${col.name}"?`,
+        `This will permanently delete the collection and its ${itemCount} item${itemCount === 1 ? "" : "s"}. This action cannot be undone.`,
+        () => deleteCollection(col.id),
       );
     },
-    [requestConfirm, deleteCollection]
+    [requestConfirm, deleteCollection],
   );
 
   const onFileInputChange = useCallback(
@@ -373,7 +375,7 @@ export function useInboxController(
       // Let the same file be chosen twice in a row.
       e.target.value = "";
     },
-    [ingestFiles]
+    [ingestFiles],
   );
 
   return {

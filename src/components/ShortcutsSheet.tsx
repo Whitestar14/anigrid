@@ -1,5 +1,7 @@
 import React from "react";
 import { Modal } from "@/components/ui/Modal";
+import { PixelText } from "@/components/pixel/PixelText";
+import { isPixelText } from "@/components/pixel/pixelFont";
 
 interface Shortcut {
   keys: string[];
@@ -41,14 +43,23 @@ const GROUPS: { title: string; items: Shortcut[] }[] = [
   },
 ];
 
-const Key: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <kbd
-    className="inline-grid place-items-center min-w-6 h-6 px-1.5 rounded-hairline
-               material-thin text-caption-1 font-medium text-text tabular-nums"
-  >
-    {children}
-  </kbd>
-);
+const Key: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const glyph =
+    typeof children === "string" &&
+    [...children].length === 1 &&
+    isPixelText(children)
+      ? children
+      : null;
+
+  return (
+    <kbd
+      className="inline-grid place-items-center min-w-6 h-6 px-1.5 rounded-hairline
+                 material-thin text-caption-1 font-medium text-text tabular-nums"
+    >
+      {glyph ? <PixelText text={glyph} height={14} /> : children}
+    </kbd>
+  );
+};
 
 export const ShortcutsSheet: React.FC<{
   isOpen: boolean;

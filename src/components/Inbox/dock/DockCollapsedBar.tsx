@@ -1,11 +1,13 @@
 import React, { useRef } from "react";
-import { Library, Settings2 } from "lucide-react";
+import { motion } from "motion/react";
+import { PixelIcon } from "@/components/pixel/PixelIcon";
 
 const SWIPE_THRESHOLD = 14;
 
 interface DockCollapsedBarProps {
   /** The bar is inert while the dock is open. */
   inert: boolean;
+  isDraggingItem?: boolean;
   /** Swiping the bar up reopens whichever surface was last showing. */
   onExpand: () => void;
   onOpenLibrary: () => void;
@@ -18,6 +20,7 @@ interface DockCollapsedBarProps {
  */
 export const DockCollapsedBar: React.FC<DockCollapsedBarProps> = ({
   inert,
+  isDraggingItem = false,
   onExpand,
   onOpenLibrary,
   onOpenSettings,
@@ -50,24 +53,50 @@ export const DockCollapsedBar: React.FC<DockCollapsedBarProps> = ({
           : "opacity-100 pointer-events-auto delay-75"
       }`}
     >
-      <button
-        type="button"
-        aria-label="Open Library"
-        className="flex-1 min-w-0 flex items-center justify-center gap-2 text-subheadline font-medium text-text hover:bg-hover transition-colors duration-150 rounded-control"
-        onClick={onOpenLibrary}
-      >
-        <Library size={17} strokeWidth={2} className="shrink-0" />
-        <span className="truncate">Library</span>
-      </button>
-      <div className="w-px bg-border self-center h-5 shrink-0" />
-      <button
-        type="button"
-        aria-label="Open Settings"
-        className="w-10 flex items-center justify-center text-muted hover:text-text hover:bg-hover transition-colors duration-150 rounded-control shrink-0"
-        onClick={onOpenSettings}
-      >
-        <Settings2 size={18} strokeWidth={2} />
-      </button>
+      {isDraggingItem ? (
+        <div
+          aria-live="polite"
+          className="flex-1 flex items-center justify-center gap-2 text-muted"
+        >
+          <span className="text-subheadline font-medium">Moving item</span>
+          <span aria-hidden className="flex items-center gap-1">
+            {[0, 1, 2].map((i) => (
+              <motion.span
+                key={i}
+                className="block w-1 h-1 rounded-full bg-current"
+                animate={{ opacity: [0.25, 1, 0.25] }}
+                transition={{
+                  duration: 0.9,
+                  repeat: Infinity,
+                  delay: i * 0.15,
+                  ease: "linear",
+                }}
+              />
+            ))}
+          </span>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            aria-label="Open Library"
+            className="flex-1 min-w-0 flex items-center justify-center gap-2 text-subheadline font-medium text-text hover:bg-hover transition-colors duration-150 rounded-control"
+            onClick={onOpenLibrary}
+          >
+            <PixelIcon name="library" size={18} className="shrink-0" />
+            <span className="truncate">Library</span>
+          </button>
+          <div className="w-px bg-border self-center h-5 shrink-0" />
+          <button
+            type="button"
+            aria-label="Open Settings"
+            className="w-10 flex items-center justify-center text-muted hover:text-text hover:bg-hover transition-colors duration-150 rounded-control shrink-0"
+            onClick={onOpenSettings}
+          >
+            <PixelIcon name="settings" size={18} />
+          </button>
+        </>
+      )}
     </div>
   );
 };

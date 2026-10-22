@@ -1,27 +1,32 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { MoreHorizontal } from "lucide-react";
 import { CellData } from "@/types";
 import { PopoverMenu } from "./ui/PopoverMenu";
 import { RemoteImage } from "./ui/RemoteImage";
-import { filledImageActions } from "./ui/imageActions";
 import { AdjustOverlay } from "./ui/AdjustOverlay";
+import { UrlInputModal } from "./ui/UrlInputModal";
 import { useCellInteraction } from "@/hooks/useCellInteraction";
-import { useCellMediaUpload } from "@/hooks/useCellMediaUpload";
-import { usePanZoom } from "@/hooks/usePanZoom";
-import { useDropPulse } from "@/state/dragState";
+import { useIsDragging } from "@/state/dragState";
 import { useStore } from "@/store/useStore";
-import { downloadImage } from "@/utils/imageProxy";
 import { widthForHeight } from "@/utils/ui";
-
-/** Shared rail height so every tier row lines up regardless of aspect ratio. */
-export const TIER_TILE_HEIGHT = 88;
+import { useTile } from "./tile/useTile";
+import {
+  DEFAULT_TIER_ROW_HEIGHT,
+  DEFAULT_TIER_SPACING,
+  tierItemRadius,
+  tileStateShadow,
+  type TierSpacing,
+} from "@/utils/boardStyle";
 
 interface TierItemProps {
   rowId: string;
   idx: number;
   item: CellData;
   aspectRatio: string;
+  /** Item rail height, so every tier row lines up. */
+  height?: number;
+  spacing?: TierSpacing;
 }
 
 export const TierItem = React.memo(function TierItem({
@@ -29,95 +34,50 @@ export const TierItem = React.memo(function TierItem({
   idx,
   item,
   aspectRatio,
+  height = DEFAULT_TIER_ROW_HEIGHT,
+  spacing = DEFAULT_TIER_SPACING,
 }: TierItemProps) {
   const handleItemTransfer = useStore((s) => s.handleItemTransfer);
   const handleUpdateTierItem = useStore((s) => s.handleUpdateTierItem);
   const handleTierItemRemove = useStore((s) => s.handleTierItemRemove);
 
-  const tileRef = useRef<HTMLDivElement>(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
-
-  const { isSelected, handleInteraction, clearInteraction } = useCellInteraction({
-    type: "tier-item",
+  const tile = useTile({
     index: idx,
+    item,
     rowId,
-    itemId: item.id,
+    aspectRatio,
+    update: (patch) => handleUpdateTierItem(rowId, item.id, patch),
+    setImage: (src) => handleUpdateTierItem(rowId, item.id, { imageSrc: src }),
+    clear: () => handleTierItemRemove(rowId, item.id),
+    returnToLibrary: () =>
+      handleItemTransfer({ type: "tier", rowId, itemId: item.id }, { type: "inbox" }),
+    filename: `tier-${idx + 1}.jpg`,
   });
-
-  /* Tier items could not be swapped for a different image at all — the menu
-     offered Crop and nothing else. Same picker as a grid tile, writing back to
-     the tier position. */
-  const { fileInputRef, triggerPicker, handleFileChange } = useCellMediaUpload(
-    (base64) => {
-      handleUpdateTierItem(rowId, item.id, { imageSrc: base64 as string });
-      clearInteraction();
-    }
-  );
 
   const {
-    isAdjusting,
-    imageStyle,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-    handlePointerCancel,
-    startAdjusting,
-    stopAdjusting,
-    saveAdjustments,
-  } = usePanZoom(
-    {
-      zoom: item.zoom,
-      posX: item.objectPosition ? parseInt(item.objectPosition.split(" ")[0]) : 50,
-      posY: item.objectPosition ? parseInt(item.objectPosition.split(" ")[1]) : 50,
-    },
-    tileRef,
-    (state) =>
-      handleUpdateTierItem(rowId, item.id, {
-        zoom: state.zoom,
-        objectPosition: `${state.posX}% ${state.posY}%`,
-      })
-  );
-
-  const dropId = `tier-drop-${rowId}-${idx}`;
-  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
-    id: dropId,
-    data: { type: "tier-cell", rowId, index: idx },
+    attributes,
+    listeners,
+    setNodeRef: setDragNodeRef,
+    isDragging,
+  } = useDraggable({
+    id: tile.dragId,
+    data: tile.dragData,
+    disabled: tile.dragDisabled,
   });
-  const dropPulse = useDropPulse(dropId);
 
-  const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } =
-    useDraggable({
-      id: `tier-drag-${rowId}-${item.id}`,
-      data: {
-        type: "tier-item",
-        rowId,
-        id: item.id,
-        imageSrc: item.imageSrc,
-        width: widthForHeight(aspectRatio, TIER_TILE_HEIGHT),
-        aspectRatio: (aspectRatio || "3:4").replace(":", "/"),
-      },
-      disabled: !item.imageSrc || isAdjusting,
-    });
-
+  /* Destructured so the composed callback depends on the stable function rather
+     than on the hook's result object, which is rebuilt every render. */
+  const { setNodeRef: setTileNodeRef } = tile;
   const setRefs = useCallback(
     (node: HTMLDivElement | null) => {
-      (tileRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      setDroppableRef(node);
-      setDraggableRef(node);
+      setTileNodeRef(node);
+      setDragNodeRef(node);
     },
-    [setDroppableRef, setDraggableRef]
+    [setTileNodeRef, setDragNodeRef]
   );
 
-  const openMenu = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const rect = tileRef.current?.getBoundingClientRect();
-    if (rect) setAnchor({ x: rect.left + rect.width / 2, y: rect.top + 12 });
-    setIsMenuOpen(true);
-  }, []);
-
-  const width = widthForHeight(aspectRatio, TIER_TILE_HEIGHT);
+  const width = widthForHeight(aspectRatio, height);
+  const radius = tierItemRadius(height, spacing);
 
   return (
     <div
@@ -127,110 +87,105 @@ export const TierItem = React.memo(function TierItem({
       role="button"
       tabIndex={0}
       aria-label={`Tier item, position ${idx + 1}`}
-      onClick={(e) => {
-        if (isAdjusting) return;
-        handleInteraction(e.clientX, e.clientY, e.target as HTMLElement);
-      }}
-      onContextMenu={openMenu}
+      onClick={tile.activate}
+      onContextMenu={tile.openMenu}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          openMenu(e as unknown as React.MouseEvent);
+          tile.openMenu(e as unknown as React.MouseEvent);
         }
       }}
       /* Draggable, so the touch sensor needs to own the gesture; without
          `touch-none` a phone treats the drag as a scroll. */
-      className={`relative shrink-0 group/tier outline-none touch-none ${
+      className={`relative shrink-0 group/tile outline-none touch-none ${
         isDragging ? "opacity-25" : ""
       }`}
-      style={{ width, height: TIER_TILE_HEIGHT }}
+      style={{ width, height }}
     >
       <div
         className="relative w-full h-full overflow-hidden squircle"
         style={{
-          borderRadius: 10,
-          boxShadow: isSelected
-            ? "0 0 0 2px var(--color-primary)"
-            : isOver
-              ? "0 0 0 2px var(--color-primary), 0 0 0 6px color-mix(in srgb, var(--color-primary) 22%, transparent)"
-              : "inset 0 0 0 0.5px var(--material-hairline)",
+          borderRadius: radius,
+          boxShadow: tileStateShadow({
+            isSelected: tile.isSelected,
+            isOver: tile.isOver,
+            isFileDragOver: tile.isFileDragOver,
+            resting: "inset 0 0 0 0.5px var(--material-hairline)",
+          }),
         }}
       >
-        <RemoteImage
-          src={item.imageSrc!}
-          alt=""
-          decoding="async"
-          loading="lazy"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={imageStyle}
-        />
+        {tile.hasImage && (
+          <div ref={tile.imageRef} className="absolute inset-0">
+            <RemoteImage
+              src={item.imageSrc!}
+              alt=""
+              decoding="async"
+              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              style={tile.imageStyle}
+            />
+          </div>
+        )}
 
         <button
           type="button"
+          data-export-hide=""
           aria-label="Item actions"
-          onClick={openMenu}
+          aria-haspopup="menu"
+          aria-expanded={tile.isMenuOpen}
+          onClick={(e) => tile.openMenu(e, e.currentTarget)}
           className="absolute top-1 right-1 z-10 flex items-center justify-center w-6 h-6
                      media-scrim squircle hover:brightness-125 active:scale-95
                      transition-transform duration-150 affordance touch-target"
-          style={{ borderRadius: 7 }}
+          style={{ borderRadius: "var(--radius-mini)" }}
         >
           <MoreHorizontal size={13} strokeWidth={2.5} />
         </button>
 
-        {dropPulse > 0 && (
+        {tile.dropPulse > 0 && (
           <span
-            key={dropPulse}
+            key={tile.dropPulse}
             aria-hidden
             className="drop-land absolute inset-0 z-30 pointer-events-none"
-            style={{ borderRadius: 10 }}
+            style={{ borderRadius: radius }}
           />
         )}
 
-        {isAdjusting && (
+        {tile.isAdjusting && (
           <AdjustOverlay
             variant="compact"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerCancel}
-            onCancel={stopAdjusting}
+            onPointerDown={tile.adjust.handlePointerDown}
+            onPointerMove={tile.adjust.handlePointerMove}
+            onPointerUp={tile.adjust.handlePointerUp}
+            onPointerCancel={tile.adjust.handlePointerCancel}
+            onCancel={tile.adjust.stop}
             onSave={() => {
-              saveAdjustments();
-              clearInteraction();
+              tile.adjust.save();
+              tile.clearInteraction();
             }}
           />
         )}
       </div>
 
       <PopoverMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        actions={filledImageActions({
-          onReplace: triggerPicker,
-          onAdjust: startAdjusting,
-          onDownload: () =>
-            void downloadImage(item.imageSrc!, `tier-${idx + 1}.jpg`),
-          onReturnToLibrary: () => {
-            handleItemTransfer(
-              { type: "tier", rowId, itemId: item.id },
-              { type: "inbox" }
-            );
-            clearInteraction();
-          },
-          onRemove: () => {
-            handleTierItemRemove(rowId, item.id);
-            clearInteraction();
-          },
-        })}
-        triggerPoint={anchor}
+        isOpen={tile.isMenuOpen}
+        onClose={tile.closeMenu}
+        actions={tile.actions}
+        triggerPoint={tile.anchor}
       />
 
       <input
-        ref={fileInputRef}
+        ref={tile.fileInputRef}
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={handleFileChange}
+        onChange={tile.handleFileChange}
+      />
+
+      <UrlInputModal
+        isOpen={tile.isUrlModalOpen}
+        onClose={tile.closeUrlModal}
+        onSubmit={tile.submitUrl}
       />
     </div>
   );
@@ -242,13 +197,21 @@ export const TierItem = React.memo(function TierItem({
  */
 export const TierRail: React.FC<{
   rowId: string;
+  height: number;
+  /** Gap between items, and inset on every side. 0 sits flush. */
+  gap: number;
+  /** Radius every item in this row draws with, including the empty slot. */
+  itemRadius: number;
+  isEmpty?: boolean;
+  aspectRatio: string;
   children: React.ReactNode;
   justify?: "left" | "center" | "right";
-}> = ({ rowId, children, justify }) => {
+}> = ({ rowId, height, gap, itemRadius, isEmpty, aspectRatio, children, justify }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: `tier-row-body-${rowId}`,
     data: { type: "tier-cell", rowId, index: -1 },
   });
+  const isDraggingAny = useIsDragging();
 
   const { handleInteraction } = useCellInteraction({
     type: "tier-item",
@@ -267,16 +230,47 @@ export const TierRail: React.FC<{
     <div
       ref={setNodeRef}
       onClick={(e) => handleInteraction(e.clientX, e.clientY, e.target as HTMLElement)}
-      className={`relative flex-1 min-w-0 flex flex-wrap content-start items-start gap-1.5 p-2
+      className={`relative flex-1 min-w-0 flex flex-wrap content-start items-start
                   transition-colors duration-150 ${justifyClass}`}
       style={{
-        minHeight: TIER_TILE_HEIGHT + 16,
+        gap,
+        padding: gap,
+        minHeight: height + gap * 2,
         backgroundColor: isOver
           ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
           : undefined,
       }}
     >
       {children}
+
+      {/* An empty tier is empty: nothing is drawn at rest. A row of dashed
+          "Empty" boxes is a column of the same word repeated six times, which
+          is louder than any artwork the board is actually about — and in tight
+          mode, where every cell meets its neighbour, they read as debris.
+
+          What is left is the one moment the hint is useful: something is in
+          flight and the row is telling you it can take it. The box is then a
+          preview of an item at the size it would land, and it disappears the
+          instant the drag ends. */}
+      {isEmpty && isDraggingAny && (
+        <span
+          aria-hidden
+          data-export-hide=""
+          className="pointer-events-none shrink-0 grid place-items-center
+                     border border-dashed border-primary/55 text-primary
+                     transition-colors duration-200"
+          style={{
+            width: widthForHeight(aspectRatio, height),
+            height,
+            /* Same box language as a real item: square when the row is tight,
+               rounded when it is spaced. The placeholder is a preview of an
+               item, so it may not keep a shape the items themselves lost. */
+            borderRadius: itemRadius,
+          }}
+        >
+          <span className="text-caption-2 font-medium select-none">Drop</span>
+        </span>
+      )}
     </div>
   );
 };

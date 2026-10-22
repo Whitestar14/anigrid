@@ -5,7 +5,7 @@ import { InboxStashGrid } from "../InboxStashGrid";
 import { SettingsDockPanel } from "../SettingsDockPanel";
 import { SearchPanel } from "@/components/SearchPanel";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { Image as ImageIcon, Globe } from "lucide-react";
+import { PixelIcon } from "@/components/pixel/PixelIcon";
 import { DockHeader } from "./DockHeader";
 import type { DockCtrl } from "./types";
 
@@ -16,7 +16,7 @@ interface DockExpandedContentProps {
   requestConfirm?: (
     title: string,
     message: string,
-    onConfirm: () => void
+    onConfirm: () => void,
   ) => void;
   onOpenAbout?: () => void;
 }
@@ -71,8 +71,16 @@ export const DockExpandedContent: React.FC<DockExpandedContentProps> = ({
               ctrl.setIsExpanded(true);
             }}
             options={[
-              { value: "stash", label: "Stash", icon: <ImageIcon size={14} /> },
-              { value: "search", label: "Search", icon: <Globe size={14} /> },
+              {
+                value: "stash",
+                label: "Stash",
+                icon: <PixelIcon name="image" size={14} />,
+              },
+              {
+                value: "search",
+                label: "Search",
+                icon: <PixelIcon name="search" size={14} />,
+              },
             ]}
           />
         </div>

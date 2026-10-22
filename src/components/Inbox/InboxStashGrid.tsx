@@ -1,6 +1,7 @@
 import React from "react";
-import { Upload } from "lucide-react";
-import { CuteSlime } from "@/components/EmptyStateVector";
+import { Images } from "lucide-react";
+import { PixelIcon } from "@/components/pixel/PixelIcon";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ScrollRail } from "@/components/ui/ScrollRail";
 import { InboxItemCard } from "./InboxItemCard";
 import { motion, AnimatePresence } from "motion/react";
@@ -57,19 +58,29 @@ export const InboxStashGrid = React.memo<{ ctrl: DockCtrl }>(({ ctrl }) => {
                             : ""
                         }`}
           >
-            <CuteSlime className="w-16 h-16 text-muted mb-4" />
-            {isAllView ? (
-              "Your library is empty."
-            ) : (
-              <div className="flex flex-col items-center text-center">
-                <span className="mb-1 leading-tight max-w-[200px]">
-                  Drag items here or move them from the board
-                </span>
-                <span className="text-caption-2 uppercase tracking-widest text-primary/80 mt-2 font-bold group-hover/grid:text-primary">
-                  Tap to Upload
-                </span>
-              </div>
-            )}
+            <EmptyState
+              className="flex-1 py-0"
+              icon={
+                isAllView ? (
+                  <Images size={24} strokeWidth={1.8} />
+                ) : (
+                  <PixelIcon name="upload" size={24} />
+                )
+              }
+              title={isAllView ? "Your library is empty" : "Nothing here yet"}
+              description={
+                isAllView
+                  ? "Images you add here are available to every project."
+                  : "Drag items here, or move them off a board."
+              }
+              action={
+                !isAllView && (
+                  <span className="text-caption-2 uppercase tracking-widest text-primary/80 font-bold group-hover/grid:text-primary">
+                    Tap to upload
+                  </span>
+                )
+              }
+            />
           </motion.div>
         ) : (
           <motion.div
@@ -85,24 +96,21 @@ export const InboxStashGrid = React.memo<{ ctrl: DockCtrl }>(({ ctrl }) => {
               scrollerClassName="h-full"
               align="center"
               contentClassName="px-4"
+              paging
             >
               {!isAllView && (
                 <button
                   type="button"
                   onClick={onUploadClick}
-                  className="shrink-0 w-28 h-40 border border-dashed border-hairline rounded-tile
+                  className="shrink-0 w-28 h-40 text-sm border border-dashed border-hairline rounded-tile
                              flex flex-col items-center justify-center text-muted
                              hover:text-primary hover:border-primary card-veil hover:bg-hover
                              transition-colors group"
                 >
-                  <Upload
-                    size={24}
-                    className="group-hover:scale-110 transition-transform mb-3"
-                    strokeWidth={1.5}
-                  />
-                  <span className="text-caption-2 font-medium uppercase tracking-widest">
-                    Upload
+                  <span className="mb-3 transition-transform duration-200 group-hover:scale-110">
+                    <PixelIcon name="upload" size={27} />
                   </span>
+                  Upload
                 </button>
               )}
 
@@ -129,7 +137,9 @@ export const InboxStashGrid = React.memo<{ ctrl: DockCtrl }>(({ ctrl }) => {
                         isUsed={isUsed}
                         isSelected={isSelected}
                         isAllView={isAllView}
-                        collectionId={isAllView ? "all-images" : activeCollectionId}
+                        collectionId={
+                          isAllView ? "all-images" : activeCollectionId
+                        }
                         onItemClick={ctrl.handleItemClick}
                         onDeleteItem={ctrl.handleDeleteItem}
                         onRecall={ctrl.handleRecall}

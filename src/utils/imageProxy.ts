@@ -1,4 +1,3 @@
-
 /** From `.env`; unset in a bare checkout. */
 const CONFIGURED_PROXY = (
   (import.meta as { env?: Record<string, string | undefined> }).env
@@ -16,14 +15,18 @@ export function proxyUrlFor(base: string, externalUrl: string) {
 }
 
 /**
- * Back-compat helper for places that just want "a URL that will probably work"
+ * Back-compat helper for places that just want a URL that will probably work
  * (drag overlays, anchors). Prefer `RemoteImage`, which can fall back.
  */
 export const getProxiedImageUrl = (
   externalUrl: string,
-  base: string = CONFIGURED_PROXY || DEPLOYED_PROXY
+  base: string = CONFIGURED_PROXY || DEPLOYED_PROXY,
 ): string => {
-  if (!externalUrl || typeof externalUrl !== "string" || isInline(externalUrl)) {
+  if (
+    !externalUrl ||
+    typeof externalUrl !== "string" ||
+    isInline(externalUrl)
+  ) {
     return externalUrl || "";
   }
   if (!base) return externalUrl;
@@ -38,7 +41,7 @@ export interface ImageCandidate {
 
 const proxyBases = (): string[] =>
   [CONFIGURED_PROXY, DEPLOYED_PROXY].filter(
-    (base, i, all) => !!base && all.indexOf(base) === i
+    (base, i, all) => !!base && all.indexOf(base) === i,
   );
 
 /**
@@ -116,7 +119,7 @@ export async function fetchImageBlob(src: string): Promise<Blob | null> {
 
 export async function downloadImage(
   src: string,
-  filename: string
+  filename: string,
 ): Promise<boolean> {
   const blob = await fetchImageBlob(src);
   if (blob) {
@@ -127,7 +130,7 @@ export async function downloadImage(
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    // Revoke on the next frame: revoking synchronously can cancel the download
+    // Revoke on the next frame since allowing revoking synchronously can cancel the download
     // in Safari.
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
     return true;

@@ -28,6 +28,14 @@ html[data-reduce-glass] :where(.material-chrome) {
   box-shadow: inset 0 -0.5px 0 0 var(--material-hairline);
 }
 
+/* Without glass the control sits directly on the opaque surface, so a
+   translucent thumb has nothing to be translucent *over* — it reads as a hole
+   punched in the track. Give it the solid elevated fill it had before, while
+   the glass appearance keeps the lighter veil. */
+html[data-reduce-glass] {
+  --color-control-thumb: var(--color-surface-elevated);
+}
+
 html[data-reduce-glass] * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;

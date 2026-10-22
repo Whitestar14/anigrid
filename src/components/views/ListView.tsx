@@ -3,31 +3,33 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useShallow } from "zustand/react/shallow";
 import { useStore } from "@/store/useStore";
-import { selectActiveRank, selectCells } from "@/store/selectors";
+import { selectCells } from "@/store/selectors";
 import { ListRow } from "@/components/ListRow";
+import { selectActiveBoard } from "@/utils/boardStyle";
 
 export const ListView = React.memo(function ListView() {
-  const rank = useStore(selectActiveRank);
+  const board = useStore(useShallow(selectActiveBoard));
   const cells = useStore(selectCells);
 
-  if (!rank) return null;
-
-  const isCard = rank.style === "card";
+  if (!board) return null;
 
   return (
-    <div data-export-board="" className="flex flex-col w-full max-w-3xl mx-auto">
+    <div data-export-board="" className="flex flex-col w-full">
       <SortableContext
         items={cells.map((c) => c.id)}
         strategy={verticalListSortingStrategy}
       >
         <div
           className={
-            isCard
+            board.isCard
               ? "flex flex-col"
-              : "flex flex-col rounded-panel overflow-hidden border border-border squircle"
+              : `flex flex-col rounded-panel overflow-hidden squircle ${
+                  board.borderless ? "" : "border border-border"
+                }`
           }
-          style={isCard ? { gap: rank.gap || 8 } : undefined}
+          style={board.isCard ? { gap: board.gap } : undefined}
         >
           {cells.map((cell, index) => (
             <ListRow key={cell.id} index={index} data={cell} />

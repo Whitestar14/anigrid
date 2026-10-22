@@ -3,15 +3,15 @@ import { Hash, Type, Calendar, Droplets } from "lucide-react";
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 import { Toggle } from "@/components/ui/Toggle";
 import { SectionHeader, settingsCardStyle } from "./SettingsParts";
-import { ProjectType } from "@/types";
+import { ProjectType, VisualToggleKey } from "@/types";
 
 interface VisibilitySectionProps {
   projectType: ProjectType;
   showNumbers: boolean;
   showTitle: boolean;
   showDate: boolean;
-  onVisualToggle: (key: string) => void;
   showWatermark: boolean;
+  onVisualToggle: (key: VisualToggleKey) => void;
 }
 
 export const VisibilitySection: React.FC<VisibilitySectionProps> = ({

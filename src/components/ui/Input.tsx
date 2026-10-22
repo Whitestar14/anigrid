@@ -7,11 +7,6 @@ export interface InputProps
   trailing?: React.ReactNode;
 }
 
-/**
- * iOS text field: a filled inset field with no visible stroke until focus,
- * rather than a permanently outlined box. Pass `rounded-full` via className for
- * the search-bar variant.
- */
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, icon, trailing, ...props }, ref) => (
     <div className="relative flex items-center w-full">

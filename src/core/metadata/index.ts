@@ -37,7 +37,7 @@ export {
 type Provider = (
   query: string,
   mode: SearchMode,
-  signal: AbortSignal
+  signal: AbortSignal,
 ) => Promise<MediaResult[]>;
 
 const PROVIDERS: Record<MetadataSource, Provider> = {
@@ -46,7 +46,7 @@ const PROVIDERS: Record<MetadataSource, Provider> = {
 };
 
 const preferenceToSource = (
-  preference: SourcePreference | undefined
+  preference: SourcePreference | undefined,
 ): MetadataSource | null => {
   if (preference === "myanimelist") return "jikan";
   if (preference === "anilist") return "anilist";
@@ -74,7 +74,7 @@ export interface SearchOptions {
 export async function searchMetadata(
   query: string,
   mode: SearchMode,
-  options: SearchOptions = {}
+  options: SearchOptions = {},
 ): Promise<SearchResponse> {
   const trimmed = query.trim();
   if (trimmed.length < 2) {
@@ -112,19 +112,18 @@ export async function searchMetadata(
           const results = await PROVIDERS[source](
             trimmed,
             mode,
-            controller.signal
+            controller.signal,
           );
           reward(source);
           servedAnyProvider = true;
 
-          // An empty result set is a valid answer for the primary provider,
-          // but a good reason to ask the fallback too — catalogues differ.
           if (results.length === 0 && position < order.length - 1) break;
 
           const response: SearchResponse = {
             results,
             source,
-            degraded: position > 0,
+            degraded:
+              Boolean(preferenceToSource(options.prefer)) && position > 0,
           };
           writeCache(key, response);
           return response;
@@ -132,7 +131,7 @@ export async function searchMetadata(
           if (controller.signal.aborted) throw error;
           penalise(source, error);
           failures.push(
-            `${source}: ${error instanceof Error ? error.message : "failed"}`
+            `${source}: ${error instanceof Error ? error.message : "failed"}`,
           );
           break; // Move on to the next provider rather than looping.
         }
@@ -143,7 +142,7 @@ export async function searchMetadata(
       throw new MetadataError(
         failures.length
           ? `Search is temporarily unavailable — ${failures.join("; ")}.`
-          : "Search is temporarily unavailable."
+          : "Search is temporarily unavailable.",
       );
     }
 

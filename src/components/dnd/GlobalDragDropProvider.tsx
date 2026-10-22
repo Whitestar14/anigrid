@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback } from 'react';
+import React, { ReactNode, useCallback } from "react";
 import {
   DndContext,
   MouseSensor,
@@ -10,41 +10,25 @@ import {
   DragOverlay,
   pointerWithin,
   useDndContext,
-} from '@dnd-kit/core';
-import { useStore } from '@/store/useStore';
-import { useDragState, DragKind } from '@/state/dragState';
-import { selectActiveRank } from '@/store/selectors';
-import { aspectToCss } from '@/utils/ui';
-import { requestDockExpand } from '@/utils/inboxDrag';
-import { RemoteImage } from '@/components/ui/RemoteImage';
-import { Star } from 'lucide-react';
+} from "@dnd-kit/core";
+import { useStore } from "@/store/useStore";
+import { useDragState, DragKind } from "@/state/dragState";
+import { DRAG_TYPE, DROP_TYPE } from "@/constants/drag";
+import { selectActiveRank } from "@/store/selectors";
+import { aspectToCss } from "@/utils/ui";
+import { requestDockExpand } from "@/utils/inboxDrag";
+import { RemoteImage } from "@/components/ui/RemoteImage";
+import { Star } from "lucide-react";
 
-/* ─── drag type constants ──────────────────────────────────────────── */
-export const DRAG_TYPE = {
-  CELL: 'cell',
-  INBOX_ITEM: 'inbox-item',
-  SEARCH_ITEM: 'search-item',
-  TIER_ITEM: 'tier-item',
-  TIER_ROW: 'tier-row',
-} as const;
-
-export const DROP_TYPE = {
-  CELL: 'cell',
-  TIER_CELL: 'tier-cell',
-  TIER_ROW: 'tier-row',
-  DOCK: 'inbox-trash',
-} as const;
-
-/* ─── Overlay ──────────────────────────────────────────────────────── */
 const PREVIEW_MAX = 124;
 
-function previewSize(ratio?: string, width?: number, fallbackRatio = '3:4') {
-  const source = ratio && ratio.includes(':') ? ratio : fallbackRatio;
-  const [rw, rh] = source.split(':').map(Number);
+function previewSize(ratio?: string, width?: number, fallbackRatio = "3:4") {
+  const source = ratio && ratio.includes(":") ? ratio : fallbackRatio;
+  const [rw, rh] = source.split(":").map(Number);
   const safeRw = rw > 0 ? rw : 3;
   const safeRh = rh > 0 ? rh : 4;
 
-  let w = Math.min(typeof width === 'number' ? width : 120, PREVIEW_MAX);
+  let w = Math.min(typeof width === "number" ? width : 120, PREVIEW_MAX);
   let h = (w * safeRh) / safeRw;
   if (h > PREVIEW_MAX) {
     h = PREVIEW_MAX;
@@ -63,22 +47,21 @@ const CustomDragOverlay = () => {
 
   const data = active.data.current;
 
-  /* ── Tier row: a label chip, so you can see which tier you are moving ── */
   if (data.type === DRAG_TYPE.TIER_ROW) {
     return (
       <div
         className="flex items-center justify-center px-5 py-3 material-thick rounded-tile pointer-events-none squircle"
         style={{
-          backgroundColor: data.color || 'var(--color-surface-elevated)',
+          backgroundColor: data.color || "var(--color-surface-elevated)",
           minWidth: 96,
           opacity: 0.95,
         }}
       >
         <span
           className="text-title-2 font-bold truncate"
-          style={{ color: data.textColor || '#fff' }}
+          style={{ color: data.textColor || "#fff" }}
         >
-          {data.label || ''}
+          {data.label || ""}
         </span>
       </div>
     );
@@ -86,26 +69,29 @@ const CustomDragOverlay = () => {
 
   if (!data.imageSrc) return null;
 
-  /* ── List row: a wide row preview ─────────────────────────────────── */
   if (data.isRow) {
     return (
       <div
         className="flex items-center gap-4 p-3 material-thick squircle pointer-events-none"
-        style={{ width: data.width || '100%', opacity: 0.95, borderRadius: 16 }}
+        style={{
+          width: data.width || "100%",
+          opacity: 0.95,
+          borderRadius: "var(--radius-tile)",
+        }}
       >
         <div
           className="shrink-0 overflow-hidden squircle"
           style={{
-            width: rank.aspectRatio === '1:1' ? 56 : 48,
+            width: rank.aspectRatio === "1:1" ? 56 : 48,
             aspectRatio: aspectToCss(rank.aspectRatio),
-            borderRadius: 8,
+            borderRadius: "var(--radius-mini)",
           }}
         >
           <RemoteImage src={data.imageSrc} alt="" className="w-full h-full" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-headline font-semibold text-text truncate">
-            {data.textLabel || ''}
+            {data.textLabel || ""}
           </div>
           {data.rating ? (
             <div className="flex items-center gap-1 text-caption-1 font-medium text-accent-yellow">
@@ -118,7 +104,6 @@ const CustomDragOverlay = () => {
     );
   }
 
-  /* ── Tier item: sized to its own tile ─────────────────────────────── */
   if (data.type === DRAG_TYPE.TIER_ITEM) {
     const size = previewSize(data.aspectRatio, data.width, rank.aspectRatio);
     return (
@@ -127,10 +112,10 @@ const CustomDragOverlay = () => {
         style={{
           width: size.width,
           aspectRatio: size.aspectRatio,
-          borderRadius: 'var(--radius-tile)',
+          borderRadius: "var(--radius-tile)",
           opacity: 0.95,
-          rotate: '-1.5deg',
-          boxShadow: 'var(--material-shadow-high)',
+          rotate: "-1.5deg",
+          boxShadow: "var(--material-shadow-high)",
         }}
       >
         <RemoteImage src={data.imageSrc} alt="" className="w-full h-full" />
@@ -138,7 +123,6 @@ const CustomDragOverlay = () => {
     );
   }
 
-  /* ── Poster: grid cells, search and inbox items ───────────────────── */
   const size = previewSize(data.aspectRatio, data.width, rank.aspectRatio);
   return (
     <div
@@ -146,10 +130,10 @@ const CustomDragOverlay = () => {
       style={{
         width: size.width,
         aspectRatio: size.aspectRatio,
-        borderRadius: 'var(--radius-tile)',
+        borderRadius: "var(--radius-tile)",
         opacity: 0.95,
-        rotate: '-1.5deg',
-        boxShadow: 'var(--material-shadow-high)',
+        rotate: "-1.5deg",
+        boxShadow: "var(--material-shadow-high)",
       }}
     >
       <RemoteImage src={data.imageSrc} alt="" className="w-full h-full" />
@@ -203,10 +187,11 @@ const DROP_HANDLERS: DropHandler[] = [
     from: DRAG_TYPE.INBOX_ITEM,
     to: DROP_TYPE.CELL,
     run: ({ active, over, store }) => {
-      if (over.index === undefined || !active.id || !active.collectionId) return;
+      if (over.index === undefined || !active.id || !active.collectionId)
+        return;
       store.handleItemTransfer(
         { type: "inbox", collectionId: active.collectionId, itemId: active.id },
-        { type: "cell", index: over.index }
+        { type: "cell", index: over.index },
       );
     },
   },
@@ -217,7 +202,7 @@ const DROP_HANDLERS: DropHandler[] = [
       if (over.index === undefined || !active.imageSrc) return;
       store.handleItemTransfer(
         { type: "search", imageSrc: active.imageSrc },
-        { type: "cell", index: over.index }
+        { type: "cell", index: over.index },
       );
     },
   },
@@ -240,7 +225,7 @@ const DROP_HANDLERS: DropHandler[] = [
       if (active.index === undefined) return;
       store.handleItemTransfer(
         { type: "cell", index: active.index },
-        { type: "inbox" }
+        { type: "inbox" },
       );
     },
   },
@@ -251,7 +236,7 @@ const DROP_HANDLERS: DropHandler[] = [
       if (!over.rowId || !active.id || !active.collectionId) return;
       store.handleItemTransfer(
         { type: "inbox", collectionId: active.collectionId, itemId: active.id },
-        { type: "tier", rowId: over.rowId, targetIndex: over.index ?? -1 }
+        { type: "tier", rowId: over.rowId, targetIndex: over.index ?? -1 },
       );
     },
   },
@@ -262,7 +247,7 @@ const DROP_HANDLERS: DropHandler[] = [
       if (!over.rowId || !active.imageSrc) return;
       store.handleItemTransfer(
         { type: "search", imageSrc: active.imageSrc },
-        { type: "tier", rowId: over.rowId, targetIndex: over.index ?? -1 }
+        { type: "tier", rowId: over.rowId, targetIndex: over.index ?? -1 },
       );
     },
   },
@@ -275,7 +260,7 @@ const DROP_HANDLERS: DropHandler[] = [
       if (!active.rowId || !active.id || !over.rowId) return;
       store.handleItemTransfer(
         { type: "tier", rowId: active.rowId, itemId: active.id },
-        { type: "tier", rowId: over.rowId, targetIndex: over.index ?? -1 }
+        { type: "tier", rowId: over.rowId, targetIndex: over.index ?? -1 },
       );
     },
   },
@@ -286,7 +271,7 @@ const DROP_HANDLERS: DropHandler[] = [
       if (!active.rowId || !active.id) return;
       store.handleItemTransfer(
         { type: "tier", rowId: active.rowId, itemId: active.id },
-        { type: "inbox" }
+        { type: "inbox" },
       );
     },
   },
@@ -297,7 +282,7 @@ const DROP_HANDLERS: DropHandler[] = [
       if (!active.rowId || !active.id || over.index === undefined) return;
       store.handleItemTransfer(
         { type: "tier", rowId: active.rowId, itemId: active.id },
-        { type: "cell", index: over.index }
+        { type: "cell", index: over.index },
       );
     },
   },
@@ -308,7 +293,7 @@ const DROP_HANDLERS: DropHandler[] = [
       if (active.index === undefined || !over.rowId) return;
       store.handleItemTransfer(
         { type: "cell", index: active.index },
-        { type: "tier", rowId: over.rowId, targetIndex: over.index ?? -1 }
+        { type: "tier", rowId: over.rowId, targetIndex: over.index ?? -1 },
       );
     },
   },
@@ -320,7 +305,9 @@ const findDropHandler = (from?: string, to?: string): DropHandler | null =>
     : null;
 
 /* ─── Provider ─────────────────────────────────────────────────────── */
-export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 4 },
   });
@@ -332,7 +319,10 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
   /* ── onDragStart ────────────────────────────────────────────────── */
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const activeType = event.active.data.current?.type;
-    if (activeType === DRAG_TYPE.INBOX_ITEM || activeType === DRAG_TYPE.SEARCH_ITEM) {
+    if (
+      activeType === DRAG_TYPE.INBOX_ITEM ||
+      activeType === DRAG_TYPE.SEARCH_ITEM
+    ) {
       useStore.getState().setIsDraggingFromDock(true);
     }
 
@@ -412,10 +402,10 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
         dropAnimation={null}
         style={{
           zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          willChange: 'transform',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          willChange: "transform",
         }}
       >
         <CustomDragOverlay />

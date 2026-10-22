@@ -126,13 +126,21 @@ export const SettingsDockPanel: React.FC<{
             iconBg="bg-primary/20 text-primary"
             label="Accent color"
             right={
-              <div className="relative h-7 w-12 rounded-md overflow-hidden border border-border bg-transparent flex items-center justify-center cursor-pointer">
-                <div className="absolute inset-0" style={{ backgroundColor: accent }} />
-                <ColorPicker
-                  value={accent}
-                  onChange={(v) => updateTheme({ accentColor: v })}
-                />
-              </div>
+              <ColorPicker
+                label="Accent colour"
+                value={accent}
+                onChange={(v) => updateTheme({ accentColor: v })}
+                className="h-7 w-12 rounded-chip"
+                trigger={
+                  <span
+                    className="block h-7 w-12 rounded-chip"
+                    style={{
+                      backgroundColor: accent,
+                      boxShadow: "inset 0 0 0 0.5px var(--material-hairline)",
+                    }}
+                  />
+                }
+              />
             }
           />
           <SettingRow

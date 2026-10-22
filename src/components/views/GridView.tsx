@@ -1,22 +1,23 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useStore } from "@/store/useStore";
-import { selectActiveRank, selectCells } from "@/store/selectors";
+import { selectCells } from "@/store/selectors";
 import { Cell } from "@/components/Cell";
+import { DEFAULT_CELL_WIDTH, selectActiveBoard } from "@/utils/boardStyle";
 
 export const GridView = React.memo(function GridView() {
-  const rank = useStore(selectActiveRank);
+  const board = useStore(useShallow(selectActiveBoard));
   const cells = useStore(selectCells);
+  const cols = useStore((s) => s.ranks[s.activeRankId]?.config.cols ?? 3);
+  const title = useStore((s) => s.ranks[s.activeRankId]?.title ?? "");
   const containerRef = useRef<HTMLDivElement>(null);
   const [focusIndex, setFocusIndex] = useState(0);
 
-  const cols = rank?.config.cols ?? 3;
   const count = cells.length;
-  // The gutter is fully user-controlled; the Card style seeds a sensible one
-  // when it is selected so a switched board does not look like a collage.
-  const gap = rank?.gap ?? 0;
+  const gap = board?.gap ?? 0;
 
   const boardStyle = useMemo<React.CSSProperties>(() => {
-    const tile = rank?.cellWidth ?? 240;
+    const tile = board?.cellWidth ?? DEFAULT_CELL_WIDTH;
     return {
       gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
       gap: `${gap}px`,
@@ -24,7 +25,7 @@ export const GridView = React.memo(function GridView() {
       // Never wider than the space actually available.
       maxWidth: "100%",
     };
-  }, [cols, gap, rank?.cellWidth]);
+  }, [cols, gap, board?.cellWidth]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -67,14 +68,14 @@ export const GridView = React.memo(function GridView() {
     [cols, count]
   );
 
-  if (!rank) return null;
+  if (!board) return null;
 
   return (
     <div
       ref={containerRef}
       role="grid"
       data-export-board=""
-      aria-label={`${rank.title} ranking board`}
+      aria-label={`${title} ranking board`}
       aria-rowcount={Math.ceil(count / cols)}
       aria-colcount={cols}
       onKeyDown={handleKeyDown}

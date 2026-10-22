@@ -1,5 +1,5 @@
 import type { ElementType } from "react";
-import { Layers, LayoutGrid, List } from "lucide-react";
+import { pixelIcon } from "@/components/pixel/PixelIcon";
 import type { ProjectType } from "@/types";
 
 export interface ProjectTypeMeta {
@@ -21,7 +21,7 @@ export const PROJECT_TYPES: readonly ProjectTypeMeta[] = [
     label: "Grid",
     hint: "Rank with a board",
     longLabel: "Ranking Grid",
-    icon: LayoutGrid,
+    icon: pixelIcon("grid"),
     tint: "var(--color-accent-blue)",
   },
   {
@@ -29,7 +29,7 @@ export const PROJECT_TYPES: readonly ProjectTypeMeta[] = [
     label: "List",
     hint: "Rank in order",
     longLabel: "Ranked List",
-    icon: List,
+    icon: pixelIcon("list"),
     tint: "var(--color-accent-green)",
   },
   {
@@ -37,7 +37,7 @@ export const PROJECT_TYPES: readonly ProjectTypeMeta[] = [
     label: "Tiers",
     hint: "Sort into tiers",
     longLabel: "Tier List",
-    icon: Layers,
+    icon: pixelIcon("tiers"),
     tint: "var(--color-accent-purple)",
   },
 ] as const;

@@ -1,7 +1,7 @@
 import React from "react";
-import { Plus } from "lucide-react";
+import { PixelIcon } from "@/components/pixel/PixelIcon";
 
-interface CellEmptyTileProps {
+interface TileEmptyStateProps {
   index: number;
   /** True while any card is in flight, which pre-highlights every empty tile. */
   isDraggingAny: boolean;
@@ -9,13 +9,14 @@ interface CellEmptyTileProps {
 }
 
 /** The "Add" affordance that fills an empty position. */
-export const CellEmptyTile: React.FC<CellEmptyTileProps> = ({
+export const TileEmptyState: React.FC<TileEmptyStateProps> = ({
   index,
   isDraggingAny,
   onOpen,
 }) => (
   <button
     type="button"
+    data-export-hide=""
     aria-label={`Add image to position ${index + 1}`}
     onClick={onOpen}
     className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-1.5
@@ -42,7 +43,8 @@ export const CellEmptyTile: React.FC<CellEmptyTileProps> = ({
           : undefined
       }
     >
-      <Plus size={18} strokeWidth={2.5} className="w-[46%] h-[46%]" />
+      {/* The board's most repeated control, in the app's own alphabet. */}
+      <PixelIcon name="plus" size={18} className="w-[46%] h-[46%]" />
     </span>
     <span className="text-caption-1 font-medium">Add</span>
   </button>

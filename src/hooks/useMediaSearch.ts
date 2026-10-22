@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  MetadataError,
   resetMetadataService,
   searchMetadata,
   SOURCE_LABELS,
@@ -8,12 +9,17 @@ import {
   type SourcePreference,
 } from "@/core/metadata";
 
+class OfflineError extends Error {}
+
 const DEBOUNCE_MS = 400;
 const MIN_QUERY_LENGTH = 2;
 
+export type SearchErrorKind = "offline" | "unavailable" | "unknown";
+
 export interface SearchError {
-  message: string;
-  isNetwork?: boolean;
+  kind: SearchErrorKind;
+  /** Raw provider text, for the detail line of the error pane. */
+  detail?: string;
 }
 
 interface UseMediaSearchOptions {
@@ -23,10 +29,6 @@ interface UseMediaSearchOptions {
   prefer: SourcePreference;
 }
 
-/**
- * Debounced poster/character search. A slow response can never overwrite a
- * newer one, and the previous request is aborted as soon as a new one starts.
- */
 export function useMediaSearch({ query, mode, prefer }: UseMediaSearchOptions) {
   const [results, setResults] = useState<MediaResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,7 @@ export function useMediaSearch({ query, mode, prefer }: UseMediaSearchOptions) {
       term: string,
       searchMode: SearchMode,
       source: SourcePreference,
-      force = false
+      force = false,
     ) => {
       const id = ++requestId.current;
       abortRef.current?.abort();
@@ -55,7 +57,7 @@ export function useMediaSearch({ query, mode, prefer }: UseMediaSearchOptions) {
       setError(null);
 
       try {
-        if (!navigator.onLine) throw new Error("offline");
+        if (!navigator.onLine) throw new OfflineError();
 
         if (force) resetMetadataService();
         const response = await searchMetadata(term, searchMode, {
@@ -75,17 +77,19 @@ export function useMediaSearch({ query, mode, prefer }: UseMediaSearchOptions) {
         setResults([]);
         setHasSearched(true);
         setError({
-          message:
-            err instanceof Error && err.message
-              ? err.message
-              : "Search failed.",
-          isNetwork: err instanceof Error && err.message === "offline",
+          kind:
+            err instanceof OfflineError
+              ? "offline"
+              : err instanceof MetadataError
+                ? "unavailable"
+                : "unknown",
+          detail: err instanceof Error ? err.message : undefined,
         });
       } finally {
         if (id === requestId.current) setLoading(false);
       }
     },
-    []
+    [],
   );
 
   // Debounced search on query/mode/source change.
@@ -98,10 +102,7 @@ export function useMediaSearch({ query, mode, prefer }: UseMediaSearchOptions) {
       setError(null);
       return;
     }
-    const timer = setTimeout(
-      () => runSearch(term, mode, prefer),
-      DEBOUNCE_MS
-    );
+    const timer = setTimeout(() => runSearch(term, mode, prefer), DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [query, mode, prefer, runSearch]);
 
@@ -109,7 +110,7 @@ export function useMediaSearch({ query, mode, prefer }: UseMediaSearchOptions) {
 
   const retry = useCallback(
     () => runSearch(query.trim(), mode, prefer, true),
-    [runSearch, query, mode, prefer]
+    [runSearch, query, mode, prefer],
   );
 
   return {

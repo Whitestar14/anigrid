@@ -16,6 +16,7 @@ import {
   ExportModalHost,
 } from "@/components/app/ModalHosts";
 import { getContrastColor } from "@/theme/palettes";
+import { SHEET_WIDTH } from "@/utils/boardStyle";
 
 import { useAppController } from "@/hooks/useAppController";
 import { useScrollDepth } from "@/hooks/useScrollDepth";
@@ -45,7 +46,8 @@ const AppContent: React.FC = () => {
   if (!activeRank) return <LoadingScreen />;
 
   const textColor = getContrastColor(activeRank.backgroundColor);
-  const mainPadding = activeRank.type === "tierlist" ? "p-2 md:p-8" : "p-4 md:p-8";
+  const mainPadding =
+    activeRank.type === "tierlist" ? "p-2 md:p-8" : "p-4 md:p-8";
   // Padding is expressed as responsive classes rather than read from
   // `window.innerWidth` during render, which never reacted to a resize.
   const containerPaddingClass =
@@ -61,7 +63,9 @@ const AppContent: React.FC = () => {
         {(ctrl.showLoader || !ctrl.isLoaded) && <LoadingScreen key="loader" />}
       </AnimatePresence>
 
-      <div className="flex flex-col h-screen overflow-hidden">
+      {/* `app-viewport` is 100vh with a 100dvh override, so the layout matches
+          the area a phone actually shows while its URL bar is expanded. */}
+      <div className="app-viewport flex flex-col overflow-hidden">
         <Controls
           projectName={activeRank.title}
           isScrolled={isScrolled}
@@ -98,7 +102,7 @@ const AppContent: React.FC = () => {
               "This cannot be undone.",
               () => {
                 ctrl.handleDeleteRank(id);
-              }
+              },
             );
           }}
           onNewRank={ctrl.handleNewRank}
@@ -134,32 +138,35 @@ const AppContent: React.FC = () => {
                   // on permanently would keep a layer alive for every tile.
                   willChange: isScrolled ? "transform" : undefined,
                 }}
-                className="w-fit max-w-full"
+                className={SHEET_WIDTH[activeRank.type]}
               >
-              {/* The board's sheet, hugging the grid so the export frames the
+                {/* The board's sheet, hugging the grid so the export frames the
                   board rather than the window. */}
-              <div
-                ref={ctrl.gridRef}
-                className={`relative w-fit max-w-full transition-[background-color,padding] duration-200 ease-standard ${containerPaddingClass}`}
-                style={{
-                  backgroundColor:
-                    activeRank.backgroundColor === "transparent"
-                      ? ""
-                      : activeRank.backgroundColor,
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (ctrl.interactionState) ctrl.setInteractionState(null);
-                }}
-              >
-                <BoardTitle
-                  activeRank={activeRank}
-                  ctrl={ctrl}
-                  textColor={textColor}
-                />
-                <BoardView activeRank={activeRank} />
-                <BoardWatermark activeRank={activeRank} textColor={textColor} />
-              </div>
+                <div
+                  ref={ctrl.gridRef}
+                  className={`relative ${SHEET_WIDTH[activeRank.type]} transition-[background-color,padding] duration-200 ease-standard ${containerPaddingClass}`}
+                  style={{
+                    backgroundColor:
+                      activeRank.backgroundColor === "transparent"
+                        ? ""
+                        : activeRank.backgroundColor,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (ctrl.interactionState) ctrl.setInteractionState(null);
+                  }}
+                >
+                  <BoardTitle
+                    activeRank={activeRank}
+                    ctrl={ctrl}
+                    textColor={textColor}
+                  />
+                  <BoardView activeRank={activeRank} />
+                  <BoardWatermark
+                    activeRank={activeRank}
+                    textColor={textColor}
+                  />
+                </div>
               </motion.div>
             </main>
 

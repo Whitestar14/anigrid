@@ -4,12 +4,14 @@ import { Trash2 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { useShallow } from "zustand/react/shallow";
 import { projectTypeMeta } from "@/constants/projectTypes";
+import { PixelText } from "@/components/pixel/PixelText";
 
 import { DimensionsSection } from "./settings/DimensionsSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
 import { VisibilitySection } from "./settings/VisibilitySection";
-import { Button } from "./ui/Button";
+
 import { motion as motionPreset } from "@/lib/motion";
+import { resolveBoardStyle } from "@/utils/boardStyle";
 
 export interface GridSettingsSidebarProps {
   isOpen: boolean;
@@ -17,10 +19,6 @@ export interface GridSettingsSidebarProps {
   requestConfirm: (title: string, message: string, action: () => void) => void;
 }
 
-/**
- * The project settings rail. Glass-surfaced, on its own z step above the dock,
- * with a prominent identity header and a pinned footer for destructive actions.
- */
 export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   isOpen,
   onClose,
@@ -41,16 +39,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   if (!activeRank) return null;
 
   const { config, style, type: projectType } = activeRank;
-  const showNumbers = activeRank.showNumbers ?? true;
-  const showTitle = activeRank.showTitle ?? true;
-  const showDate = activeRank.showDate ?? true;
-  const borderless = activeRank.borderless ?? false;
-  const gap = activeRank.gap ?? 0;
-  const gridJustify = activeRank.gridJustify;
-  const cellWidth = activeRank.cellWidth;
-  const borderRadius = activeRank.borderRadius;
-  const rankBackgroundColor = activeRank.backgroundColor;
-  const aspectRatio = activeRank.aspectRatio || "3:4";
+  const board = resolveBoardStyle(activeRank);
 
   const meta = projectTypeMeta(projectType);
   const TypeIcon = meta.icon;
@@ -66,7 +55,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
       "Every image on it goes back to the Library. Nothing is deleted permanently.",
       () => {
         useStore.getState().handleClearAll();
-      }
+      },
     );
   };
 
@@ -75,8 +64,9 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
       {/* Scrim: mobile only */}
       <div
         aria-hidden={!isOpen || undefined}
-        className={`fixed inset-0 bg-overlay z-rail-panel md:hidden transition-opacity duration-200 ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
+        className={`fixed inset-0 bg-overlay z-rail-panel md:hidden transition-opacity duration-200 ${
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
         onClick={onClose}
       />
 
@@ -93,14 +83,15 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
           transition-[width,opacity] duration-240 ease-emphasized
         "
         style={{
-          width: isOpen ? "var(--rail-width)" : "0rem",
+          /* On a phone a fixed 20rem rail can consume the whole viewport and
+             leave nowhere to tap to dismiss it. It caps at 86vw so the board —
+             and the scrim that closes it — stay visible. */
+          width: isOpen ? "min(var(--rail-width), 86vw)" : "0rem",
           opacity: isOpen ? 1 : 0,
           backgroundColor: "var(--color-surface)",
         }}
       >
-        <div className="w-80 h-full flex flex-col">
-          {/* Identity, not a control. On `surface` so it reads as the rail's own
-              app bar rather than as the first row of the list. */}
+        <div className="w-full max-w-80 h-full flex flex-col">
           <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-hairline bg-surface">
             <span
               className="grid place-items-center w-9 h-9 rounded-[10px] squircle shrink-0"
@@ -120,10 +111,30 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
               >
                 {meta.longLabel}
               </span>
-              <span className="text-subheadline font-semibold text-text truncate mt-0.5 leading-snug">
-                {activeRank.title}
+              <span className="block min-w-0 overflow-hidden mt-0.5">
+                <PixelText
+                  text={activeRank.title}
+                  height={14}
+                  className="text-text shrink-0"
+                />
               </span>
             </span>
+
+            <button
+              type="button"
+              onClick={handleClearAll}
+              aria-label={
+                projectType === "tierlist" ? "Clear all tiers" : "Clear board"
+              }
+              title={
+                projectType === "tierlist" ? "Clear all tiers" : "Clear board"
+              }
+              className="grid place-items-center w-8 h-8 shrink-0 rounded-full
+                         text-muted hover:text-destructive hover:bg-destructive/10
+                         transition-colors touch-target"
+            >
+              <Trash2 size={16} />
+            </button>
           </div>
 
           {/* ── Scrollable content ───────────────────────────────────────── */}
@@ -134,64 +145,48 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
             transition={motionPreset.sheet}
           >
             <div className="flex flex-col gap-6 py-5 pb-6">
-              {/* A grid and a list both size themselves from `config.rows`; a
-                  tier list is measured in tiers, which it adds and removes
-                  inline, so it gets neither. */}
-              {(projectType === "ranking" || projectType === "list") && (
-                <DimensionsSection
-                  projectType={projectType}
-                  config={config}
-                  cellWidth={cellWidth}
-                  onRowsChange={handleRowsChange}
-                  onColsChange={handleColsChange}
-                  onCellWidthChange={(v) => updateActiveRank({ cellWidth: v })}
-                />
-              )}
+              <DimensionsSection
+                projectType={projectType}
+                config={config}
+                cellWidth={activeRank.cellWidth}
+                tierRowHeight={board.tierRowHeight}
+                onRowsChange={handleRowsChange}
+                onColsChange={handleColsChange}
+                onCellWidthChange={(v) => updateActiveRank({ cellWidth: v })}
+                onTierRowHeightChange={(v) =>
+                  updateActiveRank({ tierRowHeight: v })
+                }
+              />
 
               <AppearanceSection
                 projectType={projectType}
-                aspectRatio={aspectRatio}
+                aspectRatio={board.aspectRatio}
                 style={style as "card" | "seamless"}
-                borderless={borderless}
-                gap={gap}
-                borderRadius={borderRadius}
-                gridJustify={gridJustify}
-                rankBackgroundColor={rankBackgroundColor}
+                borderless={board.borderless}
+                gap={board.gap}
+                borderRadius={board.radius}
+                gridJustify={board.justify}
+                tierSpacing={board.tierSpacing}
+                rankBackgroundColor={activeRank.backgroundColor}
                 onUpdateRank={updateActiveRank}
               />
 
               <VisibilitySection
                 projectType={projectType}
-                showNumbers={showNumbers}
-                showTitle={showTitle}
-                showDate={showDate}
-                showWatermark={activeRank.showWatermark ?? true}
-                onVisualToggle={handleVisualToggle as (k: string) => void}
+                showNumbers={board.showNumbers}
+                showTitle={board.showTitle}
+                showDate={board.showDate}
+                showWatermark={board.showWatermark}
+                onVisualToggle={handleVisualToggle}
               />
             </div>
           </motion.div>
 
-          {/* ── Footer — destructive action, always reachable ─────────────
-              Elevated one step above the rail body so it reads as a
-              pinned chrome zone rather than just the bottom list item. */}
           <div
-            className="shrink-0 border-t border-hairline px-4 py-3.5"
-            style={{
-              backgroundColor: "var(--color-surface-elevated)",
-              paddingBottom: "max(0.875rem, env(safe-area-inset-bottom))",
-            }}
-          >
-            <Button
-              variant="danger"
-              size="md"
-              fullWidth
-              icon={<Trash2 size={15} />}
-              onClick={handleClearAll}
-            >
-              {projectType === "tierlist" ? "Clear all tiers" : "Clear board"}
-            </Button>
-          </div>
-
+            aria-hidden
+            className="shrink-0"
+            style={{ height: "env(safe-area-inset-bottom)" }}
+          />
         </div>
       </aside>
     </>

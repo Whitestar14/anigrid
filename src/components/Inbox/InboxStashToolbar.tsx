@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { Edit, Layers, Plus, Trash, X, FolderInput } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { MagnifyItem } from "./MagnifyItem";
+import { ScrollRail } from "@/components/ui/ScrollRail";
+import { PopoverMenu } from "@/components/ui/PopoverMenu";
 import { useMagnificationRow } from "@/hooks/useMagnification";
 import { motion as motionPreset } from "@/lib/motion";
 import type { DockCtrl } from "./dock/types";
@@ -12,14 +14,6 @@ const chipClass = (active: boolean) =>
    transition-colors duration-150 select-none
    ${active ? "bg-primary/15 text-primary" : "text-muted hover:text-text hover:bg-hover"}`;
 
-/**
- * The stash surface's toolbar, in its two mutually exclusive states: the
- * collection chips, or the bulk-action bar once something is selected.
- *
- * These used to be separate components — a toolbar that chose between a tabs
- * row and a selection bar — and the tabs row then forwarded ten of the
- * toolbar's props back down unchanged. One component, two states.
- */
 export const InboxStashToolbar: React.FC<{ ctrl: DockCtrl }> = ({ ctrl }) => {
   const mag = useMagnificationRow();
   const canHover = useCanHover();
@@ -35,6 +29,15 @@ export const InboxStashToolbar: React.FC<{ ctrl: DockCtrl }> = ({ ctrl }) => {
     ctrl.moveItemsToCollection(Array.from(selected), targetId);
     clearSelection();
   };
+
+  const [moveMenu, setMoveMenu] = React.useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  /** Everywhere the selection could go — everywhere except where it already is. */
+  const moveTargets = ctrl.collections.filter(
+    (c) => c.id !== ctrl.activeCollectionId,
+  );
 
   return (
     <div className="flex items-center gap-2 px-2 sm:px-6 py-3 border-b border-border shrink-0 hide-scrollbar material-thin relative h-14 z-10 overflow-visible">
@@ -53,33 +56,26 @@ export const InboxStashToolbar: React.FC<{ ctrl: DockCtrl }> = ({ ctrl }) => {
                 {selected.size} Selected
               </span>
 
-              {/* A native select, transparent and stretched over a matching
-                  styled label. The menu itself is the platform's, which is what
-                  makes it feel native rather than like another custom popover. */}
-              <div className="relative flex items-center justify-center">
-                <select
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) moveSelected(e.target.value);
-                  }}
-                >
-                  <option value="" disabled>
-                    Move to...
-                  </option>
-                  {ctrl.collections
-                    .filter((c) => c.id !== ctrl.activeCollectionId)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                </select>
-                <div className="flex items-center gap-1.5 text-footnote font-medium text-text hover:bg-hover px-3 sm:px-4 py-1.5 rounded-full transition-colors pointer-events-none border border-border">
-                  <FolderInput size={14} className="text-muted" />
-                  Move To
-                </div>
-              </div>
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={!!moveMenu}
+                disabled={moveTargets.length === 0}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setMoveMenu({
+                    x: rect.left + rect.width / 2,
+                    y: rect.bottom + 4,
+                  });
+                }}
+                className="flex items-center gap-1.5 text-footnote font-medium text-text
+                           hover:bg-hover px-3 sm:px-4 py-1.5 rounded-full
+                           transition-colors border border-border
+                           disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                <FolderInput size={14} className="text-muted" />
+                Move To
+              </button>
             </div>
 
             <div className="flex gap-1">
@@ -110,63 +106,77 @@ export const InboxStashToolbar: React.FC<{ ctrl: DockCtrl }> = ({ ctrl }) => {
             transition={{ duration: 0.2 }}
             className="w-full"
           >
-            <div
-              ref={mag.rowRef}
-              className="flex items-center gap-2 w-full"
-              {...(canHover ? mag.handlers : {})}
-            >
-              <MagnifyItem index={0} ctx={mag}>
-                <button
-                  type="button"
-                  onClick={() => ctrl.switchCollection("all-images")}
-                  aria-pressed={ctrl.activeCollectionId === "all-images"}
-                  className={chipClass(ctrl.activeCollectionId === "all-images")}
-                >
-                  <Layers size={14} />
-                  All
-                </button>
-              </MagnifyItem>
-
-              <div aria-hidden className="w-px h-4 bg-border mx-1 shrink-0" />
-
-              {ctrl.collections.map((col, i) => (
-                <CollectionChip
-                  key={col.id}
-                  index={i + 1}
-                  mag={mag}
-                  name={col.name}
-                  isActive={col.id === ctrl.activeCollectionId}
-                  isEditing={ctrl.editingNameId === col.id}
-                  tempName={ctrl.tempName}
-                  canDelete={ctrl.collections.length > 1}
-                  onSelect={() => ctrl.switchCollection(col.id)}
-                  onStartRename={() => {
-                    ctrl.setEditingNameId(col.id);
-                    ctrl.setTempName(col.name);
-                  }}
-                  onTempNameChange={ctrl.setTempName}
-                  onCommitRename={() => commitRename(ctrl, col.id)}
-                  onCancelRename={() => ctrl.setEditingNameId(null)}
-                  onDelete={() => ctrl.requestDeleteCollection(col)}
-                />
-              ))}
-
-              <motion.button
+            <div className="flex items-center gap-2 w-full min-w-0">
+              <button
                 type="button"
-                whileTap={{ scale: 0.9, rotate: 90 }}
-                transition={motionPreset.snappy}
-                onClick={ctrl.addCollection}
-                className="grid place-items-center w-8 h-8 rounded-full shrink-0 text-muted
-                           hover:text-primary hover:bg-hover transition-colors"
-                title="New collection"
-                aria-label="New collection"
+                onClick={() => ctrl.switchCollection("all-images")}
+                aria-pressed={ctrl.activeCollectionId === "all-images"}
+                className={`${chipClass(ctrl.activeCollectionId === "all-images")} shrink-0`}
               >
-                <Plus size={16} />
-              </motion.button>
+                <Layers size={14} />
+                All
+              </button>
+
+              <div aria-hidden className="w-px h-4 bg-border shrink-0" />
+
+              <ScrollRail className="flex-1 min-w-0" trailingSpace="pr-7">
+                <div
+                  ref={mag.rowRef}
+                  className="flex items-center gap-2"
+                  {...(canHover ? mag.handlers : {})}
+                >
+                  {ctrl.collections.map((col, i) => (
+                    <CollectionChip
+                      key={col.id}
+                      index={i + 1}
+                      mag={mag}
+                      name={col.name}
+                      isActive={col.id === ctrl.activeCollectionId}
+                      isEditing={ctrl.editingNameId === col.id}
+                      tempName={ctrl.tempName}
+                      canDelete={ctrl.collections.length > 1}
+                      onSelect={() => ctrl.switchCollection(col.id)}
+                      onStartRename={() => {
+                        ctrl.setEditingNameId(col.id);
+                        ctrl.setTempName(col.name);
+                      }}
+                      onTempNameChange={ctrl.setTempName}
+                      onCommitRename={() => commitRename(ctrl, col.id)}
+                      onCancelRename={() => ctrl.setEditingNameId(null)}
+                      onDelete={() => ctrl.requestDeleteCollection(col)}
+                    />
+                  ))}
+
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.9, rotate: 90 }}
+                    transition={motionPreset.snappy}
+                    onClick={ctrl.addCollection}
+                    className="grid place-items-center w-8 h-8 rounded-full shrink-0 text-muted
+                           hover:text-primary hover:bg-hover transition-colors"
+                    title="New collection"
+                    aria-label="New collection"
+                  >
+                    <Plus size={16} />
+                  </motion.button>
+                </div>
+              </ScrollRail>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <PopoverMenu
+        isOpen={!!moveMenu}
+        onClose={() => setMoveMenu(null)}
+        triggerPoint={moveMenu}
+        className="max-h-[min(55vh,20rem)] overflow-y-auto scrollbar-ios"
+        actions={moveTargets.map((collection) => ({
+          label: collection.name,
+          icon: FolderInput,
+          onClick: () => moveSelected(collection.id),
+        }))}
+      />
     </div>
   );
 };
@@ -270,7 +280,7 @@ function useCanHover() {
   const [canHover, setCanHover] = React.useState(
     () =>
       typeof window !== "undefined" &&
-      window.matchMedia("(hover: hover) and (pointer: fine)").matches
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches,
   );
 
   React.useEffect(() => {

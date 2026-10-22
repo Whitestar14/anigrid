@@ -1,14 +1,7 @@
+import { FALLBACK_TIER_COLOR } from "@/constants/tierColors";
+
 /**
  * A cheap dominant colour for an image, used as the tile's placeholder.
- *
- * A board is dozens of images at once, and a grey box that pops into artwork
- * reads as unpolished. Painting the image's own dominant colour first and
- * cross-fading the real pixels over it means the board appears to *develop*
- * rather than flicker.
- *
- * The colour is derived at runtime and memoised rather than stored on the item:
- * it is a purely presentational cache, and persisting it would mean a schema
- * migration plus a background pass over every existing image on load.
  */
 
 /** src → colour, for the life of the session. */
@@ -22,8 +15,7 @@ const SAMPLE_SIZE = 8;
 
 /**
  * Samples the image down to an 8×8 grid and returns the most saturated
- * frequent bucket rather than a flat mean — the mean of a poster is usually a
- * muddy grey, which is exactly the placeholder we are trying to get away from.
+ * frequent bucket
  */
 function sample(src: string): string | null {
   const img = new Image();
@@ -50,7 +42,10 @@ function sample(src: string): string | null {
 
       // Bucket by coarse RGB so near-identical shades collapse together, then
       // keep the bucket with the most total colourfulness.
-      const buckets = new Map<string, { r: number; g: number; b: number; score: number }>();
+      const buckets = new Map<
+        string,
+        { r: number; g: number; b: number; score: number }
+      >();
       for (let i = 0; i < data.length; i += 4) {
         if (data[i + 3] < 128) continue;
         const r = data[i];
@@ -59,10 +54,13 @@ function sample(src: string): string | null {
         const max = Math.max(r, g, b);
         const min = Math.min(r, g, b);
         const lightness = (max + min) / 2;
-        const saturation = max === min ? 0 : (max - min) / (255 - Math.abs(2 * lightness - 255) || 1);
-        // Weight toward vivid, mid-lightness pixels: those read as "the colour
-        // of this poster", while near-black and near-white do not.
-        const score = saturation * (1 - Math.abs(lightness / 255 - 0.5) * 2) + 0.05;
+        const saturation =
+          max === min
+            ? 0
+            : (max - min) / (255 - Math.abs(2 * lightness - 255) || 1);
+
+        const score =
+          saturation * (1 - Math.abs(lightness / 255 - 0.5) * 2) + 0.05;
         const key = `${r >> 4}-${g >> 4}-${b >> 4}`;
         const existing = buckets.get(key);
         if (existing) {
@@ -75,7 +73,8 @@ function sample(src: string): string | null {
         }
       }
 
-      let best: { r: number; g: number; b: number; score: number } | null = null;
+      let best: { r: number; g: number; b: number; score: number } | null =
+        null;
       for (const bucket of buckets.values()) {
         if (!best || bucket.score > best.score) best = bucket;
       }
@@ -87,8 +86,7 @@ function sample(src: string): string | null {
       const b = Math.round(best.b / count);
       done(`rgb(${r} ${g} ${b})`);
     } catch {
-      // A tainted canvas (cross-origin without CORS headers) throws here. The
-      // placeholder is a nicety, so failing quietly is the right behaviour.
+      // A tainted canvas (cross-origin without CORS headers) throws here.
       done(null);
     }
   };
@@ -100,8 +98,7 @@ function sample(src: string): string | null {
 
 /**
  * Returns the cached colour for `src`, kicking off a sample if there is not one
- * yet. Synchronous by design: a placeholder that arrives a frame late is worth
- * less than one that is simply absent.
+ * yet.
  */
 export function dominantColor(src: string): string | undefined {
   if (!src) return undefined;
@@ -120,7 +117,7 @@ export function dominantColor(src: string): string | undefined {
  */
 export function subscribeDominantColor(
   src: string,
-  onColor: (color: string) => void
+  onColor: (color: string) => void,
 ): () => void {
   const existing = cache.get(src);
   if (existing) {
@@ -139,4 +136,15 @@ export function subscribeDominantColor(
     set!.delete(onColor);
     if (set!.size === 0) listeners.delete(src);
   };
+}
+
+export function normalizeTierColor(
+  value: string,
+  fallback = FALLBACK_TIER_COLOR,
+): string {
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(trimmed)) return trimmed;
+  if (/^[0-9a-f]{6}$/.test(trimmed)) return `#${trimmed}`;
+  return fallback;
 }

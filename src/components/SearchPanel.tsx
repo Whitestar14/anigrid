@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { CloudOff, Search, SlidersHorizontal } from "lucide-react";
+import { CloudOff, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { PopoverMenu } from "@/components/ui/PopoverMenu";
@@ -91,10 +91,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full min-h-0 px-1 animate-in fade-in">
-      {/* One row. The source selector used to be a third control beside the
-          field, which on a phone squeezed the query down to a few characters.
-          It now lives *inside* the field's trailing edge. */}
-      <div className="flex items-center gap-2 mb-2 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2 shrink-0">
         <div className="flex-1 min-w-0">
           <Input
             ref={inputRef}
@@ -120,13 +117,15 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
                            hover:text-text hover:bg-hover transition-colors duration-150"
               >
                 <SlidersHorizontal size={12} />
-                <span className="tabular-nums">{SOURCE_SHORT[imageSource]}</span>
+                <span className="tabular-nums">
+                  {SOURCE_SHORT[imageSource]}
+                </span>
               </button>
             }
           />
         </div>
 
-        <div className="w-[132px] shrink-0">
+        <div className="w-full sm:w-[132px] shrink-0">
           <SegmentedControl
             value={mode}
             onChange={(val) => onModeChange(val as SearchMode)}
@@ -138,14 +137,27 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
         </div>
       </div>
 
-      {degraded && !loading && !error && results.length > 0 && (
-        /* One line, truncated. Two lines of explanation is enough height to
-           push a row of results off the bottom of the panel. */
-        <div className="flex items-center gap-1.5 mb-2 text-caption-1 text-muted shrink-0 min-w-0">
+      {degraded && !loading && !error && results.length > 0 && answeredBy && (
+        <div
+          className="flex items-center gap-2 mb-2 pl-2.5 pr-1.5 py-1 shrink-0 min-w-0
+                     material-card rounded-full text-caption-1 text-muted"
+        >
           <CloudOff size={12} className="shrink-0" />
           <span className="truncate">
-            Showing {answeredBy} — preferred catalogue unavailable
+            {SOURCE_OPTIONS.find((o) => o.value === imageSource)?.label ??
+              "Catalogue"}{" "}
+            is unavailable — {answeredBy} answered
           </span>
+          <button
+            type="button"
+            onClick={retry}
+            aria-label="Try the preferred catalogue again"
+            title="Try again"
+            className="ml-auto grid place-items-center w-6 h-6 rounded-full shrink-0
+                       text-muted hover:text-text hover:bg-hover transition-colors"
+          >
+            <RefreshCw size={12} />
+          </button>
         </div>
       )}
 
@@ -159,7 +171,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
           ) : error ? (
             <SearchErrorPane error={error} onRetry={retry} />
           ) : results.length > 0 ? (
-            <ScrollRail className="pb-2" contentClassName="pt-0.5">
+            <ScrollRail className="pb-2" contentClassName="pt-0.5" paging>
               {results.map((item) => (
                 <SearchResultCard
                   key={item.id}
@@ -179,8 +191,6 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
           )}
         </div>
 
-        {/* "There is more below." Kept short — a tall fade eats the lower row's
-            labels on a phone, which is exactly where it must not. */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 bottom-0 h-6 transition-opacity duration-200"
@@ -197,8 +207,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
         onClose={() => setIsSourceMenuOpen(false)}
         triggerPoint={sourceAnchor}
         actions={SOURCE_OPTIONS.map((option) => ({
-          label:
-            option.label + (imageSource === option.value ? "  ✓" : ""),
+          label: option.label + (imageSource === option.value ? "  ✓" : ""),
           icon: option.value === "auto" ? SlidersHorizontal : Search,
           onClick: () => onImageSourceChange?.(option.value),
         }))}

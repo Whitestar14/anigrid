@@ -1,15 +1,7 @@
 import { create } from "zustand";
+import type { DragKind } from "@/constants/drag";
 
-
-export const DRAG_KIND = {
-  CELL: "cell",
-  INBOX_ITEM: "inbox-item",
-  SEARCH_ITEM: "search-item",
-  TIER_ITEM: "tier-item",
-  TIER_ROW: "tier-row",
-} as const;
-
-export type DragKind = (typeof DRAG_KIND)[keyof typeof DRAG_KIND];
+export type { DragKind };
 
 export interface ActiveDrag {
   kind: DragKind;

@@ -35,18 +35,15 @@ export const Controls: React.FC<ControlsProps> = ({
     <header
       className={`fixed top-0 left-0 right-0 z-chrome h-14 material-chrome
                   transition-shadow duration-300 ease-standard ${
-                    isScrolled ? "shadow-[0_1px_0_0_var(--material-hairline)]" : ""
+                    isScrolled
+                      ? "shadow-[0_1px_0_0_var(--material-hairline)]"
+                      : ""
                   }`}
     >
-      <div className="h-full w-full max-w-[1920px] mx-auto px-2 md:px-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        {/* Left: settings rail.
-
-            The trigger becomes a cross while the rail is open, so the rail
-            itself needs no close button. Four separate ways to close one panel
-            — the toolbar, a rail header cross, a second cross inside the
-            project card, and the scrim — was three too many, and the two
-            unlabelled crosses in particular were indistinguishable from each
-            other. One control, two states. */}
+      {/* `minmax(0, 1fr)` rather than `1fr`: a bare fraction floors at the
+          column's content width, so at 320px the export button was pushed past
+          the right edge of the bar instead of the title pill giving way. */}
+      <div className="h-full w-full max-w-480 mx-auto px-2 md:px-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
         <div className="flex items-center justify-start min-w-0">
           <motion.button
             type="button"
@@ -57,15 +54,25 @@ export const Controls: React.FC<ControlsProps> = ({
             whileTap={{ scale: 0.9 }}
             transition={motionPreset.snappy}
             className={`grid place-items-center w-9 h-9 rounded-full transition-colors duration-150 ${
-              isSidebarOpen ? "bg-hover text-text" : "text-muted hover:text-text hover:bg-hover"
+              isSidebarOpen
+                ? "bg-hover text-text"
+                : "text-muted hover:text-text hover:bg-hover"
             }`}
           >
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.span
                 key={isSidebarOpen ? "close" : "open"}
-                initial={{ opacity: 0, scale: 0.5, rotate: isSidebarOpen ? -80 : 80 }}
+                initial={{
+                  opacity: 0,
+                  scale: 0.5,
+                  rotate: isSidebarOpen ? -80 : 80,
+                }}
                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                exit={{ opacity: 0, scale: 0.5, rotate: isSidebarOpen ? 80 : -80 }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.5,
+                  rotate: isSidebarOpen ? 80 : -80,
+                }}
                 transition={motionPreset.snappy}
                 className="grid place-items-center"
               >
@@ -92,9 +99,6 @@ export const Controls: React.FC<ControlsProps> = ({
                        hover:bg-hover transition-colors duration-150"
             title={statusText ? statusText : "Switch project"}
           >
-            {/* One line, clipped. The name and the status are two states of the
-                same slot, so the pill's width never changes as activity starts
-                and stops — the text slides through a fixed window instead. */}
             <span className="relative block h-5 leading-5 min-w-[1ch] max-w-[40vw] sm:max-w-[300px] overflow-hidden text-left">
               <AnimatePresence mode="popLayout" initial={false}>
                 {statusText ? (
@@ -128,10 +132,7 @@ export const Controls: React.FC<ControlsProps> = ({
           <StatusIsland onCreateProject={onCreateProject} />
         </div>
 
-        {/* Right: export. Springs on press like every other control in the bar;
-            as a plain `Button` it was the one thing up here that did not react
-            to the pointer at all. */}
-        <div className="flex items-center justify-end min-w-0">
+        <div className="flex items-center justify-end min-w-0 overflow-hidden">
           <motion.button
             type="button"
             onClick={onOpenExport}
@@ -145,7 +146,9 @@ export const Controls: React.FC<ControlsProps> = ({
                        transition-colors duration-150 outline-none focus-visible:focus-ring"
           >
             <Download size={18} strokeWidth={2} />
-            <span className="hidden md:inline font-medium text-subheadline">Export</span>
+            <span className="hidden md:inline font-medium text-subheadline">
+              Export
+            </span>
           </motion.button>
         </div>
       </div>

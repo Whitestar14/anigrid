@@ -1,24 +1,20 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
+import React, { useCallback } from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { useShallow } from "zustand/react/shallow";
 import { MoreHorizontal } from "lucide-react";
 import { useStore } from "@/store/useStore";
-import { selectActiveRank } from "@/store/selectors";
-import { downloadImage } from "@/utils/imageProxy";
-import { aspectToCss } from "@/utils/ui";
+import { DEFAULT_ASPECT, aspectToCss } from "@/utils/ui";
 import { UrlInputModal } from "@/components/ui/UrlInputModal";
 import { RemoteImage } from "@/components/ui/RemoteImage";
 import { PopoverMenu } from "@/components/ui/PopoverMenu";
-import { usePanZoom } from "@/hooks/usePanZoom";
-import { useCellInteraction } from "@/hooks/useCellInteraction";
-import { useCellMediaUpload } from "@/hooks/useCellMediaUpload";
-import {
-  filledImageActions,
-  emptyImageActions,
-} from "@/components/ui/imageActions";
-import { useIsDragging, useDropPulse } from "@/state/dragState";
 import { AdjustOverlay } from "@/components/ui/AdjustOverlay";
-import { CellEmptyTile } from "./cell/CellEmptyTile";
-import { restingTileShadow, tileRadius } from "./cell/tileChrome";
+import { TileEmptyState } from "./tile/TileEmptyState";
+import { useTile } from "./tile/useTile";
+import {
+  restingTileShadow,
+  selectActiveBoard,
+  tileStateShadow,
+} from "@/utils/boardStyle";
 
 interface CellProps {
   index: number;
@@ -37,163 +33,64 @@ export const Cell = React.memo(function Cell({
   onFocusTile,
 }: CellProps) {
   const cell = useStore((s) => s.ranks[s.activeRankId]?.cells[index]);
-  const rank = useStore(selectActiveRank);
-  const isDraggingAny = useIsDragging();
+  const board = useStore(useShallow(selectActiveBoard));
+  const title = useStore((s) => s.ranks[s.activeRankId]?.title ?? "");
 
   const handleCellClear = useStore((s) => s.handleCellClear);
   const handleUpdateCell = useStore((s) => s.handleUpdateCell);
-  const handleCellUpload = useStore((s) => s.handleCellUpload);
   const handleItemTransfer = useStore((s) => s.handleItemTransfer);
 
-  const tileRef = useRef<HTMLDivElement>(null);
-  const [isFileDragOver, setIsFileDragOver] = useState(false);
-  const [isUrlModalOpen, setIsUrlModalOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
-
-  const { isSelected, handleInteraction, clearInteraction } =
-    useCellInteraction({ type: "cell", index });
-
-  const { fileInputRef, triggerPicker, handleFileChange } = useCellMediaUpload(
-    (base64) => {
-      handleCellUpload(index, base64 as string);
-      clearInteraction();
-    }
-  );
+  const tile = useTile({
+    index,
+    item: cell,
+    aspectRatio: board?.aspectRatio ?? DEFAULT_ASPECT,
+    update: (patch) => handleUpdateCell(index, patch),
+    setImage: (src) => handleUpdateCell(index, { imageSrc: src }),
+    /* A pasted URL is filed into the Library, so the image is still yours after
+       it leaves the board. A direct file upload is not: it was never in the
+       library to begin with. */
+    importFromUrl: (url) =>
+      handleItemTransfer({ type: "search", imageSrc: url }, { type: "cell", index }),
+    clear: () => handleCellClear(index),
+    returnToLibrary: () =>
+      handleItemTransfer({ type: "cell", index }, { type: "inbox" }),
+    filename: `${title.replace(/\s+/g, "-").toLowerCase() || "image"}-${
+      index + 1
+    }.jpg`,
+  });
 
   const {
-    isAdjusting,
-    imageStyle,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-    handlePointerCancel,
-    startAdjusting,
-    stopAdjusting,
-    saveAdjustments,
-  } = usePanZoom(
-    {
-      zoom: cell?.zoom,
-      posX: cell?.objectPosition
-        ? parseInt(cell.objectPosition.split(" ")[0])
-        : 50,
-      posY: cell?.objectPosition
-        ? parseInt(cell.objectPosition.split(" ")[1])
-        : 50,
-    },
-    tileRef,
-    (state) =>
-      handleUpdateCell(index, {
-        zoom: state.zoom,
-        objectPosition: `${state.posX}% ${state.posY}%`,
-      })
-  );
-
-  const dropId = `cell-drop-${cell?.id ?? index}`;
-  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
-    id: dropId,
-    data: { type: "cell", index },
+    setNodeRef: setDragNodeRef,
+    attributes,
+    listeners,
+    isDragging,
+  } = useDraggable({
+    id: tile.dragId,
+    data: tile.dragData,
+    disabled: tile.dragDisabled,
   });
-  const dropPulse = useDropPulse(dropId);
 
-  const { isDragging, setNodeRef: setDraggableRef, attributes, listeners } =
-    useDraggable({
-      id: `cell-drag-${cell?.id ?? index}`,
-      data: {
-        type: "cell",
-        index,
-        imageSrc: cell?.imageSrc,
-        width: tileRef.current?.offsetWidth || 120,
-        aspectRatio: (rank?.aspectRatio || "3:4").replace(":", "/"),
-      },
-      disabled: !cell?.imageSrc || isAdjusting,
-    });
-
+  /* Destructured so the composed callback depends on the stable function rather
+     than on the hook's result object, which is rebuilt every render. A changing
+     ref callback would detach and re-attach the node on each one. */
+  const { setNodeRef: setTileNodeRef } = tile;
   const setRefs = useCallback(
     (node: HTMLDivElement | null) => {
-      (tileRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      setDroppableRef(node);
-      setDraggableRef(node);
+      setTileNodeRef(node);
+      setDragNodeRef(node);
     },
-    [setDroppableRef, setDraggableRef]
+    [setTileNodeRef, setDragNodeRef]
   );
 
-  const wasSelectedRef = useRef(isSelected);
-  useEffect(() => {
-    const wasSelected = wasSelectedRef.current;
-    wasSelectedRef.current = isSelected;
-    if (wasSelected && !isSelected) setIsMenuOpen(false);
-  }, [isSelected]);
+  if (!cell || !board) return null;
 
-  const openMenu = useCallback(
-    (e: React.MouseEvent, anchorTo?: HTMLElement | null) => {
-      e.stopPropagation();
-      e.preventDefault();
-      if (anchorTo) {
-        const rect = anchorTo.getBoundingClientRect();
-        setAnchor({ x: rect.left + rect.width / 2, y: rect.bottom + 4 });
-      } else if (e.clientX || e.clientY) {
-        setAnchor({ x: e.clientX, y: e.clientY });
-      } else {
-        const rect = tileRef.current?.getBoundingClientRect();
-        if (rect) setAnchor({ x: rect.left + rect.width / 2, y: rect.top + 12 });
-      }
-      setIsMenuOpen(true);
-    },
-    []
-  );
-
-  const handleActivate = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (isAdjusting) return;
-      handleInteraction(e.clientX, e.clientY, e.target as HTMLElement);
-    },
-    [handleInteraction, isAdjusting]
-  );
-
-  const handleDownload = useCallback(() => {
-    if (!cell?.imageSrc) return;
-    void downloadImage(
-      cell.imageSrc,
-      `${rank?.title?.replace(/\s+/g, "-").toLowerCase() || "image"}-${
-        index + 1
-      }.jpg`
-    );
-  }, [cell?.imageSrc, rank?.title, index]);
-
-  if (!cell || !rank) return null;
-
-  const hasImage = !!cell.imageSrc;
-  const isSeamless = (rank.style ?? "seamless") === "seamless";
-  const radius = tileRadius(isSeamless, rank.borderRadius);
-  const borderless = rank.borderless ?? false;
-  const showNumber = rank.showNumbers ?? true;
-  const gap = rank.gap ?? 0;
-
-  const restingShadow = restingTileShadow({
-    borderless,
-    gap,
+  const resting = restingTileShadow({
+    borderless: board.borderless,
+    gap: board.gap,
     index,
     cols,
     count,
   });
-
-  const actions = hasImage
-    ? filledImageActions({
-        onReplace: triggerPicker,
-        onAdjust: startAdjusting,
-        onDownload: handleDownload,
-        onReturnToLibrary: () =>
-          handleItemTransfer({ type: "cell", index }, { type: "inbox" }),
-        onRemove: () => handleCellClear(index),
-      })
-    : emptyImageActions({
-        onChooseFile: triggerPicker,
-        onFromUrl: () => setIsUrlModalOpen(true),
-        onSearchOnline: () =>
-          window.dispatchEvent(new CustomEvent("open-inbox-search")),
-      });
 
   return (
     <div
@@ -206,123 +103,108 @@ export const Cell = React.memo(function Cell({
       tabIndex={tabbable ? 0 : -1}
       aria-rowindex={Math.floor(index / cols) + 1}
       aria-colindex={(index % cols) + 1}
-      aria-selected={isSelected}
+      aria-selected={tile.isSelected}
       /* dnd-kit marks a non-draggable cell aria-disabled, but an empty cell is
          still selectable, so it must stay enabled to assistive tech. */
-      aria-disabled={isAdjusting || undefined}
+      aria-disabled={tile.isAdjusting || undefined}
       aria-label={
-        hasImage ? `Position ${index + 1}, filled` : `Position ${index + 1}, empty`
+        tile.hasImage
+          ? `Position ${index + 1}, filled`
+          : `Position ${index + 1}, empty`
       }
       data-cell-index={index}
       className={`tile item-enter group/tile relative select-none outline-none [container-type:inline-size] ${
-        hasImage ? "touch-none" : ""
+        tile.hasImage ? "touch-none" : ""
       } ${isDragging ? "z-30 opacity-25" : "z-0"}`}
-      style={{
-        aspectRatio: aspectToCss(rank.aspectRatio),
-        // Capped so a large board still finishes settling quickly, and reads as
-        // a sweep from the top-left rather than an endless ripple.
-        "--enter-delay": `${Math.min(index, 14) * 26}ms`,
-      } as React.CSSProperties}
-      onClick={handleActivate}
-      /* Double-click replaces the image in one gesture. The tile menu can do it
-         too, but replacing is the single most common edit and making it two
-         clicks plus a menu was the kind of friction that adds up. */
-      onDoubleClick={(e) => {
-        if (!hasImage || isAdjusting) return;
-        e.stopPropagation();
-        triggerPicker();
-      }}
+      style={
+        {
+          aspectRatio: aspectToCss(board.aspectRatio),
+          // Capped so a large board still finishes settling quickly, and reads
+          // as a sweep from the top-left rather than an endless ripple.
+          "--enter-delay": `${Math.min(index, 14) * 26}ms`,
+        } as React.CSSProperties
+      }
+      onClick={tile.activate}
+      onDoubleClick={tile.handleDoubleClick}
       onFocus={() => onFocusTile(index)}
-      onContextMenu={openMenu}
-      onDragOver={(e) => {
-        e.preventDefault();
-        setIsFileDragOver(true);
-      }}
-      onDragLeave={() => setIsFileDragOver(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setIsFileDragOver(false);
-        const file = e.dataTransfer.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          if (ev.target?.result)
-            handleCellUpload(index, ev.target.result as string);
-        };
-        reader.readAsDataURL(file);
-      }}
+      onContextMenu={tile.openMenu}
+      onDragOver={tile.handleFileDragOver}
+      onDragLeave={tile.handleFileDragLeave}
+      onDrop={tile.handleFileDrop}
     >
       <div
         className={`relative w-full h-full overflow-hidden squircle ${
-          isOver ? "drop-target" : ""
-        } ${isOver ? "scale-[1.03]" : ""} transition-transform duration-150 ease-spring`}
+          tile.isOver ? "drop-target scale-[1.03]" : ""
+        } transition-transform duration-150 ease-spring`}
         style={{
-          borderRadius: radius,
-          boxShadow: isSelected
-            ? "0 0 0 2px var(--color-primary)"
-            : isFileDragOver && !isOver
-              ? "0 0 0 2px var(--color-primary), 0 0 0 6px color-mix(in srgb, var(--color-primary) 22%, transparent)"
-              : restingShadow,
+          borderRadius: board.radius,
+          boxShadow: tileStateShadow({
+            isSelected: tile.isSelected,
+            isOver: tile.isOver,
+            isFileDragOver: tile.isFileDragOver,
+            resting,
+          }),
         }}
       >
-        {hasImage ? (
-          <RemoteImage
-            src={cell.imageSrc!}
-            alt=""
-            decoding="async"
-            loading="lazy"
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            style={imageStyle}
-          />
-
+        {tile.hasImage ? (
+          <div ref={tile.imageRef} className="absolute inset-0">
+            <RemoteImage
+              src={cell.imageSrc!}
+              alt=""
+              decoding="async"
+              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              style={tile.imageStyle}
+            />
+          </div>
         ) : (
-          <CellEmptyTile
+          <TileEmptyState
             index={index}
-            isDraggingAny={isDraggingAny}
-            onOpen={openMenu}
+            isDraggingAny={tile.isDraggingAny}
+            onOpen={tile.openMenu}
           />
         )}
 
         {/* The rank numeral: set large, hung off the corner so the tile clips
-            it, and filled with a gradient so it reads over any artwork without
-            a plate behind it. See `.tile-number`. */}
-        {hasImage && showNumber && (
+            it, and faded on two axes so it melts into any artwork. */}
+        {tile.hasImage && board.showNumbers && (
           <span aria-hidden className="tile-number">
             {index + 1}
           </span>
         )}
 
-        {hasImage && (
+        {tile.hasImage && (
           <button
             type="button"
+            data-export-hide=""
             aria-label="Tile actions"
             aria-haspopup="menu"
-            aria-expanded={isMenuOpen}
-            onClick={(e) => openMenu(e, e.currentTarget)}
+            aria-expanded={tile.isMenuOpen}
+            onClick={(e) => tile.openMenu(e, e.currentTarget)}
             className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center w-[22px] h-[22px]
                        media-scrim squircle hover:brightness-125 active:scale-95
                        transition-transform duration-150 affordance touch-target"
-            style={{ borderRadius: 8 }}
+            style={{ borderRadius: "var(--radius-mini)" }}
           >
             <MoreHorizontal size={14} strokeWidth={2.5} />
           </button>
         )}
 
-        {isAdjusting && (
+        {tile.isAdjusting && (
           <AdjustOverlay
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerCancel}
-            onCancel={stopAdjusting}
+            onPointerDown={tile.adjust.handlePointerDown}
+            onPointerMove={tile.adjust.handlePointerMove}
+            onPointerUp={tile.adjust.handlePointerUp}
+            onPointerCancel={tile.adjust.handlePointerCancel}
+            onCancel={tile.adjust.stop}
             onSave={() => {
-              saveAdjustments();
-              clearInteraction();
+              tile.adjust.save();
+              tile.clearInteraction();
             }}
           />
         )}
 
-        {!hasImage && (isOver || isFileDragOver) && (
+        {!tile.hasImage && (tile.isOver || tile.isFileDragOver) && (
           <div
             className="absolute inset-0 z-20 pointer-events-none"
             style={{
@@ -334,41 +216,35 @@ export const Cell = React.memo(function Cell({
 
         {/* Landing pulse. Keyed on the drop sequence so it replays even when
             the same tile receives two drops in a row. */}
-        {dropPulse > 0 && (
+        {tile.dropPulse > 0 && (
           <span
-            key={dropPulse}
+            key={tile.dropPulse}
             aria-hidden
             className="drop-land absolute inset-0 z-30 pointer-events-none"
-            style={{ borderRadius: radius }}
+            style={{ borderRadius: board.radius }}
           />
         )}
       </div>
 
       <input
-        ref={fileInputRef}
+        ref={tile.fileInputRef}
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={handleFileChange}
+        onChange={tile.handleFileChange}
       />
 
       <PopoverMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        actions={actions}
-        triggerPoint={anchor}
+        isOpen={tile.isMenuOpen}
+        onClose={tile.closeMenu}
+        actions={tile.actions}
+        triggerPoint={tile.anchor}
       />
 
       <UrlInputModal
-        isOpen={isUrlModalOpen}
-        onClose={() => setIsUrlModalOpen(false)}
-        onSubmit={(url) => {
-          handleItemTransfer(
-            { type: "search", imageSrc: url },
-            { type: "cell", index }
-          );
-          clearInteraction();
-        }}
+        isOpen={tile.isUrlModalOpen}
+        onClose={tile.closeUrlModal}
+        onSubmit={tile.submitUrl}
       />
     </div>
   );

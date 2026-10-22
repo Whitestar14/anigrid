@@ -54,7 +54,7 @@ export function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       className={`relative flex items-center p-[2px] squircle ${shape} ${className}`}
-      style={{ backgroundColor: "var(--color-surface-secondary)" }}
+      style={{ backgroundColor: "var(--color-control-track)" }}
     >
       {/* Fill mode can measure its own width, so one pill serves every segment. */}
       {!hug && (
@@ -67,8 +67,8 @@ export function SegmentedControl<T extends string>({
           transition={motionPreset.control}
         >
           <span
-            className="block w-full h-full bg-surface-elevated"
-            style={pillStyle}
+            className="block w-full h-full"
+            style={{ ...pillStyle, backgroundColor: "var(--color-control-thumb)" }}
           />
         </motion.span>
       )}
@@ -117,7 +117,7 @@ export function SegmentedControl<T extends string>({
                 aria-hidden
                 layoutId={pillId}
                 className={`absolute inset-0 pointer-events-none ${shape}`}
-                style={{ ...pillStyle, backgroundColor: "var(--color-surface-elevated)" }}
+                style={{ ...pillStyle, backgroundColor: "var(--color-control-thumb)" }}
                 transition={motionPreset.control}
               />
             )}

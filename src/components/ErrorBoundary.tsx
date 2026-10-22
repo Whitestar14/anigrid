@@ -1,5 +1,7 @@
-import React, { Component, ErrorInfo, ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RotateCcw, Database, ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { PixelWordmark } from "@/components/app/PixelWordmark";
 
 interface Props {
   children?: ReactNode;
@@ -39,95 +41,104 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public render() {
-    if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
+    if (!this.state.hasError) return this.props.children;
+    if (this.props.fallback) return this.props.fallback;
 
-      const { isConfirmingReset, error } = this.state;
+    const { isConfirmingReset, error } = this.state;
 
-      return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="w-full max-w-[380px] flex flex-col items-center">
           <div
-            className="grid place-items-center w-14 h-14 rounded-panel squircle mb-6"
-            style={{
-              backgroundColor:
-                "color-mix(in srgb, var(--color-destructive) 14%, transparent)",
-              color: "var(--color-destructive)",
-            }}
+            className="w-full material-thick squircle rounded-panel
+                       px-6 pt-8 pb-6 flex flex-col items-center text-center"
           >
-            <AlertTriangle size={26} strokeWidth={2.2} />
+            <span
+              className="grid place-items-center w-14 h-14 rounded-card squircle mb-5"
+              style={{
+                backgroundColor:
+                  "color-mix(in srgb, var(--color-destructive) 16%, transparent)",
+                color: "var(--color-destructive)",
+              }}
+            >
+              <AlertTriangle size={26} strokeWidth={2.2} />
+            </span>
+
+            <h1 className="text-title-2 font-semibold text-text tracking-[-0.02em]">
+              Something went wrong
+            </h1>
+            <p className="text-subheadline text-muted mt-2 leading-relaxed">
+              {isConfirmingReset
+                ? "This deletes every project, collection and preference stored in this browser. It cannot be undone."
+                : "The app hit an unexpected error. Your projects and library are saved locally, so trying again costs nothing."}
+            </p>
+
+            {error?.message && !isConfirmingReset && (
+              <details className="mt-4 w-full text-left">
+                <summary className="text-caption-1 text-faint cursor-pointer hover:text-muted transition-colors">
+                  Technical details
+                </summary>
+                <pre
+                  className="mt-2 p-3 rounded-control text-caption-2 text-muted
+                             overflow-auto max-h-32 scrollbar-ios"
+                  style={{ backgroundColor: "var(--color-surface-secondary)" }}
+                >
+                  {error.message}
+                </pre>
+              </details>
+            )}
+
+            <div className="w-full flex flex-col gap-2.5 mt-7">
+              {isConfirmingReset ? (
+                <>
+                  <Button
+                    variant="danger"
+                    size="lg"
+                    fullWidth
+                    onClick={this.resetData}
+                  >
+                    Erase everything
+                  </Button>
+                  <Button
+                    variant="gray"
+                    size="lg"
+                    fullWidth
+                    icon={<ChevronLeft size={16} />}
+                    onClick={() => this.setState({ isConfirmingReset: false })}
+                  >
+                    Keep my data
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="filled"
+                    size="lg"
+                    fullWidth
+                    icon={<RotateCcw size={17} />}
+                    onClick={this.retry}
+                  >
+                    Try again
+                  </Button>
+                  <Button
+                    variant="gray"
+                    size="lg"
+                    fullWidth
+                    icon={<Database size={16} />}
+                    onClick={() => this.setState({ isConfirmingReset: true })}
+                  >
+                    Reset local data
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
-          <h1 className="text-title-2 font-semibold text-text tracking-[-0.02em]">
-            Something went wrong
-          </h1>
-          <p className="text-subheadline text-muted max-w-[360px] mt-2 leading-relaxed">
-            {isConfirmingReset
-              ? "This deletes every project, collection and preference stored in this browser. It cannot be undone."
-              : "The app hit an unexpected error. Your projects and library are saved locally, so trying again costs nothing."}
-          </p>
-
-          {error?.message && !isConfirmingReset && (
-            <details className="mt-4 max-w-[420px] w-full">
-              <summary className="text-caption-1 text-faint cursor-pointer hover:text-muted transition-colors">
-                Technical details
-              </summary>
-              <pre className="mt-2 p-3 rounded-control bg-surface text-left text-caption-2 text-muted overflow-auto max-h-32 scrollbar-ios">
-                {error.message}
-              </pre>
-            </details>
-          )}
-
-          <div className="flex flex-col gap-2.5 w-full max-w-[280px] mt-8">
-            {isConfirmingReset ? (
-              <>
-                <button
-                  type="button"
-                  onClick={this.resetData}
-                  className="w-full h-12 rounded-control text-body font-semibold text-white
-                             active:scale-[0.98] transition-transform"
-                  style={{ backgroundColor: "var(--color-destructive)" }}
-                >
-                  Erase everything
-                </button>
-                <button
-                  type="button"
-                  onClick={() => this.setState({ isConfirmingReset: false })}
-                  className="w-full h-12 rounded-control text-body font-medium text-text
-                             bg-surface active:scale-[0.98] transition-transform
-                             inline-flex items-center justify-center gap-1.5"
-                >
-                  <ChevronLeft size={16} /> Keep my data
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={this.retry}
-                  className="w-full h-12 rounded-control text-body font-semibold
-                             text-white active:scale-[0.98] transition-transform
-                             inline-flex items-center justify-center gap-2"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                >
-                  <RotateCcw size={17} /> Try again
-                </button>
-                <button
-                  type="button"
-                  onClick={() => this.setState({ isConfirmingReset: true })}
-                  className="w-full h-12 rounded-control text-body font-medium text-muted
-                             hover:text-text bg-surface active:scale-[0.98]
-                             transition-[transform,color] inline-flex items-center
-                             justify-center gap-2"
-                >
-                  <Database size={16} /> Reset local data
-                </button>
-              </>
-            )}
+          <div className="mt-6 text-faint">
+            <PixelWordmark height={14} />
           </div>
         </div>
-      );
-    }
-
-    return this.props.children;
+      </div>
+    );
   }
 }

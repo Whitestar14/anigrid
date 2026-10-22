@@ -9,7 +9,9 @@ import type { DockCtrl } from "./dock/types";
 export type { DockCtrl as BottomDockCtrl } from "./dock/types";
 
 const DOCK_RADIUS = "var(--radius-bar)";
-const OPEN_HEIGHT = "min(20rem, 58vh)";
+/* `dvh` rather than `vh`: on a phone the URL bar is part of the viewport until
+   it retracts, and a panel sized against the larger number hangs under it. */
+const OPEN_HEIGHT = "min(20rem, 58dvh)";
 
 export const BottomDockLayout: React.FC<{
   ctrl: DockCtrl;
@@ -50,13 +52,23 @@ export const BottomDockLayout: React.FC<{
 
   const open = ctrl.isExpanded;
   const isDropActive = ctrl.isDragOver || isDndOver;
+  /* The panel stays mounted after it collapses so the drag keeps its source
+     node, but nothing of it may be visible: clipped by the 3rem bar it used to
+     leak a strip of thumbnails under the collapsed chrome. */
+  const isDraggingItem = !open && ctrl.isDraggingFromDock;
 
   return (
     <div
-      className="fixed bottom-4 z-rail md:px-4 flex justify-center"
+      className="fixed z-rail md:px-4 flex justify-center"
       /* `--dock-inset-left` is the rail's width while it is open on desktop, so
-         the dock centres in the content column instead of under the rail. */
-      style={{ left: "var(--dock-inset-left, 0px)", right: 0 }}
+         the dock centres in the content column instead of under the rail. The
+         bottom gap includes the home indicator on a phone, which is where a
+         floating bar is most likely to be swallowed. */
+      style={{
+        left: "var(--dock-inset-left, 0px)",
+        right: 0,
+        bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
+      }}
     >
       {isExternalDrag && (
         /* A tall, full-width spring zone that only exists mid-drag. It widens
@@ -76,7 +88,7 @@ export const BottomDockLayout: React.FC<{
         ref={setDockRefs}
         className={`
           relative overflow-hidden flex flex-col squircle overscroll-contain
-          ${open ? "material" : "material-thin material-lit"}
+          ${open ? "material-thick" : "material-thin material-lit"}
           ${isDropActive ? "dock-drop-active" : isDockHot ? "dock-drop-hot" : ""}
         `}
         style={{
@@ -97,6 +109,7 @@ export const BottomDockLayout: React.FC<{
       >
         <DockCollapsedBar
           inert={open}
+          isDraggingItem={isDraggingItem}
           onExpand={() => ctrl.setIsExpanded(true)}
           onOpenLibrary={() => {
             ctrl.setDockSurface("library");
@@ -115,12 +128,17 @@ export const BottomDockLayout: React.FC<{
             unmounting on collapse used to drop the drag's identity and the drop
             with it, making the image look like it had vanished. */}
         {(open || ctrl.isDraggingFromDock) && (
-          <DockExpandedContent
-            ctrl={ctrl}
-            autoFocusSearch={autoFocusSearch}
-            requestConfirm={requestConfirm}
-            onOpenAbout={onOpenAbout}
-          />
+          <div
+            className={open ? "contents" : "invisible"}
+            inert={!open || undefined}
+          >
+            <DockExpandedContent
+              ctrl={ctrl}
+              autoFocusSearch={autoFocusSearch}
+              requestConfirm={requestConfirm}
+              onOpenAbout={onOpenAbout}
+            />
+          </div>
         )}
       </div>
     </div>

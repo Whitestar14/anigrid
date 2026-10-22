@@ -1,6 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Edit2 } from "lucide-react";
+import { resolveBoardStyle } from "@/utils/boardStyle";
 import type { Rank } from "@/types";
 import type { useAppController } from "@/hooks/useAppController";
 
@@ -31,7 +32,7 @@ export const BoardTitle: React.FC<BoardTitleProps> = ({
 
   return (
     <AnimatePresence mode="wait" initial={false}>
-      {(activeRank.showTitle !== false || ctrl.isEditingTitle) && (
+      {(resolveBoardStyle(activeRank).showTitle || ctrl.isEditingTitle) && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}

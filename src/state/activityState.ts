@@ -1,6 +1,5 @@
 import { create } from "zustand";
 
-
 export type ActivityPhase = "idle" | "busy" | "success" | "error";
 
 /** How long the success state stays on screen before returning to idle. */
@@ -66,17 +65,6 @@ export const useActivityState = create<ActivityState & ActivityActions>(
     setProgress: (progress) => {
       const clamped =
         progress === undefined ? undefined : Math.max(0, Math.min(1, progress));
-      /* Deliberately does *not* touch `seq`.
-
-         `seq` is the key consumers animate against, so bumping it here meant
-         every single progress tick was treated as a new state transition: the
-         dock pill re-keyed its label and re-played the slide, and the island's
-         glyph remounted, restarting its ring sweep. Importing twenty files
-         therefore flickered twenty times under a label that never changed.
-
-         Progress is a continuous quantity, not a transition. The ring already
-         animates to it through its own CSS transition, so it needs nothing from
-         `seq` — which is now reserved for genuine phase changes. */
       set((s) => (s.phase === "busy" ? { progress: clamped } : s));
     },
 
@@ -93,9 +81,7 @@ export const useActivityState = create<ActivityState & ActivityActions>(
 
       clearDwell();
 
-      // Failures belong to the toast layer. Call sites already report the
-      // message there, so the island does not also have to display it — it just
-      // returns to rest. Two places saying "that did not work" is noise.
+      // Call sites reports failures at the toast layer
       if (phase === "error") {
         set((s) => ({ ...idle(), seq: s.seq + 1 }));
         return;
@@ -111,7 +97,7 @@ export const useActivityState = create<ActivityState & ActivityActions>(
 
       dwellTimer = window.setTimeout(
         () => set((s) => ({ ...idle(), seq: s.seq + 1 })),
-        SUCCESS_DWELL
+        SUCCESS_DWELL,
       );
     },
 
@@ -120,13 +106,13 @@ export const useActivityState = create<ActivityState & ActivityActions>(
       liveRuns.clear();
       set((s) => ({ ...idle(), seq: s.seq + 1 }));
     },
-  })
+  }),
 );
 
 export const runActivity = async <T>(
   label: string,
   task: () => Promise<T>,
-  options: { successLabel?: string; errorLabel?: string } = {}
+  options: { successLabel?: string; errorLabel?: string } = {},
 ): Promise<T | undefined> => {
   const { begin, settle } = useActivityState.getState();
   const run = begin(label);

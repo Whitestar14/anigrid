@@ -1,7 +1,7 @@
 import { StateCreator } from "zustand";
 import { AppState } from "../useStore";
-import { TierRow, ProjectType, GridConfig, CellData } from "@/types";
-import { ensureCells } from "@/utils/storeUtils";
+import { TierRow, ProjectType, GridConfig, CellData, VisualToggleKey } from "@/types";
+import { ensureCells, newTierRowId } from "@/utils/storeUtils";
 import {
   createBlankRank,
   createRankLike,
@@ -13,9 +13,7 @@ export interface RankSlice {
   updateRankById: (id: string, updates: Partial<AppState["ranks"][string]>) => void;
   handleConfigChange: (newConfig: GridConfig) => void;
 
-  handleVisualToggle: (
-    key: "showNumbers" | "showTitle" | "showDate" | "showTiers" | "borderless"
-  ) => void;
+  handleVisualToggle: (key: VisualToggleKey) => void;
   handleCellUpload: (index: number, dataUrl: string) => void;
   handleUpdateCell: (index: number, data: Partial<CellData>) => void;
   handleCellClear: (index: number) => void;
@@ -197,10 +195,9 @@ export const createRankSlice: StateCreator<
   handleUpdateTierRows: (rows) =>
     set((state) => {
       const current = state.ranks[state.activeRankId];
-      if (current) {
-        current.tierRows = rows;
-        current.updatedAt = Date.now();
-      }
+      if (!current) return;
+      current.tierRows = rows.map(ensureTierRowId);
+      current.updatedAt = Date.now();
     }),
   handleReorderTierRows: (fromIndex, toIndex) =>
     set((state) => {
@@ -274,3 +271,8 @@ export const createRankSlice: StateCreator<
       state.activeRankId = id;
     }),
 });
+
+/** Gives a row an id only if it arrived without one, so ids survive a save. */
+const ensureTierRowId = (row: TierRow): TierRow =>
+  row.id?.trim() ? row : { ...row, id: newTierRowId() };
+

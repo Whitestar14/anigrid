@@ -3,11 +3,15 @@ import { useStore } from "@/store/useStore";
 import { useShortcutState } from "@/state/shortcutState";
 import { useToast } from "@/context/ToastContext";
 import { readFileAsDataURL } from "@/utils/imageUtils";
+import {
+  CELL_WIDTH_MAX,
+  CELL_WIDTH_MIN,
+  DEFAULT_CELL_WIDTH,
+} from "@/utils/boardStyle";
 
-/** Tile width steps for ⌘+ / ⌘−, and the range the rail's slider offers. */
-const TILE_MIN = 80;
-const TILE_MAX = 480;
-const TILE_STEP = 40;
+/** How far one press of ⌘+ / ⌘− moves the tile size. The range it clamps to is
+ *  the rail slider's, so the two controls cannot drift apart. */
+const TILE_STEP = 20;
 
 export interface ShortcutOptions {
   setIsEditingTitle: (val: boolean) => void;
@@ -130,9 +134,12 @@ export function useGlobalShortcuts(options: ShortcutOptions) {
       if (mod && (e.key === "+" || e.key === "=" || e.key === "-")) {
         if (rank?.type === "ranking") {
           e.preventDefault();
-          const current = rank.cellWidth ?? 240;
+          const current = rank.cellWidth ?? DEFAULT_CELL_WIDTH;
           const delta = e.key === "-" ? -TILE_STEP : TILE_STEP;
-          const next = Math.min(TILE_MAX, Math.max(TILE_MIN, current + delta));
+          const next = Math.min(
+            CELL_WIDTH_MAX,
+            Math.max(CELL_WIDTH_MIN, current + delta)
+          );
           if (next !== current) st.updateActiveRank({ cellWidth: next });
           return;
         }

@@ -13,27 +13,27 @@ import { PopoverMenu } from "./ui/PopoverMenu";
 import { Modal } from "./ui/Modal";
 import { Input } from "./ui/Input";
 import { ColorPicker } from "./ui/ColorPicker";
-import { TierItem, TierRail, TIER_TILE_HEIGHT } from "./TierItem";
+import { TierItem, TierRail } from "./TierItem";
+import { TierLabel } from "./tier/TierLabel";
+import {
+  DEFAULT_TIER_ROW_HEIGHT,
+  DEFAULT_TIER_SPACING,
+  tierGapFor,
+  tierItemRadius,
+  type TierSpacing,
+} from "@/utils/boardStyle";
+import { TIER_COLORS } from "@/constants/tierColors";
+import { normalizeTierColor } from "@/utils/dominantColor";
 import { getContrastColor } from "@/theme/palettes";
-
-/** iOS system colours, the palette Apple uses for user-assigned tints. */
-const TIER_COLORS = [
-  "#FF453A",
-  "#FF9F0A",
-  "#FFD60A",
-  "#30D158",
-  "#64D2FF",
-  "#0A84FF",
-  "#5E5CE6",
-  "#BF5AF2",
-  "#FF375F",
-  "#8E8E93",
-];
 
 interface TierRowProps {
   row: TierRowData;
   index: number;
   aspectRatio: string;
+  /** Item rail height, so every row lines up and the user can resize them. */
+  height?: number;
+  /** How items sit in the rail: spaced (rounded, guttered) or tight (flush). */
+  spacing?: TierSpacing;
   justify?: "left" | "center" | "right";
   onUpdate: (rowId: string, updates: Partial<TierRowData>) => void;
   onMove: (index: number, direction: "up" | "down") => void;
@@ -44,6 +44,8 @@ export const TierRow = React.memo(function TierRow({
   row,
   index,
   aspectRatio,
+  height = DEFAULT_TIER_ROW_HEIGHT,
+  spacing = DEFAULT_TIER_SPACING,
   justify,
   onUpdate,
   onMove,
@@ -54,99 +56,116 @@ export const TierRow = React.memo(function TierRow({
   const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
   const [draftLabel, setDraftLabel] = useState(row.label);
 
-  const labelRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLButtonElement>(null);
   const textColor = getContrastColor(row.color);
+  const isEmpty = row.items.length === 0;
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `tier-row-drop-${row.id}`,
     data: { type: "tier-row", index },
   });
 
-  const { setNodeRef: setDraggableRef, attributes, listeners, isDragging } =
-    useDraggable({
-      id: `tier-row-drag-${row.id}`,
-      data: {
-        type: "tier-row",
-        index,
-        label: row.label,
-        color: row.color,
-        textColor,
-      },
-    });
+  const {
+    setNodeRef: setDraggableRef,
+    attributes,
+    listeners,
+    isDragging,
+  } = useDraggable({
+    id: `tier-row-drag-${row.id}`,
+    data: {
+      type: "tier-row",
+      index,
+      label: row.label,
+      color: row.color,
+      textColor,
+    },
+  });
 
   const setLabelRefs = useCallback(
-    (node: HTMLDivElement | null) => {
-      (labelRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    (node: HTMLButtonElement | null) => {
+      (labelRef as React.MutableRefObject<HTMLButtonElement | null>).current =
+        node;
       setDroppableRef(node);
+      setDraggableRef(node);
     },
-    [setDroppableRef]
+    [setDroppableRef, setDraggableRef],
   );
 
   const openMenu = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // Anchor to the button that was actually pressed. Anchoring to the label
-    // block put the menu at the far left of the row, nowhere near the "⋯".
     const rect = e.currentTarget.getBoundingClientRect();
-    if (rect) setAnchor({ x: rect.left + rect.width / 2, y: rect.top + 12 });
+    if (rect) setAnchor({ x: rect.left + rect.width / 2, y: rect.bottom + 4 });
     setIsMenuOpen(true);
   }, []);
 
+  const railInset = tierGapFor(spacing);
+  const itemRadius = tierItemRadius(height, spacing);
+  const labelCap = Math.min(46, Math.round(height * 0.46));
+
   return (
     <div
-      className="item-enter flex items-stretch border-t border-hairline bg-surface"
-      style={{ "--enter-delay": `${Math.min(index, 14) * 26}ms` } as React.CSSProperties}
+      className="item-enter group/tier relative flex items-stretch bg-surface
+                 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-hairline"
+      style={
+        {
+          "--enter-delay": `${Math.min(index, 14) * 26}ms`,
+        } as React.CSSProperties
+      }
     >
       {/* ── Label block ─────────────────────────────────────────────── */}
-      <div
+      <button
         ref={setLabelRefs}
-        className="relative w-[68px] sm:w-[104px] shrink-0 flex items-center justify-center
-                   border-r border-hairline squircle"
+        type="button"
+        {...attributes}
+        {...listeners}
+        onClick={(e) => {
+          e.stopPropagation();
+          setDraftLabel(row.label);
+          setIsEditorOpen(true);
+        }}
+        aria-label={`Edit tier ${row.label}`}
+        className="relative w-[72px] sm:w-[100px] shrink-0 grid place-items-center
+                   cursor-grab active:cursor-grabbing touch-none outline-none
+                   focus-visible:focus-ring transition-[filter] duration-150
+                   hover:brightness-110"
         style={{
           backgroundColor: row.color,
-          borderRadius: 0,
+          minHeight: height + railInset * 2,
           opacity: isDragging ? 0.4 : 1,
-          boxShadow: isOver
-            ? "inset 0 0 0 2px var(--color-primary)"
-            : undefined,
         }}
       >
-        {/* Drag handle — kept separate so a click on the label can still open
-            the editor without racing the drag sensor. */}
-        <button
-          ref={setDraggableRef}
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label={`Reorder tier ${row.label}`}
-          className="absolute left-0.5 top-1/2 -translate-y-1/2 p-1 cursor-grab active:cursor-grabbing
-                     opacity-40 hover:opacity-90 transition-opacity touch-none"
+        {isOver && (
+          <span
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
+            style={{ boxShadow: "inset 0 0 0 2px var(--color-primary)" }}
+          />
+        )}
+
+        <span
+          aria-hidden
+          data-export-hide=""
+          className="absolute left-1 top-1 text-current opacity-0
+                     group-hover/tier:opacity-45 transition-opacity duration-150"
           style={{ color: textColor }}
         >
-          <GripVertical size={14} />
-        </button>
+          <GripVertical size={13} />
+        </span>
 
-        <button
-          type="button"
-          onClick={() => {
-            setDraftLabel(row.label);
-            setIsEditorOpen(true);
-          }}
-          aria-label={`Edit tier ${row.label}`}
-          className="w-full h-full px-4 py-4 text-center outline-none focus-visible:focus-ring"
-          style={{ minHeight: TIER_TILE_HEIGHT + 16 }}
-        >
-          <span
-            className="block text-title-2 font-bold leading-tight break-words"
-            style={{ color: textColor }}
-          >
-            {row.label}
-          </span>
-        </button>
-      </div>
+        <TierLabel label={row.label} color={textColor} cap={labelCap} />
+      </button>
 
       {/* ── Items rail ──────────────────────────────────────────────── */}
-      <TierRail rowId={row.id} justify={justify}>
+      <TierRail
+        rowId={row.id}
+        height={height}
+        gap={railInset}
+        itemRadius={itemRadius}
+        aspectRatio={aspectRatio}
+        justify={justify}
+        isEmpty={isEmpty}
+      >
         {row.items.map((item, idx) => (
           <TierItem
             key={item.id}
@@ -154,12 +173,17 @@ export const TierRow = React.memo(function TierRow({
             idx={idx}
             item={item}
             aspectRatio={aspectRatio}
+            height={height}
+            spacing={spacing}
           />
         ))}
       </TierRail>
 
       {/* ── Row controls ────────────────────────────────────────────── */}
-      <div className="w-10 shrink-0 flex items-start justify-center pt-2 border-l border-hairline bg-surface">
+      <div
+        data-export-hide=""
+        className="relative w-[34px] shrink-0 flex items-center justify-center"
+      >
         <button
           type="button"
           aria-label={`Tier ${row.label} options`}
@@ -212,15 +236,13 @@ export const TierRow = React.memo(function TierRow({
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-3">
             <div
-              className="flex items-center justify-center w-16 h-16 shrink-0 squircle"
-              style={{ backgroundColor: row.color, borderRadius: 14 }}
+              className="relative w-16 h-16 shrink-0 squircle overflow-hidden"
+              style={{
+                backgroundColor: row.color,
+                borderRadius: "var(--radius-control)",
+              }}
             >
-              <span
-                className="text-title-2 font-bold"
-                style={{ color: textColor }}
-              >
-                {draftLabel || "?"}
-              </span>
+              <TierLabel label={draftLabel || "?"} color={textColor} cap={30} />
             </div>
             <div className="flex-1 min-w-0">
               <label
@@ -252,7 +274,9 @@ export const TierRow = React.memo(function TierRow({
                     type="button"
                     aria-label={`Set tier colour ${color}`}
                     aria-pressed={active}
-                    onClick={() => onUpdate(row.id, { color })}
+                    onClick={() =>
+                      onUpdate(row.id, { color: normalizeTierColor(color) })
+                    }
                     className="w-8 h-8 rounded-full transition-transform duration-150 active:scale-90"
                     style={{
                       backgroundColor: color,
@@ -264,26 +288,28 @@ export const TierRow = React.memo(function TierRow({
                 );
               })}
 
-              <label
-                className="relative w-8 h-8 rounded-full cursor-pointer flex items-center justify-center
-                           overflow-hidden transition-transform duration-150 active:scale-90"
-                style={{
-                  background:
-                    "conic-gradient(from 180deg, #ff453a, #ffd60a, #30d158, #0a84ff, #bf5af2, #ff453a)",
-                  boxShadow:
-                    !TIER_COLORS.some(
-                      (c) => c.toLowerCase() === row.color.toLowerCase()
-                    )
-                      ? "0 0 0 2px var(--color-background), 0 0 0 4px var(--color-text)"
-                      : "inset 0 0 0 0.5px var(--material-hairline)",
-                }}
-                title="Custom colour"
-              >
-                <ColorPicker
-                  value={row.color}
-                  onChange={(v) => onUpdate(row.id, { color: v })}
-                />
-              </label>
+              <ColorPicker
+                label="Custom tier colour"
+                value={row.color}
+                onChange={(v) =>
+                  onUpdate(row.id, { color: normalizeTierColor(v) })
+                }
+                className="w-8 h-8 rounded-full overflow-hidden"
+                trigger={
+                  <span
+                    className="block w-8 h-8 rounded-full"
+                    style={{
+                      background:
+                        "conic-gradient(from 180deg, #ff6b6b, #ffd43b, #69db7c, #4dabf7, #9775fa, #ff6b6b)",
+                      boxShadow: !TIER_COLORS.some(
+                        (c) => c.toLowerCase() === row.color.toLowerCase(),
+                      )
+                        ? "0 0 0 2px var(--color-background), 0 0 0 4px var(--color-text)"
+                        : "inset 0 0 0 0.5px var(--material-hairline)",
+                    }}
+                  />
+                }
+              />
             </div>
           </div>
 
@@ -291,9 +317,7 @@ export const TierRow = React.memo(function TierRow({
             <button
               type="button"
               onClick={() => {
-                onUpdate(row.id, {
-                  label: (draftLabel || "?").trim() || "?",
-                });
+                onUpdate(row.id, { label: (draftLabel || "?").trim() || "?" });
                 setIsEditorOpen(false);
               }}
               className="flex-1 h-11 rounded-full bg-primary text-on-accent text-subheadline font-semibold

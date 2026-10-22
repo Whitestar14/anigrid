@@ -2,9 +2,6 @@ import { get, set } from "idb-keyval";
 
 const IMAGE_CACHE_KEY = "image-cache";
 
-/**
- * Clear old cached images (older than 7 days)
- */
 export const cleanupOldCache = async (): Promise<void> => {
   try {
     const cache = (await get(IMAGE_CACHE_KEY)) || {};

@@ -1,13 +1,12 @@
 @layer components {
   /* ── Where the specular is allowed ────────────────────────────────────────
-     The sheen is a light source, so it only makes sense on a surface that
+     The sheen is a light source, so it only belongs on a surface that
      genuinely floats above the board: a modal, a popover, a menu, the dock
-     sheet. Painted onto every row group, tile and inline chip it stops reading
-     as light and starts reading as plastic varnish — which is exactly what it
-     did across the whole app.
+     sheet. Painted onto every row group, tile and chip it stops reading as
+     light and starts reading as plastic varnish.
 
-     The rule, then: floating layers get grain *and* specular; everything that
-     sits in the flow gets grain only. Texture without a light source. */
+     The rule: floating layers get grain *and* specular; everything in the flow
+     gets grain only. */
   .material {
     background-color: var(--material-regular-tint);
     background-image: var(--material-grain), var(--material-specular);

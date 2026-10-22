@@ -29,6 +29,15 @@ export interface InboxCollection {
 export type GridStyle = "seamless" | "card";
 export type ProjectType = "ranking" | "list" | "tierlist";
 
+/** The boolean board options a switch can flip. */
+export type VisualToggleKey =
+  | "showNumbers"
+  | "showTitle"
+  | "showDate"
+  | "showTiers"
+  | "showWatermark"
+  | "borderless";
+
 export interface TierRow {
   id: string;
   label: string;
@@ -52,6 +61,14 @@ export interface Rank {
   borderless?: boolean;
   aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
   cellWidth?: number;
+  /** Item rail height of a tier row, in px. */
+  tierRowHeight?: number;
+  /**
+   * How a tier row's items sit: `spaced` floats rounded artwork in a gutter,
+   * `tight` meets it flush at square edges. Two presets, never a free number —
+   * the gutter and the corner radius must agree.
+   */
+  tierSpacing?: "spaced" | "tight";
   borderRadius?: number;
   gap: number;
   gridJustify?: "left" | "center" | "right";

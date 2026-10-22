@@ -60,10 +60,10 @@ export const SearchResultCard: React.FC<SearchResultCardProps> = React.memo(
                       squircle transition-transform duration-150 touch-target
                       ${
                         isAdded
-                          ? "bg-accent-green text-white"
+                          ? "bg-accent-green text-on-accent"
                           : "material-thin text-text hover:scale-110 active:scale-95"
                       }`}
-            style={{ borderRadius: 8 }}
+            style={{ borderRadius: "var(--radius-mini)" }}
           >
             {isAdded ? (
               <Check size={13} strokeWidth={3} />

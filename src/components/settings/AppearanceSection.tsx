@@ -4,6 +4,13 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ColorPicker } from "@/components/ui/ColorPicker";
 import { Field, NumberedSlider, SectionHeader, SettingsCard } from "./SettingsParts";
 import { ProjectType, Rank } from "@/types";
+import {
+  DEFAULT_CARD_GAP,
+  DEFAULT_CARD_RADIUS,
+  DEFAULT_TIER_SPACING,
+  type TierSpacing,
+} from "@/utils/boardStyle";
+import { DEFAULT_ASPECT } from "@/utils/ui";
 
 const GRID_BG_COLORS = [
   "transparent",
@@ -28,9 +35,6 @@ const TRANSPARENT_SWATCH: React.CSSProperties = {
 
 const swatchStyle = (color: string): React.CSSProperties =>
   color === "transparent" ? TRANSPARENT_SWATCH : { backgroundColor: color };
-
-const DEFAULT_RADIUS = 16;
-const DEFAULT_CARD_GAP = 8;
 
 const ASPECT_RATIOS = ["1:1", "3:4", "4:3", "16:9", "9:16"] as const;
 type AspectRatio = (typeof ASPECT_RATIOS)[number];
@@ -73,6 +77,7 @@ interface AppearanceSectionProps {
   gap: number;
   borderRadius?: number;
   gridJustify?: "left" | "center" | "right";
+  tierSpacing?: TierSpacing;
   rankBackgroundColor: string;
   onUpdateRank: (updates: Partial<Rank>) => void;
 }
@@ -85,13 +90,27 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
   gap,
   borderRadius,
   gridJustify,
+  tierSpacing = DEFAULT_TIER_SPACING,
   rankBackgroundColor,
   onUpdateRank,
 }) => {
   const supportsTileStyle =
     projectType === "ranking" || projectType === "list";
 
-  const radius = borderRadius && borderRadius > 0 ? borderRadius : DEFAULT_RADIUS;
+  /* A grid separates its own tiles, so both controls act on every grid style.
+     A list is one shape or the other, never both: in seamless style its rows
+     share an edge, which is what borders describe and what a gap would break;
+     in card style a gap holds the rows apart and each row's edge is the gap
+     itself. Showing both there would offer one control that cannot move. */
+  const showsBorders =
+    projectType === "ranking" ||
+    (projectType === "list" && style === "seamless");
+  const showsGap =
+    projectType === "ranking" || (projectType === "list" && style === "card");
+
+  const radius =
+    borderRadius && borderRadius > 0 ? borderRadius : DEFAULT_CARD_RADIUS;
+  const aspect = aspectRatio || DEFAULT_ASPECT;
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -99,17 +118,14 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
 
       <SettingsCard className="divide-y divide-hairline">
 
-        <Field label="Aspect Ratio" value={aspectRatio || "3:4"}>
+        <Field label="Aspect Ratio" value={aspect}>
           <SegmentedControl
-            value={(aspectRatio || "3:4") as AspectRatio}
+            value={aspect as AspectRatio}
             onChange={(val) => onUpdateRank({ aspectRatio: val })}
             options={ASPECT_RATIOS.map((ratio) => ({
               value: ratio,
               label: (
-                <AspectGlyph
-                  ratio={ratio}
-                  active={(aspectRatio || "3:4") === ratio}
-                />
+                <AspectGlyph ratio={ratio} active={aspect === ratio} />
               ),
               ariaLabel: `${ratio} aspect ratio`,
             }))}
@@ -152,49 +168,70 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
               />
             )}
 
-            <Field label="Borders">
+            {showsBorders && (
+              <Field label="Borders">
+                <SegmentedControl
+                  value={borderless ? "true" : "false"}
+                  onChange={(val) => onUpdateRank({ borderless: val === "true" })}
+                  options={[
+                    {
+                      value: "false",
+                      label: "Visible",
+                      icon: <SquareDashedKanban size={14} />,
+                    },
+                    { value: "true", label: "Hidden", icon: <Square size={14} /> },
+                  ]}
+                />
+              </Field>
+            )}
+
+            {showsGap && (
+              <NumberedSlider
+                label="Gap"
+                value={gap}
+                min={0}
+                max={32}
+                step={2}
+                onChange={(v) => onUpdateRank({ gap: v })}
+              />
+            )}
+          </>
+        )}
+
+        {/* Only a tier list justifies the tiles inside a row. A ranking grid and
+            a list both hug their own content, so there is nothing here for an
+            alignment control to move. */}
+        {projectType === "tierlist" && (
+          <>
+            <Field label="Alignment">
               <SegmentedControl
-                value={borderless ? "true" : "false"}
-                onChange={(val) => onUpdateRank({ borderless: val === "true" })}
+                value={gridJustify || "left"}
+                onChange={(val) => onUpdateRank({ gridJustify: val })}
                 options={[
-                  {
-                    value: "false",
-                    label: "Visible",
-                    icon: <SquareDashedKanban size={14} />,
-                  },
-                  { value: "true", label: "Hidden", icon: <Square size={14} /> },
+                  { value: "left", label: "Left" },
+                  { value: "center", label: "Center" },
+                  { value: "right", label: "Right" },
                 ]}
               />
             </Field>
 
-            <NumberedSlider
-              label="Gap"
-              value={gap}
-              min={0}
-              max={32}
-              step={2}
-              onChange={(v) => onUpdateRank({ gap: v })}
-            />
+            {/* Two objects, not a slider. Spaced artwork floats in a gutter with
+                rounded corners; tight artwork meets its neighbour at square
+                edges. Anything in between is a board where a rounded image
+                still carries a margin it was meant to lose. */}
+            <Field label="Image Spacing">
+              <SegmentedControl
+                value={tierSpacing}
+                onChange={(val) =>
+                  onUpdateRank({ tierSpacing: val as TierSpacing })
+                }
+                options={[
+                  { value: "spaced", label: "Padded" },
+                  { value: "tight", label: "No Gap" },
+                ]}
+              />
+            </Field>
           </>
-        )}
-
-        {/* Alignment is read by exactly one view: the tier list, which
-            justifies the tiles inside a row. A ranking grid and a list both hug
-            their own content, so there is nothing for this to move — it showed
-            up for every project type, saved a value, and changed nothing. It is
-            offered only where the layout can honour it. */}
-        {projectType === "tierlist" && (
-          <Field label="Alignment">
-            <SegmentedControl
-              value={gridJustify || "left"}
-              onChange={(val) => onUpdateRank({ gridJustify: val })}
-              options={[
-                { value: "left", label: "Left" },
-                { value: "center", label: "Center" },
-                { value: "right", label: "Right" },
-              ]}
-            />
-          </Field>
         )}
 
         {/* Background colour picker */}
@@ -218,33 +255,38 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
               />
             ))}
 
-            {/* Custom colour swatch */}
-            <label
-              className="relative w-7 h-7 rounded-full cursor-pointer flex items-center justify-center transition-transform duration-150"
-              style={{
-                backgroundColor: !GRID_BG_COLORS.includes(rankBackgroundColor)
+            {/* Custom colour swatch. The picker owns the button, so this is a
+                real focusable control rather than a label wrapping an invisible
+                native input. */}
+            <ColorPicker
+              label="Custom background colour"
+              value={
+                !GRID_BG_COLORS.includes(rankBackgroundColor)
                   ? rankBackgroundColor
-                  : "var(--color-surface-secondary)",
-                boxShadow: !GRID_BG_COLORS.includes(rankBackgroundColor)
-                  ? `0 0 0 2px var(--color-background), 0 0 0 3.5px var(--color-primary)`
-                  : `inset 0 0 0 1px var(--material-hairline)`,
-                transform: !GRID_BG_COLORS.includes(rankBackgroundColor)
-                  ? "scale(1.1)"
-                  : "scale(1)",
-              }}
-              title="Custom Color"
-            >
-              {/* mix-blend-difference keeps the icon legible on any bg colour */}
-              <Palette size={13} className="text-white mix-blend-difference" />
-              <ColorPicker
-                value={
-                  !GRID_BG_COLORS.includes(rankBackgroundColor)
-                    ? rankBackgroundColor
-                    : "#000000"
-                }
-                onChange={(v) => onUpdateRank({ backgroundColor: v })}
-              />
-            </label>
+                  : "#000000"
+              }
+              onChange={(v) => onUpdateRank({ backgroundColor: v })}
+              className="w-7 h-7 rounded-full transition-transform duration-150"
+              trigger={
+                <span
+                  className="relative grid place-items-center w-7 h-7 rounded-full"
+                  style={{
+                    backgroundColor: !GRID_BG_COLORS.includes(rankBackgroundColor)
+                      ? rankBackgroundColor
+                      : "var(--color-surface-secondary)",
+                    boxShadow: !GRID_BG_COLORS.includes(rankBackgroundColor)
+                      ? `0 0 0 2px var(--color-background), 0 0 0 3.5px var(--color-primary)`
+                      : `inset 0 0 0 1px var(--material-hairline)`,
+                    transform: !GRID_BG_COLORS.includes(rankBackgroundColor)
+                      ? "scale(1.1)"
+                      : "scale(1)",
+                  }}
+                >
+                  {/* mix-blend-difference keeps the icon legible on any bg colour */}
+                  <Palette size={13} className="text-white mix-blend-difference" />
+                </span>
+              }
+            />
           </div>
         </div>
 

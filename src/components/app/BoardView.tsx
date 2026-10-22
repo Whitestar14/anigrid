@@ -4,6 +4,7 @@ import { GridView } from "@/components/views/GridView";
 import { ListView } from "@/components/views/ListView";
 import { TierListView } from "@/components/views/TierListView";
 import { PixelWordmark } from "@/components/app/PixelWordmark";
+import { resolveBoardStyle } from "@/utils/boardStyle";
 import type { Rank } from "@/types";
 import { motion as motionPreset } from "@/lib/motion";
 
@@ -39,12 +40,7 @@ export const BoardWatermark: React.FC<{
   activeRank: Rank;
   textColor: string;
 }> = ({ activeRank, textColor }) => {
-  /* Both flags default to shown, and both are tested with `!== false` rather
-     than for truthiness. A project saved before `showWatermark` existed has it
-     as `undefined`, and a truthiness test would hide the mark on those boards
-     while the rail's toggle still reported it as on. */
-  const showWatermark = activeRank.showWatermark !== false;
-  const showDate = activeRank.showDate !== false;
+  const { showWatermark, showDate } = resolveBoardStyle(activeRank);
 
   if (!showWatermark && !showDate) return null;
 

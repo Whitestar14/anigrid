@@ -25,13 +25,17 @@ export const Modal: React.FC<ModalProps> = ({
   headerAction,
 }) => {
   const panelRef = React.useRef<HTMLDivElement>(null);
+  const onCloseRef = React.useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!isOpen) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
 
     document.addEventListener("keydown", handleKeyDown);
@@ -51,7 +55,7 @@ export const Modal: React.FC<ModalProps> = ({
       // before the dialog opened.
       previouslyFocused?.focus?.({ preventScroll: true });
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const modalContent = (
     <AnimatePresence>
@@ -84,9 +88,11 @@ export const Modal: React.FC<ModalProps> = ({
             transition={motionPreset.sheet}
             style={{ willChange: "opacity, transform" }}
             className={cn(
-              "relative w-full max-h-[85vh] flex flex-col overflow-hidden outline-none",
+              /* `dvh` so a phone's retracting URL bar cannot push the footer of
+                 a dialog under the browser chrome. */
+              "relative w-full max-h-[85dvh] flex flex-col overflow-hidden outline-none",
               "material-thick squircle rounded-panel",
-              className
+              className,
             )}
           >
             {title &&
@@ -121,7 +127,7 @@ export const Modal: React.FC<ModalProps> = ({
             <div
               className={cn(
                 "px-6 py-5 overflow-y-auto scrollbar-ios",
-                contentClassName
+                contentClassName,
               )}
             >
               {children}

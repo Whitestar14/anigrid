@@ -1,6 +1,6 @@
 @font-face {
-  font-family: 'Inter';
-  src: url('../assets/InterVariable.woff2') format('woff2');
+  font-family: "Inter";
+  src: url("../assets/InterVariable.woff2") format("woff2");
   font-display: swap;
 }
 
@@ -19,13 +19,6 @@
 
   --material-card-tint: rgba(255, 255, 255, 0.06);
 
-  /* A lit top edge. Without it a material is a flat tinted rectangle; this
-     gradient is what makes it read as a surface catching light from above.
-
-     The stops are in px, not %, on purpose. A percentage gradient scales with
-     the element, so on a 48px dock bar the sheen covered the top 23px and
-     stopped mid-bar, leaving the lower half visibly flatter. A fixed ~20px
-     band reads the same on a chip and on a full-height sheet. */
   --material-specular: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.13) 0px,
@@ -33,9 +26,7 @@
     rgba(255, 255, 255, 0) 20px
   );
 
-  /* Film grain. A single tiled turbulence field, desaturated, sitting under
-     4% opacity: imperceptible on its own, but it removes the perfectly even
-     quality of a CSS gradient that the eye reads as "plastic". */
+  /* Film grain. */
   --material-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.04'/%3E%3C/svg%3E");
 
   --material-edge: rgba(255, 255, 255, 0.12);
@@ -54,6 +45,8 @@
   --color-surface-secondary: rgba(120, 120, 128, 0.12);
   --color-border: rgba(60, 60, 67, 0.29);
   --color-separator-opaque: #c6c6c8;
+  --color-control-track: rgba(120, 120, 128, 0.12);
+  --color-control-thumb: #ffffff;
   --color-text: #000000;
   --color-muted: rgba(60, 60, 67, 0.6);
   --color-faint: rgba(60, 60, 67, 0.3);
@@ -100,10 +93,12 @@
 }
 
 @theme {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
-    'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
-    'Liberation Mono', 'Courier New', monospace;
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "SF Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono",
+    "Courier New", monospace;
 
   /* Dynamic Type scale (pt → rem at a 16px root) */
   --text-caption-2: 0.6875rem;
@@ -136,6 +131,8 @@
   --color-border: rgba(84, 84, 88, 0.65);
   --color-hairline: var(--material-hairline);
   --color-separator-opaque: #38383a;
+  --color-control-track: rgba(120, 120, 128, 0.3);
+  --color-control-thumb: rgba(255, 255, 255, 0.16);
   --color-text: #ffffff;
   --color-muted: rgba(235, 235, 245, 0.6);
   --color-faint: rgba(235, 235, 245, 0.3);
@@ -156,6 +153,8 @@
   --color-accent-yellow: #ffd60a;
 
   --radius-hairline: 6px;
+  /* The smallest controls: a tile's action dot, a badge. */
+  --radius-mini: 8px;
   --radius-chip: 10px;
   --radius-control: 14px;
   --radius-tile: 18px;

@@ -3,14 +3,6 @@ import type { Transition } from "motion/react";
 /**
  * The app's motion language.
  *
- * These four presets replaced ~22 hand-written springs that had drifted apart
- * — stiffness ranging 340 to 560 — which made some controls snap while others
- * glided. The eye reads that inconsistency as cheap even when no individual
- * animation is wrong.
- *
- * Each value is the dominant one already in use for that *kind* of movement,
- * so adopting these is a consolidation rather than a redesign:
- *
  *   snappy  press feedback and small state swaps — must feel instant
  *   control sliding indicators and text rolling through a fixed slot
  *   sheet   overlays: dialogs, popovers, menus, the rail
@@ -42,9 +34,6 @@ export const motion = {
     damping: 30,
     mass: 0.8,
   },
-  /* Not for taps. This smooths a value the user is actively driving — a
-     scroll offset — so it is slow and heavily damped, with no overshoot to
-     make the content feel like it is fighting the input. */
   scroll: {
     type: "spring",
     stiffness: 180,
