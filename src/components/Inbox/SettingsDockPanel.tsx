@@ -13,7 +13,6 @@ import {
   Info,
   ChevronRight,
   Keyboard,
-  Command,
 } from "lucide-react";
 import {
   ACCENT_BLUE_DARK,
@@ -23,7 +22,7 @@ import {
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 import { ImportChoiceModal } from "@/components/ImportChoiceModal";
 import { useToast } from "@/context/ToastContext";
-import { useCommandState } from "@/state/commandState";
+import { useShortcutState } from "@/state/shortcutState";
 
 /** A pair of keycaps, mirroring the ones inside the cheat sheet. */
 const ShortcutKeys: React.FC<{ keys: string[] }> = ({ keys }) => (
@@ -213,23 +212,14 @@ export const SettingsDockPanel: React.FC<{
           App
         </span>
         <SettingButtonGroup className="material-card rounded-card overflow-hidden">
-          {/* The keyboard was the one surface with no visible door. Both the
-              palette (⌘K) and the cheat sheet (⌘/) existed, but only a user who
-              already knew the shortcut could reach them — which is precisely
-              backwards for a discoverability feature. Named rows with the keys
-              printed beside them are the door. */}
+          {/* The keyboard was the one surface with no visible door: the cheat
+              sheet (⌘/) existed, but only a user who already knew the shortcut
+              could reach it — which is precisely backwards for a
+              discoverability feature. A named row with the keys printed beside
+              it is the door. */}
           <SettingRow
             as="button"
-            onClick={() => useCommandState.getState().toggle()}
-            icon={<Command size={16} />}
-            iconBg="bg-indigo-500/15 text-indigo-400"
-            label="Command palette"
-            sublabel="Jump to any project or action"
-            right={<ShortcutKeys keys={["⌘", "K"]} />}
-          />
-          <SettingRow
-            as="button"
-            onClick={() => useCommandState.getState().toggleShortcuts()}
+            onClick={() => useShortcutState.getState().toggle()}
             icon={<Keyboard size={16} />}
             iconBg="bg-primary/10 text-primary"
             label="Keyboard shortcuts"

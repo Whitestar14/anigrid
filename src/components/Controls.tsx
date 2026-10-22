@@ -2,6 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Settings2, X, Download, ChevronDown } from "lucide-react";
 import { StatusIsland } from "@/components/StatusIsland";
+import { motion as motionPreset, layoutMotion } from "@/lib/motion";
 import { useActivityState } from "@/state/activityState";
 
 interface ControlsProps {
@@ -54,7 +55,7 @@ export const Controls: React.FC<ControlsProps> = ({
             aria-label={isSidebarOpen ? "Close settings" : "Open settings"}
             title={isSidebarOpen ? "Close settings" : "Open settings"}
             whileTap={{ scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 520, damping: 30 }}
+            transition={motionPreset.snappy}
             className={`grid place-items-center w-9 h-9 rounded-full transition-colors duration-150 ${
               isSidebarOpen ? "bg-hover text-text" : "text-muted hover:text-text hover:bg-hover"
             }`}
@@ -65,7 +66,7 @@ export const Controls: React.FC<ControlsProps> = ({
                 initial={{ opacity: 0, scale: 0.5, rotate: isSidebarOpen ? -80 : 80 }}
                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
                 exit={{ opacity: 0, scale: 0.5, rotate: isSidebarOpen ? 80 : -80 }}
-                transition={{ type: "spring", stiffness: 520, damping: 30 }}
+                transition={motionPreset.snappy}
                 className="grid place-items-center"
               >
                 {isSidebarOpen ? (
@@ -85,13 +86,7 @@ export const Controls: React.FC<ControlsProps> = ({
             whileTap={{ scale: 0.95 }}
             whileHover={{ scale: 1.02 }}
             layout
-            transition={{
-              layout: { type: "spring", stiffness: 500, damping: 34, mass: 0.6 },
-              type: "spring",
-              stiffness: 480,
-              damping: 30,
-              mass: 0.6,
-            }}
+            transition={{ layout: layoutMotion, ...motionPreset.snappy }}
             aria-live="polite"
             className="flex items-center gap-1.5 px-3 h-9 min-w-0 rounded-full material-thin
                        hover:bg-hover transition-colors duration-150"
@@ -108,7 +103,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     initial={{ y: "120%", opacity: 0.4 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: "-120%", opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 520, damping: 38 }}
+                    transition={motionPreset.control}
                     className="block truncate whitespace-nowrap font-medium text-subheadline text-primary"
                   >
                     {statusText}
@@ -119,7 +114,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     initial={{ y: "120%", opacity: 0.4 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: "-120%", opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 520, damping: 36 }}
+                    transition={motionPreset.control}
                     className="block truncate whitespace-nowrap font-semibold text-subheadline text-text tracking-tight"
                   >
                     {projectName || "Untitled"}
@@ -144,7 +139,7 @@ export const Controls: React.FC<ControlsProps> = ({
             title="Export project"
             whileTap={{ scale: 0.94 }}
             whileHover={{ scale: 1.04 }}
-            transition={{ type: "spring", stiffness: 520, damping: 30, mass: 0.6 }}
+            transition={motionPreset.snappy}
             className="inline-flex items-center justify-center gap-2 h-9 px-2.5 md:px-3.5
                        rounded-full text-muted hover:text-text hover:bg-hover
                        transition-colors duration-150 outline-none focus-visible:focus-ring"

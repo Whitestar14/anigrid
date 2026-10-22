@@ -1,51 +1,34 @@
-import React, { type RefObject } from "react";
+import React from "react";
 import { Upload } from "lucide-react";
-import type { InboxItem, InteractionState } from "@/types";
 import { CuteSlime } from "@/components/EmptyStateVector";
 import { ScrollRail } from "@/components/ui/ScrollRail";
 import { InboxItemCard } from "./InboxItemCard";
 import { motion, AnimatePresence } from "motion/react";
+import { motion as motionPreset } from "@/lib/motion";
+import type { DockCtrl } from "./dock/types";
 
-export interface InboxStashGridProps {
-  fileInputRef: RefObject<HTMLInputElement | null>;
-  currentItems: InboxItem[];
-  activeCollectionId: string;
-  isAllView: boolean;
-  usedOnBoard: Set<string>;
-  selectedItemIds: Set<string>;
-  interactionState: InteractionState;
-  onUploadClick: () => void;
-  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onItemClick: (e: React.MouseEvent, itemId: string) => void;
-  onDeleteItem: (item: InboxItem) => void;
-  onRecall: (imageSrc: string) => void;
-}
+export const InboxStashGrid = React.memo<{ ctrl: DockCtrl }>(({ ctrl }) => {
+  const {
+    currentItems,
+    activeCollectionId,
+    isAllView,
+    usedOnBoard,
+    selectedItemIds,
+    interactionState,
+  } = ctrl;
 
-export const InboxStashGrid = React.memo<InboxStashGridProps>(({
-  fileInputRef,
-  currentItems,
-  activeCollectionId,
-  isAllView,
-  usedOnBoard,
-  selectedItemIds,
-  interactionState,
-  onUploadClick,
-  onFileChange,
-  onItemClick,
-  onDeleteItem,
-  onRecall,
-}) => {
+  const onUploadClick = () => ctrl.fileInputRef.current?.click();
   const key = isAllView ? "all" : activeCollectionId;
 
   return (
     <div className="relative flex-1 min-h-0 flex flex-col group/grid">
       <input
         type="file"
-        ref={fileInputRef}
+        ref={ctrl.fileInputRef}
         multiple
         className="hidden"
         accept="image/*"
-        onChange={onFileChange}
+        onChange={ctrl.onFileInputChange}
       />
 
       <AnimatePresence mode="wait">
@@ -137,7 +120,7 @@ export const InboxStashGrid = React.memo<InboxStashGridProps>(({
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      transition={motionPreset.snappy}
                       key={`${key}-${item.id}`}
                       className="shrink-0"
                     >
@@ -147,9 +130,9 @@ export const InboxStashGrid = React.memo<InboxStashGridProps>(({
                         isSelected={isSelected}
                         isAllView={isAllView}
                         collectionId={isAllView ? "all-images" : activeCollectionId}
-                        onItemClick={onItemClick}
-                        onDeleteItem={onDeleteItem}
-                        onRecall={onRecall}
+                        onItemClick={ctrl.handleItemClick}
+                        onDeleteItem={ctrl.handleDeleteItem}
+                        onRecall={ctrl.handleRecall}
                       />
                     </motion.div>
                   );

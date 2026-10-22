@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
+import { motion as motionPreset } from "@/lib/motion";
 
 export interface SegmentedControlOption<T extends string> {
   value: T;
@@ -63,7 +64,7 @@ export function SegmentedControl<T extends string>({
           style={{ width: `calc((100% - 4px) / ${options.length})` }}
           initial={false}
           animate={{ x: `${activeIndex * 100}%` }}
-          transition={{ type: "spring", stiffness: 500, damping: 38, mass: 0.6 }}
+          transition={motionPreset.control}
         >
           <span
             className="block w-full h-full bg-surface-elevated"
@@ -117,12 +118,7 @@ export function SegmentedControl<T extends string>({
                 layoutId={pillId}
                 className={`absolute inset-0 pointer-events-none ${shape}`}
                 style={{ ...pillStyle, backgroundColor: "var(--color-surface-elevated)" }}
-                transition={{
-                  type: "spring",
-                  stiffness: 500,
-                  damping: 38,
-                  mass: 0.6,
-                }}
+                transition={motionPreset.control}
               />
             )}
             {option.icon && (

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Upload, Check, X, MoreHorizontal } from "lucide-react";
+import { GripVertical, Upload, MoreHorizontal } from "lucide-react";
 import { CellData } from "@/types";
 import { useStore } from "@/store/useStore";
 import { selectActiveRank } from "@/store/selectors";
@@ -18,6 +18,7 @@ import { usePanZoom } from "@/hooks/usePanZoom";
 import { useCellInteraction } from "@/hooks/useCellInteraction";
 import { useCellMediaUpload } from "@/hooks/useCellMediaUpload";
 import { useDropPulse } from "@/state/dragState";
+import { AdjustOverlay } from "@/components/ui/AdjustOverlay";
 import { widthForHeight } from "@/utils/ui";
 
 const THUMB_HEIGHT = 56;
@@ -245,45 +246,18 @@ export const ListRow = React.memo(function ListRow({
             />
 
             {isAdjusting && (
-              <div
-                className="absolute inset-0 z-30 flex flex-col items-center justify-between p-1 select-none touch-none cursor-move"
-                style={{ background: "rgba(0,0,0,0.45)" }}
-                onMouseDown={(e) => e.stopPropagation()}
+              <AdjustOverlay
+                variant="compact"
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerCancel}
-              >
-                <span className="media-scrim text-caption-2 font-semibold px-2 py-0.5 rounded-full">
-                  Move
-                </span>
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    aria-label="Cancel"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      stopAdjusting();
-                    }}
-                    className="flex items-center justify-center w-6 h-6 media-scrim rounded-full"
-                  >
-                    <X size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Save"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      saveAdjustments();
-                      clearInteraction();
-                    }}
-                    className="flex items-center justify-center w-6 h-6 rounded-full text-on-accent"
-                    style={{ background: "var(--color-primary)" }}
-                  >
-                    <Check size={12} />
-                  </button>
-                </div>
-              </div>
+                onCancel={stopAdjusting}
+                onSave={() => {
+                  saveAdjustments();
+                  clearInteraction();
+                }}
+              />
             )}
           </div>
         ) : (

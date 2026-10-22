@@ -2,6 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { LucideIcon } from "lucide-react";
+import { motion as motionPreset } from "@/lib/motion";
 
 export interface PopoverAction {
   label: string;
@@ -111,9 +112,8 @@ export const PopoverMenu: React.FC<PopoverMenuProps> = ({
           ref={menuRef}
           role="menu"
           initial={{ opacity: 0, scale: 0.9, y: 4 }}
-          animate={{ opacity: coords ? 1 : 0, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96 }}
-          transition={{ type: "spring", stiffness: 560, damping: 34, mass: 0.6 }}
+          animate={{ opacity: coords ? 1 : 0, scale: 1, y: 0 }}exit={{ opacity: 0, scale: 0.96 }}
+            transition={motionPreset.sheet}
           style={style}
           className={`popover-menu w-max min-w-[200px] material-thick squircle rounded-tile
             flex flex-col p-1 ${

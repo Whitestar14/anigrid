@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-interface PanZoomState {
+export interface PanZoomState {
   zoom: number;
   posX: number;
   posY: number;
@@ -13,6 +13,15 @@ const MAX_ZOOM = 4;
 const WHEEL_SENSITIVITY = 1.0018;
 
 const clampZoom = (z: number) => Math.min(Math.max(MIN_ZOOM, z), MAX_ZOOM);
+const clampPercent = (p: number) => Math.min(Math.max(0, p), 100);
+const finite = (value: number | undefined, fallback: number) =>
+  typeof value === "number" && Number.isFinite(value) ? value : fallback;
+
+const readPlacement = (state: Partial<PanZoomState>): PanZoomState => ({
+  zoom: clampZoom(finite(state.zoom, 1)),
+  posX: clampPercent(finite(state.posX, 50)),
+  posY: clampPercent(finite(state.posY, 50)),
+});
 
 interface Geometry {
   boxW: number;
@@ -29,14 +38,18 @@ export function usePanZoom(
 ) {
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [isAdjustDragging, setIsAdjustDragging] = useState(false);
-  const [zoom, setZoom] = useState(initialState.zoom || 1);
-  const [posX, setPosX] = useState(initialState.posX ?? 50);
-  const [posY, setPosY] = useState(initialState.posY ?? 50);
+  const [placement, setPlacement] = useState(() => readPlacement(initialState));
   const [geometry, setGeometry] = useState<Geometry | null>(null);
+
+  /** The placement the tile will fall back to if the edit is cancelled. */
+  const saved = useRef<PanZoomState>(placement);
 
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const last = useRef<{ x: number; y: number } | null>(null);
   const pinch = useRef<{ distance: number; zoom: number } | null>(null);
+
+  const setZoom = (value: number) =>
+    setPlacement((prev) => ({ ...prev, zoom: clampZoom(value) }));
 
   const measure = useCallback(() => {
     const box = containerRef.current;
@@ -69,16 +82,27 @@ export function usePanZoom(
     };
   }, [measure, containerRef]);
 
+  /* Adopt placement written from outside (undo, import, project switch) while
+     the tile is idle, so the hook cannot drift from the stored cell. */
+  const { zoom: inputZoom, posX: inputPosX, posY: inputPosY } = initialState;
+  useEffect(() => {
+    if (isAdjusting) return;
+    const next = readPlacement({ zoom: inputZoom, posX: inputPosX, posY: inputPosY });
+    saved.current = next;
+    setPlacement(next);
+  }, [isAdjusting, inputZoom, inputPosX, inputPosY]);
+
   /** How far the image can travel before its edge would come into the tile. */
   const panRange = useMemo(() => {
     if (!geometry) return null;
     return {
-      x: Math.max(0, (geometry.coverW * zoom - geometry.boxW) / 2),
-      y: Math.max(0, (geometry.coverH * zoom - geometry.boxH) / 2),
+      x: Math.max(0, (geometry.coverW * placement.zoom - geometry.boxW) / 2),
+      y: Math.max(0, (geometry.coverH * placement.zoom - geometry.boxH) / 2),
     };
-  }, [geometry, zoom]);
+  }, [geometry, placement.zoom]);
 
   const imageStyle = useMemo<React.CSSProperties>(() => {
+    const { zoom, posX, posY } = placement;
     if (!panRange || (panRange.x === 0 && panRange.y === 0)) {
       // Nothing to pan (the image fills the tile exactly): fall back to the
       // plain object-position reading of the same values.
@@ -93,20 +117,21 @@ export function usePanZoom(
         ((50 - posX) / 50) * panRange.x
       }px, ${((50 - posY) / 50) * panRange.y}px) scale(${zoom})`,
     };
-  }, [panRange, posX, posY, zoom]);
+  }, [panRange, placement]);
 
   const panBy = (dx: number, dy: number) => {
     if (!panRange) return;
-    if (panRange.x > 0) {
-      setPosX((prev) =>
-        Math.min(Math.max(0, prev - (dx / panRange.x) * 50), 100)
-      );
-    }
-    if (panRange.y > 0) {
-      setPosY((prev) =>
-        Math.min(Math.max(0, prev - (dy / panRange.y) * 50), 100)
-      );
-    }
+    setPlacement((prev) => ({
+      zoom: prev.zoom,
+      posX:
+        panRange.x > 0
+          ? clampPercent(prev.posX - (dx / panRange.x) * 50)
+          : prev.posX,
+      posY:
+        panRange.y > 0
+          ? clampPercent(prev.posY - (dy / panRange.y) * 50)
+          : prev.posY,
+    }));
   };
 
   const distanceBetweenPointers = () => {
@@ -124,7 +149,10 @@ export function usePanZoom(
     } else {
       // A second finger cancels the drag and starts a pinch instead.
       last.current = null;
-      pinch.current = { distance: distanceBetweenPointers(), zoom };
+      pinch.current = {
+        distance: distanceBetweenPointers(),
+        zoom: placement.zoom,
+      };
     }
     measure();
   };
@@ -137,7 +165,7 @@ export function usePanZoom(
       const start = pinch.current;
       const distance = distanceBetweenPointers();
       if (start && start.distance > 0 && distance > 0) {
-        setZoom(clampZoom(start.zoom * (distance / start.distance)));
+        setZoom(start.zoom * (distance / start.distance));
       }
       return;
     }
@@ -171,29 +199,48 @@ export function usePanZoom(
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      setZoom((prev) => clampZoom(prev * WHEEL_SENSITIVITY ** -e.deltaY));
+      setPlacement((prev) => ({
+        ...prev,
+        zoom: clampZoom(prev.zoom * WHEEL_SENSITIVITY ** -e.deltaY),
+      }));
     };
     box.addEventListener("wheel", onWheel, { passive: false });
     return () => box.removeEventListener("wheel", onWheel);
   }, [isAdjusting, containerRef]);
 
+  const resetGesture = () => {
+    pointers.current.clear();
+    last.current = null;
+    pinch.current = null;
+    setIsAdjustDragging(false);
+  };
+
   const startAdjusting = () => {
+    // Enter from the saved placement so an abandoned edit never leaks in.
+    setPlacement(saved.current);
     measure();
     setIsAdjusting(true);
   };
-  const stopAdjusting = () => setIsAdjusting(false);
+
+  const stopAdjusting = () => {
+    setPlacement(saved.current);
+    resetGesture();
+    setIsAdjusting(false);
+  };
 
   const saveAdjustments = () => {
-    onUpdate?.({ zoom, posX, posY });
-    stopAdjusting();
+    saved.current = placement;
+    onUpdate?.(placement);
+    resetGesture();
+    setIsAdjusting(false);
   };
 
   return {
     isAdjusting,
     isAdjustDragging,
-    zoom,
-    posX,
-    posY,
+    zoom: placement.zoom,
+    posX: placement.posX,
+    posY: placement.posY,
     imageStyle,
     handlePointerDown,
     handlePointerMove,
@@ -202,8 +249,6 @@ export function usePanZoom(
     startAdjusting,
     stopAdjusting,
     saveAdjustments,
-    setZoom: (v: number) => setZoom(clampZoom(v)),
-    setPosX,
-    setPosY,
+    setZoom,
   };
 }

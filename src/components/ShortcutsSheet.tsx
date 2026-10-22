@@ -10,7 +10,6 @@ const GROUPS: { title: string; items: Shortcut[] }[] = [
   {
     title: "Anywhere",
     items: [
-      { keys: ["⌘", "K"], label: "Command palette" },
       { keys: ["⌘", "/"], label: "This sheet" },
       { keys: ["⌘", "B"], label: "Toggle settings rail" },
       { keys: ["⌘", "Z"], label: "Undo" },

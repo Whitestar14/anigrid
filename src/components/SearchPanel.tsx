@@ -1,29 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useDraggable } from "@dnd-kit/core";
-import {
-  Search,
-  Loader2,
-  AlertCircle,
-  Plus,
-  Check,
-  RefreshCw,
-  WifiOff,
-  CloudOff,
-  SlidersHorizontal,
-} from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { CloudOff, Search, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/Input";
-import { RemoteImage } from "@/components/ui/RemoteImage";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { PopoverMenu } from "@/components/ui/PopoverMenu";
 import { ScrollRail } from "@/components/ui/ScrollRail";
+import { SearchResultCard } from "@/components/search/SearchResultCard";
 import {
-  searchMetadata,
-  resetMetadataService,
-  SOURCE_LABELS,
-  type MediaResult,
-  type SearchMode,
-  type SourcePreference,
-} from "@/core/metadata";
+  SearchEmptyPane,
+  SearchErrorPane,
+  SearchIdlePane,
+  SearchLoadingPane,
+} from "@/components/search/SearchPanes";
+import { useMediaSearch } from "@/hooks/useMediaSearch";
+import type { SearchMode, SourcePreference } from "@/core/metadata";
 
 interface SearchPanelProps {
   query: string;
@@ -38,8 +27,6 @@ interface SearchPanelProps {
   onImageSourceChange?: (source: SourcePreference) => void;
 }
 
-const DEBOUNCE_MS = 400;
-
 /** Compact labels for the in-field pill — it shares a row with the query. */
 const SOURCE_SHORT: Record<SourcePreference, string> = {
   auto: "Auto",
@@ -47,85 +34,11 @@ const SOURCE_SHORT: Record<SourcePreference, string> = {
   anilist: "AniList",
 };
 
-/* ── Result card ─────────────────────────────────────────────────────────── */
-
-const ResultCard = React.memo<{
-  item: MediaResult;
-  isAdded: boolean;
-  onAdd: (imageSrc: string) => void;
-}>(({ item, isAdded, onAdd }) => {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `search-${item.id}`,
-    data: { type: "search-item", imageSrc: item.imageUrl },
-  });
-
-  return (
-    <div className="flex flex-col gap-1.5 w-[92px] shrink-0">
-      <div
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        title={item.title}
-        className={`
-          group/card relative aspect-[3/4] w-full overflow-hidden squircle cursor-grab
-          material-card active:cursor-grabbing
-          transition-transform duration-200 ease-spring
-          ${isDragging ? "scale-95 opacity-50" : "hover:scale-[1.03]"}
-        `}
-        style={{
-          borderRadius: "var(--radius-tile)",
-          boxShadow: "inset 0 0 0 0.5px var(--material-hairline)",
-        }}
-      >
-        <RemoteImage
-          src={item.thumbnailUrl}
-          alt={item.title}
-          loading="lazy"
-          decoding="async"
-          className={`absolute inset-0 w-full h-full ${
-            isAdded ? "opacity-40 grayscale" : ""
-          }`}
-        />
-
-        {/* Always visible. This was an `.affordance`, revealed on `.tile:hover`
-            — and a search result is not a `.tile`, so the control was
-            permanently invisible on any device with a real pointer. Adding a
-            poster from search looked like a feature that did not exist. */}
-        <button
-          type="button"
-          aria-label={isAdded ? "Already in library" : `Add ${item.title}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!isAdded) onAdd(item.imageUrl);
-          }}
-          className={`absolute top-1.5 right-1.5 z-10 flex items-center justify-center w-[24px] h-[24px]
-                      squircle transition-transform duration-150 touch-target
-                      ${
-                        isAdded
-                          ? "bg-accent-green text-white"
-                          : "material-thin text-text hover:scale-110 active:scale-95"
-                      }`}
-          style={{ borderRadius: 8 }}
-        >
-          {isAdded ? (
-            <Check size={13} strokeWidth={3} />
-          ) : (
-            <Plus size={13} strokeWidth={3} />
-          )}
-        </button>
-      </div>
-
-      {/* `min-h` reserves the second line whether or not the title needs it, so
-          the two rows of the grid are the same height and the lower row's text
-          can never be pushed under the fade by a long title above it. */}
-      <span className="text-caption-1 leading-tight text-muted line-clamp-2 px-0.5 min-h-[2.1em]">
-        {item.title}
-      </span>
-    </div>
-  );
-});
-
-/* ── Panel ───────────────────────────────────────────────────────────────── */
+const SOURCE_OPTIONS: { value: SourcePreference; label: string }[] = [
+  { value: "auto", label: "Automatic" },
+  { value: "myanimelist", label: "MyAnimeList" },
+  { value: "anilist", label: "AniList" },
+];
 
 export const SearchPanel: React.FC<SearchPanelProps> = ({
   query,
@@ -138,15 +51,9 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
   imageSource = "auto",
   onImageSourceChange,
 }) => {
-  const [results, setResults] = useState<MediaResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<{
-    message: string;
-    isNetwork?: boolean;
-  } | null>(null);
-  const [answeredBy, setAnsweredBy] = useState<string | null>(null);
-  const [degraded, setDegraded] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const { results, loading, error, degraded, answeredBy, hasSearched, retry } =
+    useMediaSearch({ query, mode, prefer: imageSource });
+
   const [isSourceMenuOpen, setIsSourceMenuOpen] = useState(false);
   const [sourceAnchor, setSourceAnchor] = useState<{
     x: number;
@@ -157,79 +64,10 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  /** Monotonic id so a slow response can never overwrite a newer one. */
-  const requestId = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
-
-  const runSearch = useCallback(
-    async (
-      term: string,
-      searchMode: SearchMode,
-      prefer: SourcePreference,
-      force = false
-    ) => {
-      const id = ++requestId.current;
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        if (!navigator.onLine) throw new Error("offline");
-
-        if (force) resetMetadataService();
-        const response = await searchMetadata(term, searchMode, {
-          signal: controller.signal,
-          force,
-          prefer,
-        });
-
-        if (id !== requestId.current) return; // superseded
-        setResults(response.results);
-        setAnsweredBy(SOURCE_LABELS[response.source]);
-        setDegraded(response.degraded);
-        setHasSearched(true);
-      } catch (err) {
-        if (id !== requestId.current) return;
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setResults([]);
-        setHasSearched(true);
-        setError({
-          message:
-            err instanceof Error && err.message ? err.message : "Search failed.",
-          isNetwork: err instanceof Error && err.message === "offline",
-        });
-      } finally {
-        if (id === requestId.current) setLoading(false);
-      }
-    },
-    []
-  );
-
-  // Debounced search on query/mode/source change.
-  useEffect(() => {
-    const term = query.trim();
-    if (term.length < 2) {
-      requestId.current++;
-      setResults([]);
-      setHasSearched(false);
-      setError(null);
-      return;
-    }
-    const timer = setTimeout(
-      () => runSearch(term, mode, imageSource),
-      DEBOUNCE_MS
-    );
-    return () => clearTimeout(timer);
-  }, [query, mode, imageSource, runSearch]);
-
-  useEffect(() => () => abortRef.current?.abort(), []);
 
   /* Does the result grid run past the bottom of its scroller? Drives the fade
      that says there is more. A grid cut off mid-row looks complete. */
@@ -255,8 +93,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
     <div className="flex flex-col h-full min-h-0 px-1 animate-in fade-in">
       {/* One row. The source selector used to be a third control beside the
           field, which on a phone squeezed the query down to a few characters.
-          It now lives *inside* the field's trailing edge, so the header is just
-          the query and the mode. */}
+          It now lives *inside* the field's trailing edge. */}
       <div className="flex items-center gap-2 mb-2 shrink-0">
         <div className="flex-1 min-w-0">
           <Input
@@ -303,8 +140,7 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
 
       {degraded && !loading && !error && results.length > 0 && (
         /* One line, truncated. Two lines of explanation is enough height to
-           push a row of results off the bottom of the panel — the note is
-           worth saying, but not worth a row of posters. */
+           push a row of results off the bottom of the panel. */
         <div className="flex items-center gap-1.5 mb-2 text-caption-1 text-muted shrink-0 min-w-0">
           <CloudOff size={12} className="shrink-0" />
           <span className="truncate">
@@ -319,30 +155,13 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
           className="h-full overflow-y-auto overflow-x-hidden scrollbar-ios overscroll-contain"
         >
           {loading ? (
-            <div className="h-full min-h-32 flex items-center justify-center text-muted gap-2.5">
-              <Loader2 className="animate-spin" size={18} />
-              <span className="text-footnote">Searching…</span>
-            </div>
+            <SearchLoadingPane />
           ) : error ? (
-            <div className="h-full min-h-32 flex flex-col items-center justify-center text-muted gap-3 p-4 text-center">
-              <div className="w-11 h-11 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
-                {error.isNetwork ? <WifiOff size={20} /> : <AlertCircle size={20} />}
-              </div>
-              <span className="text-footnote font-medium text-text max-w-xs">
-                {error.message}
-              </span>
-              <button
-                type="button"
-                onClick={() => runSearch(query.trim(), mode, imageSource, true)}
-                className="flex items-center gap-2 px-4 py-2 material-thin rounded-full text-footnote font-medium text-text active:scale-95 transition-transform"
-              >
-                <RefreshCw size={13} /> Try again
-              </button>
-            </div>
+            <SearchErrorPane error={error} onRetry={retry} />
           ) : results.length > 0 ? (
             <ScrollRail className="pb-2" contentClassName="pt-0.5">
               {results.map((item) => (
-                <ResultCard
+                <SearchResultCard
                   key={item.id}
                   item={item}
                   isAdded={usedImageSrcs.has(item.imageUrl)}
@@ -351,22 +170,12 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
               ))}
             </ScrollRail>
           ) : showEmpty ? (
-            <div className="h-full min-h-32 flex flex-col items-center justify-center text-muted gap-1.5 text-center">
-              <span className="text-subheadline font-semibold text-text">
-                No results
-              </span>
-              <span className="text-caption-1 max-w-[220px]">
-                Nothing matched “{query.trim()}” on {SOURCE_SHORT[imageSource]}.
-                Try a different spelling, or switch where you search.
-              </span>
-            </div>
+            <SearchEmptyPane
+              query={query.trim()}
+              sourceLabel={SOURCE_SHORT[imageSource]}
+            />
           ) : (
-            <div className="h-full min-h-32 flex flex-col items-center justify-center text-muted gap-2 select-none">
-              <Search size={28} className="opacity-30" strokeWidth={1.5} />
-              <span className="text-footnote">
-                Search for posters and characters
-              </span>
-            </div>
+            <SearchIdlePane />
           )}
         </div>
 
@@ -387,19 +196,9 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
         isOpen={isSourceMenuOpen}
         onClose={() => setIsSourceMenuOpen(false)}
         triggerPoint={sourceAnchor}
-        actions={(
-          [
-            {
-              value: "auto",
-              label: "Automatic",
-            },
-            { value: "myanimelist", label: "MyAnimeList" },
-            { value: "anilist", label: "AniList" },
-          ] as { value: SourcePreference; label: string }[]
-        ).map((option) => ({
+        actions={SOURCE_OPTIONS.map((option) => ({
           label:
-            option.label +
-            (imageSource === option.value ? "  ✓" : ""),
+            option.label + (imageSource === option.value ? "  ✓" : ""),
           icon: option.value === "auto" ? SlidersHorizontal : Search,
           onClick: () => onImageSourceChange?.(option.value),
         }))}

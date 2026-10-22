@@ -9,6 +9,7 @@ import { DimensionsSection } from "./settings/DimensionsSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
 import { VisibilitySection } from "./settings/VisibilitySection";
 import { Button } from "./ui/Button";
+import { motion as motionPreset } from "@/lib/motion";
 
 export interface GridSettingsSidebarProps {
   isOpen: boolean;
@@ -17,9 +18,8 @@ export interface GridSettingsSidebarProps {
 }
 
 /**
- * The project settings rail. Opaque, on its own z step above the dock, and with
- * "Clear board" pinned in a footer rather than buried in the scroller. Opening
- * it also publishes its width so the dock can shift clear of it on desktop.
+ * The project settings rail. Glass-surfaced, on its own z step above the dock,
+ * with a prominent identity header and a pinned footer for destructive actions.
  */
 export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
   isOpen,
@@ -72,12 +72,11 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
   return (
     <>
-      {/* Scrim: mobile only. Fades rather than animating the panel's layout. */}
+      {/* Scrim: mobile only */}
       <div
         aria-hidden={!isOpen || undefined}
-        className={`fixed inset-0 bg-overlay z-rail-panel md:hidden transition-opacity duration-200 ${
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-overlay z-rail-panel md:hidden transition-opacity duration-200 ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
         onClick={onClose}
       />
 
@@ -86,9 +85,9 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
         aria-label="Project settings"
         className="
           shrink-0 overflow-hidden
-          border-r border-hairline border-l-0 border-y-0
+          border-r border-hairline
           z-rail-panel
-          fixed top-14 bottom-0 left-0 md:static
+          fixed top-14 bottom-0 left-0 md:static md:top-auto
           rounded-r-panel md:rounded-none
           shadow-[var(--material-shadow-high)] md:shadow-none
           transition-[width,opacity] duration-240 ease-emphasized
@@ -96,7 +95,7 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
         style={{
           width: isOpen ? "var(--rail-width)" : "0rem",
           opacity: isOpen ? 1 : 0,
-          backgroundColor: "var(--color-background)",
+          backgroundColor: "var(--color-surface)",
         }}
       >
         <div className="w-80 h-full flex flex-col">
@@ -104,41 +103,48 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
               app bar rather than as the first row of the list. */}
           <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-hairline bg-surface">
             <span
-              className="grid place-items-center w-8 h-8 rounded-chip squircle shrink-0"
+              className="grid place-items-center w-9 h-9 rounded-[10px] squircle shrink-0"
               style={{
                 backgroundColor: `color-mix(in srgb, ${meta.tint} 18%, transparent)`,
                 color: meta.tint,
               }}
             >
-              <TypeIcon size={16} strokeWidth={2.2} />
+              <TypeIcon size={18} strokeWidth={2} />
             </span>
-            <span className="flex flex-col min-w-0">
-              <span className="text-caption-2 font-semibold uppercase tracking-[0.06em] text-muted">
+
+            {/* Text — type caption above, board title below */}
+            <span className="flex flex-col min-w-0 flex-1">
+              <span
+                className="text-caption-2 font-semibold text-muted"
+                style={{ letterSpacing: "0.06em", textTransform: "uppercase" }}
+              >
                 {meta.longLabel}
               </span>
-              <span className="text-subheadline font-semibold text-text truncate">
+              <span className="text-subheadline font-semibold text-text truncate mt-0.5 leading-snug">
                 {activeRank.title}
               </span>
             </span>
           </div>
 
+          {/* ── Scrollable content ───────────────────────────────────────── */}
           <motion.div
             className="flex-1 overflow-y-auto scrollbar-ios overflow-x-hidden overscroll-contain"
             initial={false}
             animate={isOpen ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-            transition={{ type: "spring", stiffness: 420, damping: 36 }}
+            transition={motionPreset.sheet}
           >
-            <div className="flex flex-col gap-6 px-4 pt-4 pb-8">
-              {projectType === "ranking" && (
+            <div className="flex flex-col gap-6 py-5 pb-6">
+              {/* A grid and a list both size themselves from `config.rows`; a
+                  tier list is measured in tiers, which it adds and removes
+                  inline, so it gets neither. */}
+              {(projectType === "ranking" || projectType === "list") && (
                 <DimensionsSection
                   projectType={projectType}
                   config={config}
                   cellWidth={cellWidth}
                   onRowsChange={handleRowsChange}
                   onColsChange={handleColsChange}
-                  onCellWidthChange={(v) =>
-                    updateActiveRank({ cellWidth: v || undefined })
-                  }
+                  onCellWidthChange={(v) => updateActiveRank({ cellWidth: v })}
                 />
               )}
 
@@ -165,15 +171,16 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
             </div>
           </motion.div>
 
-          {/* Pinned destructive action.
-
-              Outside the scroller on purpose. Inside it, "Clear board" sat at
-              the very bottom of a scrollable column, which is the one place on a
-              phone where the floating dock already lives — so the control you
-              must never hit by accident was also the one you could not reliably
-              reach on purpose. A pinned footer is always in the same place and is
-              never covered. */}
-          <div className="shrink-0 border-t border-hairline bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {/* ── Footer — destructive action, always reachable ─────────────
+              Elevated one step above the rail body so it reads as a
+              pinned chrome zone rather than just the bottom list item. */}
+          <div
+            className="shrink-0 border-t border-hairline px-4 py-3.5"
+            style={{
+              backgroundColor: "var(--color-surface-elevated)",
+              paddingBottom: "max(0.875rem, env(safe-area-inset-bottom))",
+            }}
+          >
             <Button
               variant="danger"
               size="md"
@@ -183,10 +190,8 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
             >
               {projectType === "tierlist" ? "Clear all tiers" : "Clear board"}
             </Button>
-            <p className="mt-2 text-center text-caption-1 text-muted">
-              Returns every image to the Library
-            </p>
           </div>
+
         </div>
       </aside>
     </>

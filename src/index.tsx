@@ -2,6 +2,7 @@ import ReactDOM from 'react-dom/client';
 import { App } from '@/App';
 import { ToastProvider } from '@/context/ToastContext';
 import { GlobalDragDropProvider } from '@/components/dnd/GlobalDragDropProvider';
+import { MotionProvider } from '@/components/MotionProvider';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -11,9 +12,11 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <ToastProvider>
-    <GlobalDragDropProvider>
-      <App />
-    </GlobalDragDropProvider>
-  </ToastProvider>
+  <MotionProvider>
+    <ToastProvider>
+      <GlobalDragDropProvider>
+        <App />
+      </GlobalDragDropProvider>
+    </ToastProvider>
+  </MotionProvider>
 );

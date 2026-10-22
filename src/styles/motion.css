@@ -1,0 +1,116 @@
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+
+@keyframes spin-ring {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* `transform-box: view-box` makes `transform-origin` resolve against the SVG
+   viewBox rather than the element's own box, so the sweep arm rotates about the
+   ring's centre instead of orbiting a point outside it. */
+.ring-sweep {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: spin-ring 900ms linear infinite;
+}
+
+@keyframes sheen {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes drop-land {
+  0% {
+    opacity: 1;
+    transform: scale(1.055);
+    box-shadow:
+      0 0 0 2px var(--color-primary),
+      0 0 0 12px color-mix(in srgb, var(--color-primary) 26%, transparent);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+    box-shadow:
+      0 0 0 2px transparent,
+      0 0 0 0 transparent;
+  }
+}
+
+@keyframes drop-target {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--color-primary),
+      0 0 0 6px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--color-primary),
+      0 0 0 11px color-mix(in srgb, var(--color-primary) 12%, transparent);
+  }
+}
+
+@keyframes item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+.item-enter {
+  animation: item-enter 440ms var(--ease-emphasized) backwards;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+/* A single composed keyframe so `animate-in fade-in zoom-in-95` work together,
+   mirroring tailwindcss-animate without the dependency. */
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(
+        var(--tw-enter-translate-x, 0),
+        var(--tw-enter-translate-y, 0),
+        0
+      )
+      scale(var(--tw-enter-scale, 1));
+  }
+}
+
+@layer utilities {
+  /* `--tw-duration` is what Tailwind's `duration-*` utilities set, so an
+     explicit `duration-300` overrides the default instead of being ignored. */
+  .animate-in {
+    animation: enter var(--tw-duration, var(--duration-standard))
+      var(--ease-emphasized) both;
+  }
+  .animate-out {
+    animation: enter var(--tw-duration, var(--duration-quick))
+      var(--ease-emphasized) reverse both;
+  }
+  .fade-in {
+    --tw-enter-opacity: 0;
+  }
+  .fade-out {
+    --tw-enter-opacity: 0;
+  }
+  .zoom-in-95 {
+    --tw-enter-scale: 0.95;
+  }
+  .slide-in-from-left-2 {
+    --tw-enter-translate-x: -0.5rem;
+  }
+  .slide-in-from-right-2 {
+    --tw-enter-translate-x: 0.5rem;
+  }
+  .slide-in-from-right-4 {
+    --tw-enter-translate-x: 1rem;
+  }
+  .slide-in-from-bottom-2 {
+    --tw-enter-translate-y: 0.5rem;
+  }
+}

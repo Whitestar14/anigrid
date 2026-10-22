@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/store/useStore";
-import { useCommandState } from "@/state/commandState";
+import { useShortcutState } from "@/state/shortcutState";
 import { useToast } from "@/context/ToastContext";
 import { readFileAsDataURL } from "@/utils/imageUtils";
 
@@ -79,17 +79,11 @@ export function useGlobalShortcuts(options: ShortcutOptions) {
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
 
-      /* ── Palette and cheat sheet ──────────────────────────────────────────
-         Handled before anything else so they work from any surface, and so the
-         palette itself can be dismissed with the same key that opened it. */
-      if (mod && key === "k") {
-        e.preventDefault();
-        useCommandState.getState().toggle();
-        return;
-      }
+      /* ── The cheat sheet ──────────────────────────────────────────────────
+         Handled before anything else so it works from any surface. */
       if (mod && (e.key === "/" || e.key === "?")) {
         e.preventDefault();
-        useCommandState.getState().toggleShortcuts();
+        useShortcutState.getState().toggle();
         return;
       }
       if (mod && key === "b") {

@@ -1,5 +1,7 @@
 import React from "react";
 import { cn } from "@/utils";
+import { motion } from "motion/react";
+import { motion as motionPreset } from "@/lib/motion";
 
 export interface ToggleProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
@@ -9,8 +11,10 @@ export interface ToggleProps
 
 export const Toggle = React.forwardRef<HTMLInputElement, ToggleProps>(
   ({ className, checked, onCheckedChange, disabled, ..._props }, _ref) => (
-    <button
+    <motion.button
       type="button"
+      whileTap={disabled ? undefined : { scale: 0.94 }}
+      transition={motionPreset.snappy}
       role="switch"
       aria-checked={checked}
       disabled={disabled}
@@ -35,7 +39,7 @@ export const Toggle = React.forwardRef<HTMLInputElement, ToggleProps>(
           checked ? "translate-x-[22px]" : "translate-x-[2px]"
         )}
       />
-    </button>
+    </motion.button>
   )
 );
 Toggle.displayName = "Toggle";

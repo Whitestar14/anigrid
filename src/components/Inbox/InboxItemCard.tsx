@@ -3,6 +3,7 @@ import { RotateCcw, X } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import type { InboxItem } from "@/types";
 import { RemoteImage } from "@/components/ui/RemoteImage";
+import { cn } from "@/utils";
 
 export interface InboxItemCardProps {
   item: InboxItem;
@@ -38,18 +39,23 @@ export const InboxItemCard = React.memo<InboxItemCardProps>(({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      onClick={(e) => onItemClick(e, item.id)}
-      className={`
-        relative group shrink-0 w-28 h-40 rounded-tile overflow-hidden
-        cursor-grab active:cursor-grabbing transition-transform duration-150 ease-out
-        ${
-          isUsed
-            ? "opacity-55 hover:opacity-85"
-            : "ring-2 ring-transparent hover:ring-primary/60 hover:scale-105"
-        }
-        ${isSelected ? "ring-2 ring-primary scale-95 opacity-100" : ""}
-        ${isDragging ? "opacity-50 scale-95 ring-2 ring-accent-green" : ""}
-      `}
+      onClick={(e) => onItemClick(e, item.id)}className={cn(
+        "relative group shrink-0 w-28 h-40 rounded-tile overflow-hidden",
+        "cursor-grab active:cursor-grabbing transition-transform duration-150 ease-out",
+        /* Selection *replaces* the resting ring rather than being appended to
+           it. These were previously three independent string fragments, so a
+           selected card carried both `ring-transparent` and `ring-primary`; CSS
+           order decided the winner, `ring-transparent` came later, and the
+           highlight was invisible even though the state was correct. */
+        isSelected
+          ? "ring-2 ring-primary scale-95 opacity-100"
+          : isDragging
+            ? "ring-2 ring-accent-green opacity-50 scale-95"
+            : isUsed
+              ? "ring-2 ring-transparent opacity-55 hover:opacity-85"
+              : "ring-2 ring-transparent hover:ring-primary/60 hover:scale-105",
+        isDragging && !isSelected && "opacity-50 scale-95",
+      )}
     >
       {/* Dock thumbnails are the most visible failure point in the app, so they
           get the full candidate walk: configured proxy, deployed proxy, then the

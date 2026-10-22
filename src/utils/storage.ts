@@ -73,6 +73,11 @@ export const createBlankRank = (
     showNumbers: true,
     showTitle: true,
     showDate: true,
+    /* Was missing, which left every new project with `showWatermark:
+       undefined`. The rail reads that as "on" (`?? true`) while the board read
+       it as "off", so the toggle showed an enabled switch over a watermark that
+       was not there until you cycled it twice. */
+    showWatermark: true,
     gap: 0,
     backgroundColor,
     tierRows: createDefaultTierRows(),

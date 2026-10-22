@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { imageCandidates, originOf, originPreference } from "@/utils/imageProxy";
+import { dominantColor, subscribeDominantColor } from "@/utils/dominantColor";
 
 export interface RemoteImageProps
   extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -48,7 +49,17 @@ export const RemoteImage: React.FC<RemoteImageProps> = ({
   // Seeded from the cache so a remount paints the image on its first frame
   // instead of fading in from nothing.
   const [loaded, setLoaded] = useState(() => loadedSrc.has(src));
+  const [placeholderColor, setPlaceholderColor] = useState<string | undefined>(() =>
+    loadedSrc.has(src) ? undefined : dominantColor(src)
+  );
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // The sample finishes asynchronously, so the placeholder arrives a frame or
+  // two after mount and fades in under the sheen.
+  useEffect(() => {
+    if (loadedSrc.has(src)) return;
+    return subscribeDominantColor(src, setPlaceholderColor);
+  }, [src]);
 
   const candidate = candidates[Math.min(index, candidates.length - 1)];
 
@@ -118,8 +129,20 @@ export const RemoteImage: React.FC<RemoteImageProps> = ({
           onError?.(event);
         }}
       />
+      {/* The sheen doubles as the placeholder: once the image's dominant
+          colour is known it becomes the sheen background, so the tile shows a
+          wash of its own artwork with the shimmer running over it rather than
+          an empty grey box waiting on the network. */}
       {!loaded && !noPlaceholder && (
-        <span aria-hidden className="img-sheen" />
+        <span
+          aria-hidden
+          className="img-sheen"
+          style={
+            placeholderColor
+              ? { backgroundColor: placeholderColor }
+              : undefined
+          }
+        />
       )}
     </span>
   );

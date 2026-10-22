@@ -5,6 +5,11 @@ import { Modal } from "@/components/ui/Modal";
 import { PopoverMenu } from "@/components/ui/PopoverMenu";
 import { PROJECT_TYPES, projectTypeMeta } from "@/constants/projectTypes";
 import { Rank, ProjectType } from "@/types";
+import {
+  motion as motionPreset,
+  layoutMotion,
+  staggerDelay,
+} from "@/lib/motion";
 
 interface LibraryProps {
   isOpen: boolean;
@@ -93,7 +98,7 @@ export const Library: React.FC<LibraryProps> = ({
           type="button"
           onClick={onClose}
           whileTap={{ scale: 0.94 }}
-          transition={{ type: "spring", stiffness: 520, damping: 32 }}
+          transition={motionPreset.snappy}
           className="px-3 h-9 rounded-control text-body font-semibold text-primary
                      hover:bg-hover transition-colors duration-150"
         >
@@ -110,12 +115,7 @@ export const Library: React.FC<LibraryProps> = ({
               type="button"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{
-                type: "spring",
-                stiffness: 520,
-                damping: 36,
-                delay: i * 0.02,
-              }}
+              transition={{ ...motionPreset.snappy, delay: i * 0.02 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
                 onNewRank(type);
@@ -177,12 +177,7 @@ export const Library: React.FC<LibraryProps> = ({
                       height: 0,
                       transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] },
                     }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 540,
-                      damping: 38,
-                      delay: Math.min(i, 6) * 0.02,
-                    }}
+                    transition={{ ...motionPreset.control, delay: staggerDelay(i) }}
                     className="group/row relative flex items-stretch
                                transition-colors duration-150
                                hover:bg-hover focus-within:bg-hover"
@@ -239,11 +234,7 @@ export const Library: React.FC<LibraryProps> = ({
                             {isActive && (
                               <motion.span
                                 layoutId="active-project-tick"
-                                transition={{
-                                  type: "spring",
-                                  stiffness: 520,
-                                  damping: 34,
-                                }}
+                                transition={layoutMotion}
                                 className="grid place-items-center w-4 h-4 rounded-full shrink-0"
                                 style={{ backgroundColor: "var(--color-accent-blue)" }}
                               >

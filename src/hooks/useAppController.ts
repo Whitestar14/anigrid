@@ -4,7 +4,7 @@ import { useToast } from "@/context/ToastContext";
 import { downloadGrid, copyGrid } from "@/utils/imageUtils";
 import { cleanupOldCache } from "@/utils/imageCache";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
-import { useCommandState } from "@/state/commandState";
+import { useShortcutState } from "@/state/shortcutState";
 import { useModalState } from "@/state/modalState";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { selectActiveRankId, selectActiveRank, selectRanks } from "@/store/selectors";
@@ -46,9 +46,9 @@ export function useAppController() {
   const handleNewRankLikeCurrent = useStore((s) => s.handleNewRankLikeCurrent);
   const updateRankById = useStore((s) => s.updateRankById);
 
-  // ⌘/ cheat sheet, owned by the command store so the keyboard hook can open it.
-  const isShortcutsOpen = useCommandState((s) => s.isShortcutsOpen);
-  const closeShortcuts = useCommandState((s) => s.closeShortcuts);
+  // ⌘/ cheat sheet, in a store so the keyboard hook can open it too.
+  const isShortcutsOpen = useShortcutState((s) => s.isOpen);
+  const closeShortcuts = useShortcutState((s) => s.close);
 
   // Lifecycles
   useEffect(() => {

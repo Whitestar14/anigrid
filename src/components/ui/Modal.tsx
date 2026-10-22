@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/utils";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { motion as motionPreset } from "@/lib/motion";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -72,10 +73,15 @@ export const Modal: React.FC<ModalProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.16, ease: [0.32, 0.72, 0, 1] }}
+            /* Scales up from 96% rather than sliding up from 12px. iOS sheets
+               genuinely slide because they are attached to an edge; a centred
+               dialog has no edge to emerge from, so translation reads as the
+               panel drifting rather than arriving. The scale also matches what
+               the popover menus already do. */
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            transition={motionPreset.sheet}
             style={{ willChange: "opacity, transform" }}
             className={cn(
               "relative w-full max-h-[85vh] flex flex-col overflow-hidden outline-none",

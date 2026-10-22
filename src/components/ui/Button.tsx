@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "@/utils";
 import { Loader2 } from "lucide-react";
+import { Pressable } from "@/components/ui/Pressable";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -42,15 +43,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     return (
-      <button
+      <Pressable
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
           "inline-flex items-center justify-center gap-1.5 rounded-full font-semibold",
-          // iOS dims on press rather than shrinking the control.
           "transition-[background-color,opacity,filter] duration-150",
-          "outline-none focus-visible:focus-ring",
-          "active:opacity-65 disabled:opacity-40 disabled:pointer-events-none",
           variants[variant],
           sizes[size],
           fullWidth && "w-full",
@@ -64,7 +62,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           icon && <span className="shrink-0 flex items-center">{icon}</span>
         )}
         {children}
-      </button>
+      </Pressable>
     );
   }
 );

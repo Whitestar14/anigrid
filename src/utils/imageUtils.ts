@@ -15,7 +15,10 @@ export async function withBoardHuggingLayout<T>(
   const horizontalPadding =
     parseFloat(styles.paddingLeft || "0") +
     parseFloat(styles.paddingRight || "0");
-  const boardWidth = Math.ceil(target.getBoundingClientRect().width);
+  // `offsetWidth` rather than `getBoundingClientRect`: the board sits under the
+  // scroll-linked scale wrapper, and a bounding rect would report the
+  // *transformed* width and export a board a couple of percent too narrow.
+  const boardWidth = Math.ceil(target.offsetWidth);
 
   const previousWidth = sheet.style.width;
   if (boardWidth > 0) {

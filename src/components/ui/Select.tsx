@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/utils";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { motion as motionPreset } from "@/lib/motion";
 
 export interface SelectOption {
   label: string;
@@ -67,7 +68,7 @@ export const Select: React.FC<SelectProps> = ({ options, value, onChange, placeh
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -5, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.65 }}
+            transition={motionPreset.sheet}
             className={cn(
               "absolute z-50 mt-1.5 overflow-hidden p-1",
               "material squircle rounded-card scrollbar-ios",

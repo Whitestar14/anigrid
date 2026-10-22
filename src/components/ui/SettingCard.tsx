@@ -1,12 +1,13 @@
 import React from "react";
 
-export const SettingButtonGroup: React.FC<{ children: React.ReactNode; className?: string }> = ({
+export const SettingButtonGroup: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({
   children,
   className = "",
+  style,
 }) => {
   const childrenArray = React.Children.toArray(children).filter(Boolean);
   return (
-    <div className={`flex flex-col flex-shrink-0 ${className}`}>
+    <div className={`flex flex-col flex-shrink-0 ${className}`} style={style}>
       {childrenArray.map((child, idx) => (
         <React.Fragment key={idx}>
           {child}

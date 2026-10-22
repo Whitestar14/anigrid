@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Info, AlertCircle } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { motion as motionPreset } from '@/lib/motion';
 
 export type ToastType = 'success' | 'info' | 'error';
 
@@ -52,7 +53,7 @@ const Toast: React.FC<{ toast: ToastMessage; onRemove: (id: string) => void }> =
       initial={{ opacity: 0, y: -20, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.9 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      transition={motionPreset.enter}
       className={`pointer-events-auto flex w-full max-w-md items-center gap-3 px-4 py-3 rounded-card ${reduceGlass
         ? 'bg-surface-elevated border border-border'
         : 'material-thick squircle'

@@ -1,8 +1,8 @@
 import React from "react";
 import { Maximize2, Grid, SquareDashedKanban, Square, Palette } from "lucide-react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { Slider } from "@/components/ui/Slider";
 import { ColorPicker } from "@/components/ui/ColorPicker";
+import { Field, NumberedSlider, SectionHeader, SettingsCard } from "./SettingsParts";
 import { ProjectType, Rank } from "@/types";
 
 const GRID_BG_COLORS = [
@@ -77,58 +77,6 @@ interface AppearanceSectionProps {
   onUpdateRank: (updates: Partial<Rank>) => void;
 }
 
-/** Uppercase grouped-list header, matching iOS section headers. */
-const SectionHeader: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => (
-  <span className="text-footnote font-medium text-muted uppercase tracking-wide pl-4">
-    {children}
-  </span>
-);
-
-/** Field label above a control, with an optional value shown alongside it. */
-const Field: React.FC<{
-  label: string;
-  /** Current value, echoed next to the label — the header for glyph controls. */
-  value?: React.ReactNode;
-  children: React.ReactNode;
-}> = ({ label, value, children }) => (
-  <div className="px-4 py-3 flex flex-col gap-2">
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-caption-2 font-semibold text-muted uppercase tracking-[0.04em]">
-        {label}
-      </span>
-      {value !== undefined && (
-        <span className="text-caption-1 font-semibold text-muted tabular-nums">
-          {value}
-        </span>
-      )}
-    </div>
-    {children}
-  </div>
-);
-
-const NumberedSlider: React.FC<{
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  suffix?: string;
-  onChange: (value: number) => void;
-}> = ({ label, value, min, max, step, suffix = "px", onChange }) => (
-  <div className="px-4 py-3 flex flex-col gap-2">
-    <div className="flex justify-between items-center text-footnote font-medium text-text">
-      <span>{label}</span>
-      <span className="text-muted tabular-nums">
-        {value}
-        {suffix}
-      </span>
-    </div>
-    <Slider min={min} max={max} step={step} value={value} onChange={onChange} />
-  </div>
-);
-
 export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
   projectType,
   aspectRatio,
@@ -140,18 +88,17 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
   rankBackgroundColor,
   onUpdateRank,
 }) => {
-  // Only ranking and list projects expose tile styling; a tier list has its
-  // own row layout.
   const supportsTileStyle =
     projectType === "ranking" || projectType === "list";
 
   const radius = borderRadius && borderRadius > 0 ? borderRadius : DEFAULT_RADIUS;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-2.5">
       <SectionHeader>Appearance</SectionHeader>
 
-      <div className="mx-4 material-card rounded-card overflow-hidden divide-y divide-hairline">
+      <SettingsCard className="divide-y divide-hairline">
+
         <Field label="Aspect Ratio" value={aspectRatio || "3:4"}>
           <SegmentedControl
             value={(aspectRatio || "3:4") as AspectRatio}
@@ -171,15 +118,10 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
 
         {supportsTileStyle && (
           <>
-            <Field
-              label={projectType === "list" ? "List Style" : "Grid Style"}
-            >
+            <Field label={projectType === "list" ? "List Style" : "Grid Style"}>
               <SegmentedControl
                 value={style}
                 onChange={(val) =>
-                  // Seamless is a collage: square corners, tiles touching.
-                  // Card re-seeds a visible radius and gutter, otherwise a board
-                  // switched from seamless would stay square and gapless.
                   val === "seamless"
                     ? onUpdateRank({ style: "seamless" })
                     : onUpdateRank({
@@ -236,50 +178,64 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
           </>
         )}
 
-        <Field label="Alignment">
-          <SegmentedControl
-            value={gridJustify || "center"}
-            onChange={(val) => onUpdateRank({ gridJustify: val })}
-            options={[
-              { value: "left", label: "Left" },
-              { value: "center", label: "Center" },
-              { value: "right", label: "Right" },
-            ]}
-          />
-        </Field>
+        {/* Alignment is read by exactly one view: the tier list, which
+            justifies the tiles inside a row. A ranking grid and a list both hug
+            their own content, so there is nothing for this to move — it showed
+            up for every project type, saved a value, and changed nothing. It is
+            offered only where the layout can honour it. */}
+        {projectType === "tierlist" && (
+          <Field label="Alignment">
+            <SegmentedControl
+              value={gridJustify || "left"}
+              onChange={(val) => onUpdateRank({ gridJustify: val })}
+              options={[
+                { value: "left", label: "Left" },
+                { value: "center", label: "Center" },
+                { value: "right", label: "Right" },
+              ]}
+            />
+          </Field>
+        )}
 
-        <Field label="Background">
-          <div className="flex flex-wrap gap-2">
+        {/* Background colour picker */}
+        <div className="px-4 py-3.5 flex flex-col gap-3">
+          <span className="text-footnote font-semibold text-text">Background</span>
+          <div className="flex flex-wrap gap-2.5">
             {GRID_BG_COLORS.map((color) => (
               <button
                 key={color}
                 onClick={() => onUpdateRank({ backgroundColor: color })}
-                className={`w-6 h-6 rounded-full border-2 transition-all ${
-                  rankBackgroundColor === color
-                    ? "border-primary scale-110"
-                    : "border-border hover:border-text"
-                }`}
-                style={swatchStyle(color)}
+                className="relative w-7 h-7 rounded-full transition-transform duration-150"
+                style={{
+                  ...swatchStyle(color),
+                  boxShadow:
+                    rankBackgroundColor === color
+                      ? `0 0 0 2px var(--color-background), 0 0 0 3.5px var(--color-primary)`
+                      : `inset 0 0 0 1px var(--material-hairline)`,
+                  transform: rankBackgroundColor === color ? "scale(1.1)" : "scale(1)",
+                }}
                 title={color === "transparent" ? "Transparent" : color}
               />
             ))}
+
+            {/* Custom colour swatch */}
             <label
-              className={`relative w-6 h-6 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center ${
-                !GRID_BG_COLORS.includes(rankBackgroundColor)
-                  ? "border-primary scale-110"
-                  : "border-border hover:border-text"
-              }`}
+              className="relative w-7 h-7 rounded-full cursor-pointer flex items-center justify-center transition-transform duration-150"
               style={{
                 backgroundColor: !GRID_BG_COLORS.includes(rankBackgroundColor)
                   ? rankBackgroundColor
                   : "var(--color-surface-secondary)",
+                boxShadow: !GRID_BG_COLORS.includes(rankBackgroundColor)
+                  ? `0 0 0 2px var(--color-background), 0 0 0 3.5px var(--color-primary)`
+                  : `inset 0 0 0 1px var(--material-hairline)`,
+                transform: !GRID_BG_COLORS.includes(rankBackgroundColor)
+                  ? "scale(1.1)"
+                  : "scale(1)",
               }}
               title="Custom Color"
             >
-              {/* `mix-blend-difference` over the chosen colour keeps the glyph
-                  visible on any swatch, so it is white-on-dark / black-on-light
-                  automatically. It only needs a neutral to blend against. */}
-              <Palette size={12} className="text-white mix-blend-difference" />
+              {/* mix-blend-difference keeps the icon legible on any bg colour */}
+              <Palette size={13} className="text-white mix-blend-difference" />
               <ColorPicker
                 value={
                   !GRID_BG_COLORS.includes(rankBackgroundColor)
@@ -290,8 +246,9 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
               />
             </label>
           </div>
-        </Field>
-      </div>
+        </div>
+
+      </SettingsCard>
     </div>
   );
 };

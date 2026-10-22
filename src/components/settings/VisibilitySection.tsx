@@ -1,7 +1,8 @@
 import React from "react";
-import { Hash, Type, Calendar } from "lucide-react";
+import { Hash, Type, Calendar, Droplets } from "lucide-react";
 import { SettingButtonGroup, SettingRow } from "@/components/ui/SettingCard";
 import { Toggle } from "@/components/ui/Toggle";
+import { SectionHeader, settingsCardStyle } from "./SettingsParts";
 import { ProjectType } from "@/types";
 
 interface VisibilitySectionProps {
@@ -22,27 +23,35 @@ export const VisibilitySection: React.FC<VisibilitySectionProps> = ({
   onVisualToggle,
 }) => {
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-footnote font-medium text-muted uppercase tracking-wide pl-4">
-        Visibility
-      </span>
-      <SettingButtonGroup className="material-card rounded-card overflow-hidden mx-4">
-        {(projectType === "ranking" || projectType === "list") && <SettingRow
-          asLabel
-          icon={<Hash size={16} />}
-          iconBg="bg-primary/20 text-primary"
-          label="Show Numbers"
-          right={
-            <Toggle
-              checked={showNumbers}
-              onCheckedChange={() => onVisualToggle("showNumbers")}
-            />
-          }
-        />}
+    <div className="flex flex-col gap-2.5">
+      <SectionHeader>Visibility</SectionHeader>
+
+      {/* Rows rather than fields: every control here is a switch behind an icon
+          chip, which is the idiom the rest of the app already uses for toggles.
+          The header and the surface are shared with the other two sections, so
+          the rail still reads as one object. */}
+      <SettingButtonGroup
+        className="mx-4 rounded-card overflow-hidden"
+        style={settingsCardStyle}
+      >
+        {(projectType === "ranking" || projectType === "list") && (
+          <SettingRow
+            asLabel
+            icon={<Hash size={15} />}
+            iconBg="bg-primary/15 text-primary"
+            label="Show Numbers"
+            right={
+              <Toggle
+                checked={showNumbers}
+                onCheckedChange={() => onVisualToggle("showNumbers")}
+              />
+            }
+          />
+        )}
         <SettingRow
           asLabel
-          icon={<Type size={16} />}
-          iconBg="bg-green-500/20 text-green-400"
+          icon={<Type size={15} />}
+          iconBg="bg-accent-green/15 text-accent-green"
           label="Show Title"
           right={
             <Toggle
@@ -53,8 +62,8 @@ export const VisibilitySection: React.FC<VisibilitySectionProps> = ({
         />
         <SettingRow
           asLabel
-          icon={<Calendar size={16} />}
-          iconBg="bg-orange-500/20 text-orange-400"
+          icon={<Calendar size={15} />}
+          iconBg="bg-accent-orange/15 text-accent-orange"
           label="Show Date"
           right={
             <Toggle
@@ -65,8 +74,8 @@ export const VisibilitySection: React.FC<VisibilitySectionProps> = ({
         />
         <SettingRow
           asLabel
-          icon={<Type size={16} />}
-          iconBg="bg-purple-500/20 text-purple-400"
+          icon={<Droplets size={15} />}
+          iconBg="bg-accent-purple/15 text-accent-purple"
           label="Show Watermark"
           right={
             <Toggle

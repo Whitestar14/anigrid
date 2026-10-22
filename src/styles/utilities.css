@@ -1,0 +1,157 @@
+@layer utilities {
+  .squircle {
+    corner-shape: initial;
+  }
+
+  .img-sheen {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background-color: var(--material-card-tint);
+  }
+  .img-sheen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 25%,
+      color-mix(in srgb, var(--color-text) 13%, transparent) 50%,
+      transparent 75%
+    );
+    animation: sheen 1.3s var(--ease-standard) infinite;
+  }
+
+  .tile-number {
+    position: absolute;
+    top: -0.05em;
+    left: 0;
+    z-index: 5;
+    font-size: 38cqi;
+    line-height: 0.8;
+    font-weight: 800;
+    letter-spacing: -0.07em;
+    font-variant-numeric: tabular-nums;
+
+    color: #ffffff;
+    text-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.55),
+      0 2px 12px rgba(0, 0, 0, 0.4);
+
+    /* Fades on two axes, composited with `intersect` so the numeral melts into
+       the artwork on whichever edge it runs out of. The vertical mask alone
+       left a two-digit numeral cut off in a hard straight line at the tile's
+       right edge, which read as clipped rather than as fading. */
+    -webkit-mask-image: linear-gradient(to bottom, #000 74%, transparent 100%),
+      linear-gradient(to right, #000 72%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to bottom, #000 74%, transparent 100%),
+      linear-gradient(to right, #000 72%, transparent 100%);
+    mask-composite: intersect;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Landing pulse for a tile that just received a drop. */
+  .drop-land {
+    animation: drop-land 460ms var(--ease-emphasized) forwards;
+  }
+
+  /* The target under a drag: the board should look like it is opening up. */
+  .drop-target {
+    animation: drop-target 900ms var(--ease-standard) infinite;
+  }
+
+  .focus-ring {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Guarantees Apple's 44pt minimum target without changing visual size. */
+  .touch-target::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Dock drop states. Outline rather than box-shadow so the material's own edge
+     highlight is never clobbered. */
+  .dock-drop-hot {
+    outline: 2px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+    outline-offset: 2px;
+  }
+  .dock-drop-active {
+    outline: 2.5px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* A control that appears on hover/focus — and stays visible on touch devices,
+     where hover does not exist. */
+  .affordance {
+    opacity: 0;
+    transition: opacity var(--duration-quick) var(--ease-standard);
+  }
+  .tile:hover .affordance,
+  .tile:focus .affordance,
+  .tile:focus-within .affordance,
+  .affordance-host:hover .affordance,
+  .affordance-host:focus-within .affordance {
+    opacity: 1;
+  }
+  @media (pointer: coarse) {
+    .affordance {
+      opacity: 1;
+    }
+  }
+
+  .scrollbar-ios,
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-ios:hover,
+  .custom-scrollbar:hover {
+    scrollbar-color: var(--color-separator-opaque) transparent;
+  }
+  .scrollbar-ios::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-ios::-webkit-scrollbar-track,
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-ios::-webkit-scrollbar-thumb,
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .scrollbar-ios:hover::-webkit-scrollbar-thumb,
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: var(--color-separator-opaque);
+  }
+
+  .scrollbar-none,
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar,
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}

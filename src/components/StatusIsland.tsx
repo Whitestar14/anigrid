@@ -2,6 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, Check } from "lucide-react";
 import { useActivityState } from "@/state/activityState";
+import { motion as motionPreset } from "@/lib/motion";
 
 export const StatusIsland: React.FC<{
   onCreateProject: () => void;
@@ -31,7 +32,7 @@ export const StatusIsland: React.FC<{
                   ${busy ? "cursor-progress" : "hover:brightness-125"}
                   ${isIdle ? "text-muted hover:text-text" : "text-text"}`}
       whileTap={busy ? undefined : { scale: 0.9 }}
-      transition={{ type: "spring", stiffness: 520, damping: 30 }}
+      transition={motionPreset.snappy}
     >
       {/* Success: a radial gradient blooming from the centre of the control.
           Two offset pulses so it reads as a breath rather than a flash. */}
@@ -73,7 +74,7 @@ export const StatusIsland: React.FC<{
           initial={{ opacity: 0, scale: 0.6, rotate: -25 }}
           animate={{ opacity: 1, scale: 1, rotate: 0 }}
           exit={{ opacity: 0, scale: 0.6, rotate: 25 }}
-          transition={{ type: "spring", stiffness: 480, damping: 30 }}
+          transition={motionPreset.snappy}
           className="relative grid place-items-center"
         >
           {isIdle ? (

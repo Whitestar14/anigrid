@@ -352,8 +352,16 @@ export const GlobalDragDropProvider: React.FC<{ children: ReactNode }> = ({ chil
     useStore.getState().setIsDraggingFromDock(false);
     useDragState.getState().endDrag();
 
-    const { active, over } = event;
+    const { active, over, delta } = event;
     if (!over) return;
+
+    /* A press that never travelled is not a drop. Collision detection is
+       `pointerWithin`, so a click that stays put inside a dock card still
+       resolves to whatever grid cell the card is sitting over, and the image
+       teleported into the board. The mouse sensor already needs 4px to
+       activate, so anything below that is a click that happened to cross the
+       threshold without going anywhere. */
+    if (Math.hypot(delta.x, delta.y) < 8) return;
 
     const activePayload = active.data.current as ActivePayload | undefined;
     const overPayload = over.data.current as OverPayload | undefined;
