@@ -10,6 +10,8 @@ Everything is stored in your browser.
 
 ## Capabilities
 
+![Ranku demo](./public/demo.gif)
+
 - Grid, list and tier-list boards
 - A centralized image library for collections and poster search
 - Exports / Direct image copying with image compression
