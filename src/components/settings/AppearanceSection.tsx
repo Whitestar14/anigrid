@@ -1,8 +1,13 @@
 import React from "react";
-import { Maximize2, Grid, SquareDashedKanban, Square, Palette } from "lucide-react";
+import { Maximize2, Grid, SquareDashedKanban, Square } from "lucide-react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { ColorPicker } from "@/components/ui/ColorPicker";
-import { Field, NumberedSlider, SectionHeader, SettingsCard } from "./SettingsParts";
+import { ColorPicker, ColorWheelSwatch } from "@/components/ui/ColorPicker";
+import {
+  Field,
+  NumberedSlider,
+  SectionHeader,
+  SettingsCard,
+} from "./SettingsParts";
 import { ProjectType, Rank } from "@/types";
 import {
   DEFAULT_CARD_GAP,
@@ -25,7 +30,6 @@ const GRID_BG_COLORS = [
   "#000000",
 ];
 
-/** The chequerboard that stands for "no background", in both appearances. */
 const TRANSPARENT_SWATCH: React.CSSProperties = {
   backgroundColor: "var(--color-surface)",
   backgroundImage:
@@ -94,14 +98,8 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
   rankBackgroundColor,
   onUpdateRank,
 }) => {
-  const supportsTileStyle =
-    projectType === "ranking" || projectType === "list";
+  const supportsTileStyle = projectType === "ranking" || projectType === "list";
 
-  /* A grid separates its own tiles, so both controls act on every grid style.
-     A list is one shape or the other, never both: in seamless style its rows
-     share an edge, which is what borders describe and what a gap would break;
-     in card style a gap holds the rows apart and each row's edge is the gap
-     itself. Showing both there would offer one control that cannot move. */
   const showsBorders =
     projectType === "ranking" ||
     (projectType === "list" && style === "seamless");
@@ -112,21 +110,20 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
     borderRadius && borderRadius > 0 ? borderRadius : DEFAULT_CARD_RADIUS;
   const aspect = aspectRatio || DEFAULT_ASPECT;
 
+  const isCustomColor = !GRID_BG_COLORS.includes(rankBackgroundColor);
+
   return (
     <div className="flex flex-col gap-2.5">
       <SectionHeader>Appearance</SectionHeader>
 
       <SettingsCard className="divide-y divide-hairline">
-
         <Field label="Aspect Ratio" value={aspect}>
           <SegmentedControl
             value={aspect as AspectRatio}
             onChange={(val) => onUpdateRank({ aspectRatio: val })}
             options={ASPECT_RATIOS.map((ratio) => ({
               value: ratio,
-              label: (
-                <AspectGlyph ratio={ratio} active={aspect === ratio} />
-              ),
+              label: <AspectGlyph ratio={ratio} active={aspect === ratio} />,
               ariaLabel: `${ratio} aspect ratio`,
             }))}
           />
@@ -172,14 +169,20 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
               <Field label="Borders">
                 <SegmentedControl
                   value={borderless ? "true" : "false"}
-                  onChange={(val) => onUpdateRank({ borderless: val === "true" })}
+                  onChange={(val) =>
+                    onUpdateRank({ borderless: val === "true" })
+                  }
                   options={[
                     {
                       value: "false",
                       label: "Visible",
                       icon: <SquareDashedKanban size={14} />,
                     },
-                    { value: "true", label: "Hidden", icon: <Square size={14} /> },
+                    {
+                      value: "true",
+                      label: "Hidden",
+                      icon: <Square size={14} />,
+                    },
                   ]}
                 />
               </Field>
@@ -198,9 +201,6 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
           </>
         )}
 
-        {/* Only a tier list justifies the tiles inside a row. A ranking grid and
-            a list both hug their own content, so there is nothing here for an
-            alignment control to move. */}
         {projectType === "tierlist" && (
           <>
             <Field label="Alignment">
@@ -215,10 +215,6 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
               />
             </Field>
 
-            {/* Two objects, not a slider. Spaced artwork floats in a gutter with
-                rounded corners; tight artwork meets its neighbour at square
-                edges. Anything in between is a board where a rounded image
-                still carries a margin it was meant to lose. */}
             <Field label="Image Spacing">
               <SegmentedControl
                 value={tierSpacing}
@@ -236,7 +232,9 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
 
         {/* Background colour picker */}
         <div className="px-4 py-3.5 flex flex-col gap-3">
-          <span className="text-footnote font-semibold text-text">Background</span>
+          <span className="text-footnote font-semibold text-text">
+            Background
+          </span>
           <div className="flex flex-wrap gap-2.5">
             {GRID_BG_COLORS.map((color) => (
               <button
@@ -249,47 +247,28 @@ export const AppearanceSection: React.FC<AppearanceSectionProps> = ({
                     rankBackgroundColor === color
                       ? `0 0 0 2px var(--color-background), 0 0 0 3.5px var(--color-primary)`
                       : `inset 0 0 0 1px var(--material-hairline)`,
-                  transform: rankBackgroundColor === color ? "scale(1.1)" : "scale(1)",
+                  transform:
+                    rankBackgroundColor === color ? "scale(1.1)" : "scale(1)",
                 }}
                 title={color === "transparent" ? "Transparent" : color}
               />
             ))}
 
-            {/* Custom colour swatch. The picker owns the button, so this is a
-                real focusable control rather than a label wrapping an invisible
-                native input. */}
             <ColorPicker
               label="Custom background colour"
-              value={
-                !GRID_BG_COLORS.includes(rankBackgroundColor)
-                  ? rankBackgroundColor
-                  : "#000000"
-              }
+              value={isCustomColor ? rankBackgroundColor : "#000000"}
               onChange={(v) => onUpdateRank({ backgroundColor: v })}
               className="w-7 h-7 rounded-full transition-transform duration-150"
               trigger={
-                <span
-                  className="relative grid place-items-center w-7 h-7 rounded-full"
-                  style={{
-                    backgroundColor: !GRID_BG_COLORS.includes(rankBackgroundColor)
-                      ? rankBackgroundColor
-                      : "var(--color-surface-secondary)",
-                    boxShadow: !GRID_BG_COLORS.includes(rankBackgroundColor)
-                      ? `0 0 0 2px var(--color-background), 0 0 0 3.5px var(--color-primary)`
-                      : `inset 0 0 0 1px var(--material-hairline)`,
-                    transform: !GRID_BG_COLORS.includes(rankBackgroundColor)
-                      ? "scale(1.1)"
-                      : "scale(1)",
-                  }}
-                >
-                  {/* mix-blend-difference keeps the icon legible on any bg colour */}
-                  <Palette size={13} className="text-white mix-blend-difference" />
-                </span>
+                <ColorWheelSwatch
+                  size={28}
+                  active={isCustomColor}
+                  value={isCustomColor ? rankBackgroundColor : undefined}
+                />
               }
             />
           </div>
         </div>
-
       </SettingsCard>
     </div>
   );

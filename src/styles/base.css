@@ -8,6 +8,11 @@
   html,
   body {
     height: 100%;
+    font-optical-sizing: auto;
+  }
+
+  html {
+    background-color: var(--color-background);
   }
 
   body {
@@ -32,7 +37,7 @@
 
   input,
   textarea,
-  [contenteditable='true'],
+  [contenteditable="true"],
   .selectable {
     user-select: text;
     -webkit-user-select: text;

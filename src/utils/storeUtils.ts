@@ -1,4 +1,16 @@
-import { GlobalState, CellData, InboxItem } from "@/types";
+import { GlobalState, CellData, InboxItem, Rank } from "@/types";
+
+// Th project a state should open on
+export const resolveActiveRankId = (
+  ranks: Record<string, Rank>,
+  activeRankId: string,
+): string => {
+  if (ranks[activeRankId]) return activeRankId;
+  const newest = Object.values(ranks).sort(
+    (a, b) => b.updatedAt - a.updatedAt,
+  )[0];
+  return newest?.id ?? "";
+};
 
 export const checkAndRescueImages = (
   removedCells: (CellData | InboxItem)[],

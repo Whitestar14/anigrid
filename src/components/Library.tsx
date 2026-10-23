@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Check, LayoutGrid, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  Check,
+  LayoutGrid,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { PopoverMenu } from "@/components/ui/PopoverMenu";
 import { PROJECT_TYPES, projectTypeMeta } from "@/constants/projectTypes";
@@ -37,9 +43,15 @@ export const Library: React.FC<LibraryProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(
-    null
+    null,
   );
   const [frozenOrder, setFrozenOrder] = useState<string[]>([]);
+  const [session, setSession] = useState(0);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) setSession((n) => n + 1);
+  }
   const editRef = useRef<HTMLInputElement>(null);
 
   // Read through a ref so the freeze effect does not depend on `ranks`.
@@ -54,7 +66,7 @@ export const Library: React.FC<LibraryProps> = ({
     setFrozenOrder(
       [...ranksRef.current]
         .sort((a, b) => b.updatedAt - a.updatedAt)
-        .map((r) => r.id)
+        .map((r) => r.id),
     );
   }, [isOpen]);
 
@@ -107,7 +119,7 @@ export const Library: React.FC<LibraryProps> = ({
       }
     >
       <div className="flex-1 overflow-y-auto scrollbar-ios min-h-0 px-4 pt-4 pb-6">
-        {/* ── New project ─────────────────────────────────────────────── */}
+        {/*  New project  */}
         <div className="grid grid-cols-3 gap-2">
           {PROJECT_TYPES.map(({ type, label, hint, icon: Icon, tint }, i) => (
             <motion.button
@@ -157,8 +169,6 @@ export const Library: React.FC<LibraryProps> = ({
             <span className="text-subheadline">No projects yet</span>
           </div>
         ) : (
-          /* `overflow-hidden` keeps the row hover highlight inside the card's
-             radius instead of squaring off its corners. */
           <ul className="material-card rounded-card overflow-hidden">
             <AnimatePresence initial={false}>
               {sorted.map((rank, i) => {
@@ -177,14 +187,17 @@ export const Library: React.FC<LibraryProps> = ({
                       height: 0,
                       transition: { duration: 0.16, ease: [0.32, 0.72, 0, 1] },
                     }}
-                    transition={{ ...motionPreset.control, delay: staggerDelay(i) }}
+                    transition={{
+                      ...motionPreset.control,
+                      delay: staggerDelay(i),
+                    }}
                     className="group/row relative flex items-stretch
                                transition-colors duration-150
                                hover:bg-hover focus-within:bg-hover"
                     style={
                       i < sorted.length - 1
                         ? {
-                            borderBottom: "0.5px solid var(--material-hairline)",
+                            borderBottom: "0.5px solid var(--color-divider)",
                           }
                         : undefined
                     }
@@ -233,12 +246,18 @@ export const Library: React.FC<LibraryProps> = ({
                             </span>
                             {isActive && (
                               <motion.span
-                                layoutId="active-project-tick"
+                                layoutId={`active-project-tick-${session}`}
                                 transition={layoutMotion}
                                 className="grid place-items-center w-4 h-4 rounded-full shrink-0"
-                                style={{ backgroundColor: "var(--color-accent-blue)" }}
+                                style={{
+                                  backgroundColor: "var(--color-accent-blue)",
+                                }}
                               >
-                                <Check size={10} strokeWidth={3.4} color="#fff" />
+                                <Check
+                                  size={10}
+                                  strokeWidth={3.4}
+                                  color="#fff"
+                                />
                               </motion.span>
                             )}
                           </span>
@@ -282,7 +301,6 @@ export const Library: React.FC<LibraryProps> = ({
         )}
       </div>
 
-      {/* One menu, anchored to whichever row was asked for. */}
       <PopoverMenu
         isOpen={!!menu}
         onClose={() => setMenu(null)}

@@ -7,12 +7,17 @@ import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { useShortcutState } from "@/state/shortcutState";
 import { useModalState } from "@/state/modalState";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import { selectActiveRankId, selectActiveRank, selectRanks } from "@/store/selectors";
+import {
+  selectActiveRankId,
+  selectActiveRank,
+  selectRanks,
+} from "@/store/selectors";
+import { resolveActiveRankId } from "@/utils/storeUtils";
 import { runActivity } from "@/state/activityState";
 
 export function useAppController() {
   const addToast = useToast();
-  
+
   // Local UI State
   const [showLoader, setShowLoader] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -25,9 +30,6 @@ export function useAppController() {
   const openAbout = useModalState((s) => s.openAbout);
   const requestConfirm = useModalState((s) => s.requestConfirm);
 
-  /* The export sheet. `downloadGrid`/`copyGrid` narrow it to the board's own
-     width for the duration of the capture, so the exported image wraps the
-     artwork instead of the window. */
   const gridRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -36,7 +38,7 @@ export function useAppController() {
   const activeRank = useStore(selectActiveRank);
   const ranks = useStore(selectRanks);
   const interactionState = useStore((s) => s.interactionState);
-  
+
   // Actions
   const setInteractionState = useStore((s) => s.setInteractionState);
   const updateActiveRank = useStore((s) => s.updateActiveRank);
@@ -46,7 +48,6 @@ export function useAppController() {
   const handleNewRankLikeCurrent = useStore((s) => s.handleNewRankLikeCurrent);
   const updateRankById = useStore((s) => s.updateRankById);
 
-  // ⌘/ cheat sheet, in a store so the keyboard hook can open it too.
   const isShortcutsOpen = useShortcutState((s) => s.isOpen);
   const closeShortcuts = useShortcutState((s) => s.close);
 
@@ -57,19 +58,30 @@ export function useAppController() {
   }, []);
 
   useEffect(() => {
-    if (window.innerWidth >= 1024) {
-      setIsSidebarOpen(true);
-    }
-    useStore.persist.onFinishHydration(() => setIsLoaded(true));
-    if (useStore.persist.hasHydrated()) {
-      setIsLoaded(true);
-    }
+    if (window.innerWidth >= 1024) setIsSidebarOpen(true);
 
-    const failsafe = window.setTimeout(() => setIsLoaded(true), 4000);
+    const setLoaded = () => setIsLoaded(true);
+    const unsubFinishHydration = useStore.persist.onFinishHydration(setLoaded);
 
+    if (useStore.persist.hasHydrated()) setLoaded();
+
+    const failsafe = window.setTimeout(setLoaded, 4000);
     cleanupOldCache();
-    return () => window.clearTimeout(failsafe);
+
+    return () => {
+      unsubFinishHydration();
+      window.clearTimeout(failsafe);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isLoaded || activeRank) return;
+    const { ranks, activeRankId, setActiveRankId, handleNewRank } =
+      useStore.getState();
+    const resolved = resolveActiveRankId(ranks, activeRankId);
+    if (resolved) setActiveRankId(resolved);
+    else handleNewRank("ranking");
+  }, [isLoaded, activeRank]);
 
   useAppTheme(isLoaded);
   useGlobalShortcuts({
@@ -78,7 +90,6 @@ export function useAppController() {
     onExport: openExport,
   });
 
-  /** Stable for the life of the app, because the store's action is. */
   const confirmAction = requestConfirm;
 
   const createProjectLikeCurrent = useCallback(() => {
@@ -93,16 +104,18 @@ export function useAppController() {
       {
         successLabel: "Project created",
         errorLabel: "Could not create project",
-      }
+      },
     );
   }, [handleNewRankLikeCurrent]);
 
   /**
    * Export reports through the island, which is determinate where it can be.
-   * The toast is kept for the *reason* on failure, since the island has room for
-   * a status but not for an explanation.
    */
-  const exportImage = async (fmt: "png" | "jpeg" | "webp", qualityScale: number) => {
+  const exportImage = async (
+    fmt: "png" | "jpeg" | "webp",
+    qualityScale: number,
+    trimPadding = false,
+  ) => {
     const element = gridRef.current;
     if (!element || !activeRank) return;
 
@@ -110,20 +123,29 @@ export function useAppController() {
       `Exporting ${fmt.toUpperCase()}`,
       async () => {
         try {
-          await downloadGrid(element, activeRank.title, fmt, qualityScale);
+          await downloadGrid(
+            element,
+            activeRank.title,
+            fmt,
+            qualityScale,
+            trimPadding,
+          );
         } catch (error) {
           addToast(
             "error",
-            error instanceof Error ? error.message : "Export failed"
+            error instanceof Error ? error.message : "Export failed",
           );
           throw error;
         }
       },
-      { successLabel: `Exported as ${fmt.toUpperCase()}`, errorLabel: "Export failed" }
+      {
+        successLabel: `Exported as ${fmt.toUpperCase()}`,
+        errorLabel: "Export failed",
+      },
     );
   };
 
-  const copyImage = async (qualityScale: number) => {
+  const copyImage = async (qualityScale: number, trimPadding = false) => {
     const element = gridRef.current;
     if (!element) return;
 
@@ -131,16 +153,16 @@ export function useAppController() {
       "Copying image",
       async () => {
         try {
-          await copyGrid(element, qualityScale);
+          await copyGrid(element, qualityScale, trimPadding);
         } catch (error) {
           addToast(
             "error",
-            error instanceof Error ? error.message : "Copy failed"
+            error instanceof Error ? error.message : "Copy failed",
           );
           throw error;
         }
       },
-      { successLabel: "Copied to clipboard", errorLabel: "Copy failed" }
+      { successLabel: "Copied to clipboard", errorLabel: "Copy failed" },
     );
   };
 

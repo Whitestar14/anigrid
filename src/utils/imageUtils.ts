@@ -8,14 +8,19 @@ export const EXPORT_BOARD_ATTR = "data-export-board";
 export async function withBoardHuggingLayout<T>(
   sheet: HTMLElement,
   run: () => Promise<T>,
+  /** Drop the sheet's own margin so the image is exactly the artwork. */
+  trimPadding = false,
 ): Promise<T> {
   const previousWidth = sheet.style.width;
+  const previousPadding = sheet.style.padding;
 
   /* Hide interactive chrome *before* measuring, so the sheet hugs the artwork
      rather than leaving a gutter where the controls used to be. */
   sheet.setAttribute("data-exporting", "");
 
   try {
+    if (trimPadding) sheet.style.padding = "0px";
+
     const board = sheet.querySelector<HTMLElement>(`[${EXPORT_BOARD_ATTR}]`);
     const target = board ?? sheet;
     const styles = getComputedStyle(sheet);
@@ -37,6 +42,7 @@ export async function withBoardHuggingLayout<T>(
     return await run();
   } finally {
     sheet.style.width = previousWidth;
+    sheet.style.padding = previousPadding;
     sheet.removeAttribute("data-exporting");
   }
 }
@@ -93,6 +99,7 @@ export const downloadGrid = async (
   title: string,
   format: string = "png",
   qualityScale: number = 2,
+  trimPadding: boolean = false,
 ) => {
   try {
     const options = {
@@ -102,14 +109,16 @@ export const downloadGrid = async (
       httpTimeout: 5000,
     };
 
-    // The board sits inside the sheet; the sheet is what gets captured, pinned
-    // to the board's own width so the background wraps the artwork.
-    const dataUrl = await withBoardHuggingLayout(element, async () => {
-      if (format === "jpeg" || format === "jpg") {
-        return toJpeg(element, { ...options, quality: 0.95 });
-      }
-      return toPng(element, options);
-    });
+    const dataUrl = await withBoardHuggingLayout(
+      element,
+      async () => {
+        if (format === "jpeg" || format === "jpg") {
+          return toJpeg(element, { ...options, quality: 0.95 });
+        }
+        return toPng(element, options);
+      },
+      trimPadding,
+    );
 
     const link = document.createElement("a");
     link.download = `${title
@@ -128,6 +137,7 @@ export const downloadGrid = async (
 export const copyGrid = async (
   element: HTMLElement,
   qualityScale: number = 2,
+  trimPadding: boolean = false,
 ) => {
   try {
     const options = {
@@ -137,8 +147,10 @@ export const copyGrid = async (
       httpTimeout: 5000,
     };
 
-    const dataUrl = await withBoardHuggingLayout(element, () =>
-      toPng(element, options),
+    const dataUrl = await withBoardHuggingLayout(
+      element,
+      () => toPng(element, options),
+      trimPadding,
     );
     const res = await fetch(dataUrl);
     const blob = await res.blob();

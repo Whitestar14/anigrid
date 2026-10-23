@@ -1,9 +1,3 @@
-@font-face {
-  font-family: "Inter";
-  src: url("../assets/InterVariable.woff2") format("woff2");
-  font-display: swap;
-}
-
 :root {
   color-scheme: dark;
 
@@ -28,6 +22,34 @@
 
   /* Film grain. */
   --material-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.04'/%3E%3C/svg%3E");
+
+  /* No cast shadow: on black a card is separated by its veil alone, and a
+     shadow under every row group just muddies it. */
+  --material-card-shadow: 0 0 0 0 transparent;
+
+  /* Hairlines *inside* a group. Softer than `--color-border`, which is a
+     boundary between surfaces. */
+  --color-divider: rgba(255, 255, 255, 0.07);
+
+  /* The fill a translucent card falls back to when glass is disabled. It cannot
+     be `--color-surface`: inside a modal that already is the surface, the row
+     group would disappear into its own background. */
+  --material-card-solid: #1c1c1e;
+
+  /* The loader's ramp. Dark mode is monochrome by design — the colour arrives
+     with the app, not before it. */
+  --loader-ramp: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.92) 0 20%,
+    rgba(255, 255, 255, 0.78) 20% 40%,
+    rgba(255, 255, 255, 0.64) 40% 60%,
+    rgba(255, 255, 255, 0.5) 60% 80%,
+    rgba(255, 255, 255, 0.36) 80% 100%
+  );
+
+  /* The rail is its own plane: a step below the board's cards so groups of
+     settings read as objects resting on it rather than as cut-outs. */
+  --color-rail: #1c1c1e;
 
   --material-edge: rgba(255, 255, 255, 0.12);
   --material-edge-strong: rgba(255, 255, 255, 0.2);
@@ -65,6 +87,34 @@
   --color-accent-teal: #5ac8fa;
   --color-accent-yellow: #ffcc00;
 
+  /* Grain has to carry a little more weight on a white card: the same 4% noise
+     that registers on charcoal disappears entirely under a light surface. */
+  --material-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.075'/%3E%3C/svg%3E");
+
+  /* In light mode separation comes from the surface step (F2F2F7 → white) plus
+     the thinnest possible shadow, the way a grouped table view does it. */
+  --material-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  --color-divider: rgba(60, 60, 67, 0.12);
+
+  /* A grey wash, not white: it has to be a card both on the #f2f2f7 rail and
+     inside a white dialog. */
+  --material-card-solid: rgba(120, 120, 128, 0.1);
+
+  /* Light mode is the one that gets the colour: a white page with a grey
+     wordmark reads as a wireframe, not as a loading screen. */
+  --loader-ramp: linear-gradient(
+    90deg,
+    var(--color-accent-pink) 0 20%,
+    var(--color-accent-orange) 20% 40%,
+    var(--color-accent-green) 40% 60%,
+    var(--color-accent-teal) 60% 80%,
+    var(--color-accent-purple) 80% 100%
+  );
+
+  /* iOS grouped background, so white cards have something to sit on. */
+  --color-rail: #f2f2f7;
+
   --material-regular-tint: rgba(255, 255, 255, 0.66);
   --material-thin-tint: rgba(255, 255, 255, 0.48);
   --material-thick-tint: rgba(255, 255, 255, 0.8);
@@ -88,14 +138,14 @@
   --material-edge: rgba(0, 0, 0, 0.05);
   --material-edge-strong: rgba(0, 0, 0, 0.08);
   --material-hairline: rgba(0, 0, 0, 0.07);
-  --material-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  --material-shadow-high: 0 12px 36px rgba(0, 0, 0, 0.16);
+  --material-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --material-shadow-high: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 @theme {
   --font-sans:
-    "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    "Work Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono:
     "SF Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono",
     "Courier New", monospace;

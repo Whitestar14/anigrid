@@ -1,6 +1,6 @@
 import { StateCreator } from "zustand";
 import { AppState } from "../useStore";
-import { checkAndRescueImages } from "@/utils/storeUtils";
+import { checkAndRescueImages, resolveActiveRankId } from "@/utils/storeUtils";
 import { GlobalState, InteractionState } from "@/types";
 
 export interface GlobalSlice {
@@ -12,13 +12,13 @@ export interface GlobalSlice {
   };
   setInteractionState: (state: InteractionState) => void;
   setDuplicateModalConfig: (
-    config: Partial<AppState["duplicateModalConfig"]>
+    config: Partial<AppState["duplicateModalConfig"]>,
   ) => void;
   handleDuplicateConfirm: (dontAskAgain: boolean) => void;
   checkDuplicateAndProceed: (imageSrc: string, action: () => void) => void;
   updateGlobalTheme: (themeUpdates: Partial<GlobalState["theme"]>) => void;
   handleClearAll: () => void;
-  importState: (newState: GlobalState, mode: 'merge' | 'overwrite') => void;
+  importState: (newState: GlobalState, mode: "merge" | "overwrite") => void;
   setSkipDuplicateWarning: (skip: boolean) => void;
   updatePreferences: (p: Partial<GlobalState["preferences"]>) => void;
 }
@@ -55,7 +55,7 @@ export const createGlobalSlice: StateCreator<
       isDuplicate = activeRank.cells.some((c) => c.imageSrc === imageSrc);
     } else if (activeRank.type === "tierlist") {
       isDuplicate = activeRank.tierRows.some((row) =>
-        row.items.some((item) => item.imageSrc === imageSrc)
+        row.items.some((item) => item.imageSrc === imageSrc),
       );
     }
 
@@ -115,7 +115,11 @@ export const createGlobalSlice: StateCreator<
         });
       } else {
         const cellsWithImages = activeRank.cells.filter((c) => c.imageSrc);
-        const rescued = checkAndRescueImages(cellsWithImages, state, targetColId);
+        const rescued = checkAndRescueImages(
+          cellsWithImages,
+          state,
+          targetColId,
+        );
         if (col && rescued.length > 0) {
           col.items.push(...rescued);
         }
@@ -131,7 +135,13 @@ export const createGlobalSlice: StateCreator<
   importState: (newState, mode) =>
     set((state: AppState) => {
       if (mode === "overwrite") {
-        return newState;
+        return {
+          ...newState,
+          activeRankId: resolveActiveRankId(
+            newState.ranks,
+            newState.activeRankId,
+          ),
+        } as AppState;
       }
 
       Object.entries(newState.ranks).forEach(([id, rank]) => {
@@ -144,7 +154,7 @@ export const createGlobalSlice: StateCreator<
 
       newState.inbox.collections.forEach((newCol) => {
         const existing = state.inbox.collections.find(
-          (c) => c.name.toLowerCase() === newCol.name.toLowerCase()
+          (c) => c.name.toLowerCase() === newCol.name.toLowerCase(),
         );
         if (existing) {
           const existingSrcs = new Set(existing.items.map((i) => i.imageSrc));

@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
+import { motion } from "motion/react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import {
   GripVertical,
@@ -12,7 +13,7 @@ import { TierRow as TierRowData } from "@/types";
 import { PopoverMenu } from "./ui/PopoverMenu";
 import { Modal } from "./ui/Modal";
 import { Input } from "./ui/Input";
-import { ColorPicker } from "./ui/ColorPicker";
+import { ColorPicker, ColorWheelSwatch } from "./ui/ColorPicker";
 import { TierItem, TierRail } from "./TierItem";
 import { TierLabel } from "./tier/TierLabel";
 import {
@@ -25,14 +26,13 @@ import {
 import { TIER_COLORS } from "@/constants/tierColors";
 import { normalizeTierColor } from "@/utils/dominantColor";
 import { getContrastColor } from "@/theme/palettes";
+import { layoutMotion } from "@/lib/motion";
 
 interface TierRowProps {
   row: TierRowData;
   index: number;
   aspectRatio: string;
-  /** Item rail height, so every row lines up and the user can resize them. */
   height?: number;
-  /** How items sit in the rail: spaced (rounded, guttered) or tight (flush). */
   spacing?: TierSpacing;
   justify?: "left" | "center" | "right";
   onUpdate: (rowId: string, updates: Partial<TierRowData>) => void;
@@ -104,7 +104,9 @@ export const TierRow = React.memo(function TierRow({
   const labelCap = Math.min(46, Math.round(height * 0.46));
 
   return (
-    <div
+    <motion.div
+      layout="position"
+      transition={layoutMotion}
       className="item-enter group/tier relative flex items-stretch bg-surface
                  [&:not(:first-child)]:border-t [&:not(:first-child)]:border-hairline"
       style={
@@ -113,7 +115,7 @@ export const TierRow = React.memo(function TierRow({
         } as React.CSSProperties
       }
     >
-      {/* ── Label block ─────────────────────────────────────────────── */}
+      {/* Label block */}
       <button
         ref={setLabelRefs}
         type="button"
@@ -127,7 +129,9 @@ export const TierRow = React.memo(function TierRow({
         aria-label={`Edit tier ${row.label}`}
         className="relative w-[72px] sm:w-[100px] shrink-0 grid place-items-center
                    cursor-grab active:cursor-grabbing touch-none outline-none
-                   focus-visible:focus-ring transition-[filter] duration-150
+                   focus-visible:focus-ring
+                   transition-[filter,min-height,background-color]
+                   duration-200 ease-emphasized
                    hover:brightness-110"
         style={{
           backgroundColor: row.color,
@@ -156,7 +160,7 @@ export const TierRow = React.memo(function TierRow({
         <TierLabel label={row.label} color={textColor} cap={labelCap} />
       </button>
 
-      {/* ── Items rail ──────────────────────────────────────────────── */}
+      {/* Items rail */}
       <TierRail
         rowId={row.id}
         height={height}
@@ -179,7 +183,7 @@ export const TierRow = React.memo(function TierRow({
         ))}
       </TierRail>
 
-      {/* ── Row controls ────────────────────────────────────────────── */}
+      {/* Row controls */}
       <div
         data-export-hide=""
         className="relative w-[34px] shrink-0 flex items-center justify-center"
@@ -226,7 +230,7 @@ export const TierRow = React.memo(function TierRow({
         triggerPoint={anchor}
       />
 
-      {/* ── Tier editor ─────────────────────────────────────────────── */}
+      {/* Tier editor */}
       <Modal
         isOpen={isEditorOpen}
         onClose={() => setIsEditorOpen(false)}
@@ -294,19 +298,16 @@ export const TierRow = React.memo(function TierRow({
                 onChange={(v) =>
                   onUpdate(row.id, { color: normalizeTierColor(v) })
                 }
-                className="w-8 h-8 rounded-full overflow-hidden"
+                className="w-8 h-8 rounded-full"
                 trigger={
-                  <span
-                    className="block w-8 h-8 rounded-full"
-                    style={{
-                      background:
-                        "conic-gradient(from 180deg, #ff6b6b, #ffd43b, #69db7c, #4dabf7, #9775fa, #ff6b6b)",
-                      boxShadow: !TIER_COLORS.some(
+                  <ColorWheelSwatch
+                    size={32}
+                    value={row.color}
+                    active={
+                      !TIER_COLORS.some(
                         (c) => c.toLowerCase() === row.color.toLowerCase(),
                       )
-                        ? "0 0 0 2px var(--color-background), 0 0 0 4px var(--color-text)"
-                        : "inset 0 0 0 0.5px var(--material-hairline)",
-                    }}
+                    }
                   />
                 }
               />
@@ -336,6 +337,6 @@ export const TierRow = React.memo(function TierRow({
           </div>
         </div>
       </Modal>
-    </div>
+    </motion.div>
   );
 });

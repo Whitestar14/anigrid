@@ -1,19 +1,29 @@
-/* Fallbacks for `reduceGlassEffects`. Chromium's `backdrop-filter` needs a real
-   `--color-surface` behind it, otherwise the material reads as a grey slab. */
+/*
+ * Glass fallbacks (reduceGlassEffects).
+ *
+ * Without `backdrop-filter` to sample a real surface, each material has to
+ * become an opaque equivalent that *keeps its role*: bars stay bars, sheets
+ * stay sheets, cards stay a step away from their host. Per-token rationale
+ * lives with the token in tokens.css.
+ */
 
-html[data-reduce-glass] :where(.material, .material-thin, .material-card) {
+html[data-reduce-glass] :where(.material, .material-thin) {
   background-color: var(--color-surface);
   box-shadow: inset 0 0 0 0.5px var(--material-hairline);
 }
 
-/* The tile veil keeps the tint it always had; it is not a panel. */
+html[data-reduce-glass] :where(.material-card) {
+  background-color: var(--material-card-solid);
+  box-shadow: inset 0 0 0 0.5px var(--material-hairline);
+}
+
+/* Veil keeps its tint — it is not a panel. */
 html[data-reduce-glass] :where(.card-veil) {
   background-color: var(--material-card-tint);
   box-shadow: none;
 }
 
-/* Sheets and modals sit a step higher and keep a soft lift: an opaque dialog
-   that casts nothing still reads as floating. */
+/* Thick sits a step higher; opaque dialogs still need to float. */
 html[data-reduce-glass] :where(.material-thick) {
   background-color: var(--color-surface-elevated);
   box-shadow:
@@ -21,17 +31,13 @@ html[data-reduce-glass] :where(.material-thick) {
     var(--material-shadow-high);
 }
 
-/* Bars collapse all the way to the page background — the only mapping that does
-   not put a bright grey band across the top and bottom of a black screen. */
+/* Chrome collapses to page bg — the only mapping that works in both themes. */
 html[data-reduce-glass] :where(.material-chrome) {
   background-color: var(--color-background);
   box-shadow: inset 0 -0.5px 0 0 var(--material-hairline);
 }
 
-/* Without glass the control sits directly on the opaque surface, so a
-   translucent thumb has nothing to be translucent *over* — it reads as a hole
-   punched in the track. Give it the solid elevated fill it had before, while
-   the glass appearance keeps the lighter veil. */
+/* WHY: a translucent thumb has nothing to be translucent over. */
 html[data-reduce-glass] {
   --color-control-thumb: var(--color-surface-elevated);
 }

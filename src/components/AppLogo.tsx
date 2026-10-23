@@ -37,7 +37,13 @@ export const LoadingScreen: React.FC = () => {
       >
         <div className="flex items-end" style={{ gap: 3 }}>
           {[...WORD].map((letter, i) => (
-            <span key={`${letter}-${i}`} style={{ color: brandColorAt(i) }}>
+            <span
+              key={`${letter}-${i}`}
+              className="loader-letter"
+              style={
+                { "--brand-color": brandColorAt(i) } as React.CSSProperties
+              }
+            >
               <PixelText text={letter} height={LETTER_HEIGHT} />
             </span>
           ))}

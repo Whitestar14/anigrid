@@ -9,11 +9,10 @@ import { motion as motionPreset } from "@/lib/motion";
  * conflicts with the DOM signatures any component built on plain button props
  * is already passing down.
  */
-export interface PressableProps
-  extends Omit<
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    "ref" | "children"
-  > {
+export interface PressableProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "ref" | "children"
+> {
   children?: React.ReactNode;
   /**
    * How far the control compresses on press. Defaults to a subtle 3%; pass a
@@ -23,12 +22,7 @@ export interface PressableProps
 }
 
 /**
- * The app's press feedback, in one place.
- *
- * Previously the toolbar used a spring while `Button` used `active:opacity` and
- * the settings rows used neither, so pressing things felt uneven in a way that
- * is hard to point at but easy to feel. Everything now compresses on the same
- * spring at the same magnitude.
+ * The app's press feedback
  */
 export const Pressable = React.forwardRef<HTMLButtonElement, PressableProps>(
   ({ children, className, scale = 0.97, disabled, ...props }, ref) => (
@@ -40,20 +34,13 @@ export const Pressable = React.forwardRef<HTMLButtonElement, PressableProps>(
       transition={motionPreset.snappy}
       className={cn(
         "outline-none focus-visible:focus-ring disabled:pointer-events-none disabled:opacity-40",
-        className
+        className,
       )}
-      /* Motion redefines around fifteen handler names for its gesture system
-         (`onDrag`, `onPanStart`, `onAnimationStart`, `onPointerDown`, …), each
-         with a different signature from the DOM one. Since callers pass plain
-         DOM button props, the two types can never line up structurally — so
-         this is reconciled once here rather than by enumerating every
-         conflicting name at every call site. Nothing in the app passes a
-         motion-specific handler through this component. */
       {...(props as unknown as HTMLMotionProps<"button">)}
     >
       {children}
     </motion.button>
-  )
+  ),
 );
 
 Pressable.displayName = "Pressable";

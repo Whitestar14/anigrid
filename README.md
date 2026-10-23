@@ -1,72 +1,54 @@
-# Ranku
+![Ranku banner](./public/banner.png)
 
-> The sleekest anime ranker/tier list builder for the perfectionists among us. There really aren't that many decent options for 3x3s out there, so I made one myself.
+# Ranku - modern anime ranking app
 
-A minimalist, **dark-mode native** ranking application built for anime enthusiasts. Now you can rank your favorite characters and organize your lists with zero clutter.
+Ranku is a local-first board for ranking anime supporting three layouts (grid, ordered list and a tier list) and a shared library of images for storing posters across projects. It's built for those who want an easy, stress-free alternative to building 3x3 grids or creating seasonal anime listings without having to reach for an image editor.
 
-## Premium Experience
+Everything is stored in your browser.
 
-- **iOS-Inspired UI:** Modern glassmorphism, curated typography (Outfit-ish), and silky-smooth physics-based animations via Framer Motion.
-- **Direct Pan & Zoom:** No more clunky sliders. Just click "Adjust" and drag the image directly or use the scroll wheel to zoom.
-- **Intelligent Dock:** A smart bottom dock that knows when to get out of your way and when to reappear during drag-and-drop.
-- **Infinite History:** Fully integrated Undo/Redo (via zundo) with global keyboard shortcuts (`Ctrl+Z` / `Ctrl+Shift+Z`).
+[Website](https://tryranku.vercel.app) | [Contributing](#contributions)
 
-## Features
+## Capabilities
 
-- **Multiple Ranking Modes:**
-  - **Grid ranking:** Visual 3x3s and beyond at a glance.
-  - **List ranking:** Detailed ratings and labels with smooth reordering.
-  - **Tier lists:** Standard S-tier through D-tier with fluid drag-and-drop rows.
-
-- **Inbox & Collection System:**
-  - Manage your image library with custom collections.
-  - Bulk add/delete support.
-  - "Recall" images from the board back to the stash instantly.
-
-- **Performance & Tech:**
-  - **Image Compression:** Automatic client-side downscaling and WebP conversion to keep your storage light.
-  - **IndexedDB Persistence:** Your work is saved locally and instantly across sessions.
-  - **Keyboard Navigation:** Full arrow-key support for grid navigation and `Backspace` to clear.
+- Grid, list and tier-list boards
+- A centralized image library for collections and poster search
+- Exports / Direct image copying with image compression
+- A blend of iOS-inspired design with some 8-bit aesthetics (I don't own an iOS device and so this is mostly guided by Medium articles and very loosely on Apple's HIG, therefore expect some roughness around the edges)
+- Mobile-first, and I mean it
 
 ## Development
 
-Built with React 19, Zustand, Framer Motion, Tailwind CSS, TypeScript 5.8, Zundo, and IDB.
-
-### Frontend Setup
-
 ```bash
-# Install dependencies
 pnpm install
-
-# Start dev server
-pnpm dev
-
-# Build for production
+pnpm dev      # http://localhost:5173
 pnpm build
 ```
 
-### Backend (Image Proxy)
+The app uses the AniList and Jikan/myAnimeList API for poster search, and a small Flask proxy in `backend/` to get around Jikan CORS and other site URLs when embedding hosted artwork into a canvas export. Search will still work without it, but remote images will appear blank on canvas export.
 
-The app uses a Python proxy to bypass CORS restrictions when fetching images from external sources like MyAnimeList. This enables full export functionality with external images.
-
-```bash
-# Install backend dependencies
+```pwsh
 cd backend
-python -m venv venv
-# Windows (PowerShell): venv\Scripts\Activate.ps1
-# Windows (Git Bash): source venv/Scripts/activate
-# Mac/Linux: source venv/bin/activate
+python -m venv venv && source venv/Scripts/activate   # or venv/bin/activate
 pip install -r requirements.txt
-
-# Run proxy server
-python app.py
+python app.py                                          # http://localhost:5000
 ```
 
-The proxy will be available at `http://localhost:5000`
+Copy `.env.example` to `.env` and set `VITE_IMAGE_PROXY_URL=http://localhost:5000/proxy/image`.
 
-Add to your `.env` file:
-```
-VITE_IMAGE_PROXY_URL=http://localhost:5000/proxy/image
-```
+## Known Issues
 
-El. Psy. Congroo.
+As of October 2026, the Jikan API currently doesn't work and is [likely going to be discontinued altogether](https://github.com/jikan-me/jikan-rest/issues/610), so for now the AniList API will be the only available option before a switch to [Tenrai](https://tenrai.org) is implemented as AniList itself is also [currently facing performance issues](https://anilist.co/forum/thread/92613).
+
+## Requirements
+
+React 19, TypeScript, Zustand, TailwindCSS 4, Motion, dnd-kit, and html-to-image.
+
+## Contributions
+
+If you have a bug you want to fix or a feature you want to add, feel free to create a PR. All contributions are welcome.
+
+## License
+
+MIT
+
+Built with &#x2764; and maintained by [Whitestar14](https://github.com/Whitestar14).

@@ -9,6 +9,7 @@ import { RemoteImage } from "@/components/ui/RemoteImage";
 import { PopoverMenu } from "@/components/ui/PopoverMenu";
 import { AdjustOverlay } from "@/components/ui/AdjustOverlay";
 import { TileEmptyState } from "./tile/TileEmptyState";
+import { getContrastColor } from "@/theme/palettes";
 import { useTile } from "./tile/useTile";
 import {
   restingTileShadow,
@@ -35,6 +36,9 @@ export const Cell = React.memo(function Cell({
   const cell = useStore((s) => s.ranks[s.activeRankId]?.cells[index]);
   const board = useStore(useShallow(selectActiveBoard));
   const title = useStore((s) => s.ranks[s.activeRankId]?.title ?? "");
+  const sheetTextColor = getContrastColor(
+    useStore((s) => s.ranks[s.activeRankId]?.backgroundColor ?? "transparent"),
+  );
 
   const handleCellClear = useStore((s) => s.handleCellClear);
   const handleUpdateCell = useStore((s) => s.handleUpdateCell);
@@ -46,11 +50,11 @@ export const Cell = React.memo(function Cell({
     aspectRatio: board?.aspectRatio ?? DEFAULT_ASPECT,
     update: (patch) => handleUpdateCell(index, patch),
     setImage: (src) => handleUpdateCell(index, { imageSrc: src }),
-    /* A pasted URL is filed into the Library, so the image is still yours after
-       it leaves the board. A direct file upload is not: it was never in the
-       library to begin with. */
     importFromUrl: (url) =>
-      handleItemTransfer({ type: "search", imageSrc: url }, { type: "cell", index }),
+      handleItemTransfer(
+        { type: "search", imageSrc: url },
+        { type: "cell", index },
+      ),
     clear: () => handleCellClear(index),
     returnToLibrary: () =>
       handleItemTransfer({ type: "cell", index }, { type: "inbox" }),
@@ -79,7 +83,7 @@ export const Cell = React.memo(function Cell({
       setTileNodeRef(node);
       setDragNodeRef(node);
     },
-    [setTileNodeRef, setDragNodeRef]
+    [setTileNodeRef, setDragNodeRef],
   );
 
   if (!cell || !board) return null;
@@ -119,8 +123,6 @@ export const Cell = React.memo(function Cell({
       style={
         {
           aspectRatio: aspectToCss(board.aspectRatio),
-          // Capped so a large board still finishes settling quickly, and reads
-          // as a sweep from the top-left rather than an endless ripple.
           "--enter-delay": `${Math.min(index, 14) * 26}ms`,
         } as React.CSSProperties
       }
@@ -161,6 +163,7 @@ export const Cell = React.memo(function Cell({
           <TileEmptyState
             index={index}
             isDraggingAny={tile.isDraggingAny}
+            labelColor={sheetTextColor}
             onOpen={tile.openMenu}
           />
         )}

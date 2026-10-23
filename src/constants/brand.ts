@@ -1,3 +1,6 @@
+import pkg from "../../package.json" with { type: "json" };
+export const APP_VERSION = pkg.version;
+
 export const BRAND_PALETTE = [
   "var(--color-accent-pink)",
   "var(--color-accent-orange)",

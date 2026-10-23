@@ -9,22 +9,29 @@ import type { ImageFormat } from "@/utils/imageUtils";
 
 /*
  * One host per dialog. Each subscription lives here rather than in `AppContent`
- * so that opening a dialog does not re-render the whole app — the single
- * largest source of modal lag this app had.
+ * so that opening a dialog does not re-render the whole app
  */
 
 export const ExportModalHost: React.FC<{
-  onExportImage: (format: ImageFormat, qualityScale: number) => void;
-  onCopyImage: (qualityScale: number) => void;
+  onExportImage: (
+    format: ImageFormat,
+    qualityScale: number,
+    trimPadding: boolean,
+  ) => void;
+  onCopyImage: (qualityScale: number, trimPadding: boolean) => void;
 }> = ({ onExportImage, onCopyImage }) => {
   const isOpen = useModalState((s) => s.isExportOpen);
   const close = useModalState((s) => s.closeExport);
+  const trimPadding = useStore((s) => s.preferences.exportTrimmed ?? true);
+  const updatePreferences = useStore((s) => s.updatePreferences);
   return (
     <ExportModal
       isOpen={isOpen}
       onClose={close}
       onExportImage={onExportImage}
       onCopyImage={onCopyImage}
+      trimPadding={trimPadding}
+      onTrimPaddingChange={(trim) => updatePreferences({ exportTrimmed: trim })}
     />
   );
 };

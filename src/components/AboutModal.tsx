@@ -1,65 +1,114 @@
-import React from 'react';
-import { Modal } from './ui/Modal';
-import { SettingButtonGroup, SettingRow } from './ui/SettingCard';
-import { ExternalLink } from 'lucide-react';
+import React from "react";
+import { Modal } from "./ui/Modal";
+import { SettingButtonGroup, SettingRow } from "./ui/SettingCard";
+import { ExternalLink } from "lucide-react";
+import { PixelWordmark } from "./app/PixelWordmark";
+import { BRAND_PALETTE, APP_VERSION } from "@/constants/brand";
 
 interface AboutModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      className="max-w-[280px] max-h-[500px]"
-      contentClassName="p-0 overflow-hidden"
-    >
-      <div className="flex flex-col items-center pt-12 pb-2">
 
-        <h2 className="text-title-2 font-bold text-text tracking-tight mb-1">Ranku</h2>
-        <p className="text-footnote font-medium text-muted/60">ランクウ</p>
-        <p className="text-footnote font-medium text-muted/60 mb-6">Version 0.9.3</p>
+export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => (
+  <Modal
+    isOpen={isOpen}
+    onClose={onClose}
+    className="max-w-75"
+    contentClassName="p-0 overflow-hidden"
+    aria-labelledby="about-modal-title"
+  >
+    <div className="relative flex flex-col">
+      <h2 id="about-modal-title" className="sr-only">
+        About Ranku
+      </h2>
 
-        <div className="w-full px-4 mb-4">
-          <SettingButtonGroup className="material-thin rounded-control overflow-hidden">
-            <SettingRow
-              as="div"
-              label={<span className="text-subheadline">Developer</span>}
-              right={<span className="text-subheadline text-muted font-medium">Stud.io</span>}
-              className="min-h-[44px] py-0"
-            />
-            <SettingRow
-              as="div"
-              label={<span className="text-subheadline">License</span>}
-              right={<span className="text-subheadline text-muted font-medium">MIT</span>}
-              className="min-h-[44px] py-0"
-            />
-            <SettingRow
-              as="a"
-              // @ts-ignore
-              href="https://github.com/Whitestar14/anigrid"
-              target="_blank"
-              label={<span className="text-subheadline">Source Code</span>}
-              right={<ExternalLink size={14} className="text-muted/50" />}
-              className="min-h-[44px] py-0"
-            />
-          </SettingButtonGroup>
-        </div>
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-40 pointer-events-none opacity-[0.06]"
+        style={{
+          backgroundImage:
+            "repeating-conic-gradient(var(--color-text) 0% 25%, transparent 0% 50%)",
+          backgroundSize: "6px 6px",
+          maskImage:
+            "radial-gradient(ellipse 90% 100% at 50% 0%, #000 0%, #000 40%, transparent 85%)",
+          WebkitMaskImage:
+            "radial-gradient(ellipse 90% 100% at 50% 0%, #000 0%, #000 40%, transparent 85%)",
+        }}
+      />
 
-        <p className="text-caption-2 text-muted/40 text-center px-8 mb-6 leading-tight font-medium">
-          Ranku is an anime ranking board and tier list editor. Drag, drop, and organize your favorite shows with fluid, responsive animations.
+      <div className="relative flex flex-col items-center px-6 pt-8 pb-6">
+        <span aria-hidden>
+          <PixelWordmark height={21} className="text-text" />
+        </span>
+
+        <span aria-hidden className="flex items-center gap-1 mt-3.5">
+          {BRAND_PALETTE.map((color, i) => (
+            <span
+              key={i}
+              className="block w-1 h-1 rounded-[1px]"
+              style={{ backgroundColor: color }}
+            />
+          ))}
+        </span>
+
+        <p className="text-caption-1 text-muted mt-3 text-center leading-snug">
+          Anime posters and rankings
         </p>
-
-        <div className="w-full border-t border-border/60">
-          <button
-            onClick={onClose}
-            className="w-full py-3.5 text-body text-primary font-semibold hover:bg-hover active:bg-black/5 dark:active:bg-white/5 transition-colors"
-          >
-            Done
-          </button>
-        </div>
+        <p className="text-caption-2 text-faint mt-1 tabular-nums">
+          Version {APP_VERSION}
+        </p>
       </div>
-    </Modal>
-  );
-};
+
+      <div className="relative px-4 pb-4">
+        <SettingButtonGroup className="material-card rounded-card overflow-hidden">
+          <SettingRow
+            as="div"
+            label="Developer"
+            right={
+              <span className="text-subheadline text-muted">xijibomi</span>
+            }
+            className="min-h-11.5 py-0"
+          />
+          <SettingRow
+            as="div"
+            label="License"
+            right={<span className="text-subheadline text-muted">MIT</span>}
+            className="min-h-11.5 py-0"
+          />
+          <SettingRow
+            as="a"
+            href="https://github.com/Whitestar14/anigrid"
+            target="_blank"
+            rel="noopener noreferrer"
+            label="Source"
+            right={
+              <>
+                <ExternalLink size={13} className="text-muted/60" aria-hidden />
+                <span className="sr-only"> (opens in a new tab)</span>
+              </>
+            }
+            className="min-h-11.5 py-0"
+          />
+        </SettingButtonGroup>
+      </div>
+
+      <p className="relative px-7 pb-6 text-caption-1 text-muted/70 text-center leading-relaxed">
+        The easiest and sleekest way to make 3×3s, tier grids and beautiful
+        anime posters.
+      </p>
+
+      <div className="relative border-t border-(--color-divider)">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-3.5 text-body font-semibold text-primary
+                     hover:bg-hover active:bg-black/5 dark:active:bg-white/5
+                     transition-colors duration-150"
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  </Modal>
+);

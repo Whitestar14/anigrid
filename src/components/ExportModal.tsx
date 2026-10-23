@@ -8,8 +8,15 @@ import { Button } from "@/components/ui/Button";
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExportImage: (format: ImageFormat, qualityScale: number) => void;
-  onCopyImage?: (qualityScale: number) => void;
+  onExportImage: (
+    format: ImageFormat,
+    qualityScale: number,
+    trimPadding: boolean,
+  ) => void;
+  onCopyImage?: (qualityScale: number, trimPadding: boolean) => void;
+  /** Crop the capture to the artwork rather than the board's page margin. */
+  trimPadding: boolean;
+  onTrimPaddingChange: (trim: boolean) => void;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -17,6 +24,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   onClose,
   onExportImage,
   onCopyImage,
+  trimPadding,
+  onTrimPaddingChange,
 }) => {
   const [format, setFormat] = useState<ImageFormat>("png");
   const [quality, setQuality] = useState<number>(2);
@@ -55,6 +64,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
           <div className="flex flex-col gap-2">
             <span className="text-caption-1 font-medium text-muted uppercase tracking-wider ml-1">
+              Frame
+            </span>
+            <SegmentedControl
+              value={trimPadding ? "trim" : "board"}
+              onChange={(val) => onTrimPaddingChange(val === "trim")}
+              options={[
+                { value: "trim", label: "Trimmed" },
+                { value: "board", label: "Padded" },
+              ]}
+            />
+            <p className="text-caption-1 text-muted leading-snug px-1">
+              {trimPadding
+                ? "The image ends where your artwork does."
+                : "Keeps the board's margin around the artwork."}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-caption-1 font-medium text-muted uppercase tracking-wider ml-1">
               Export Quality
             </span>
             <SegmentedControl
@@ -74,7 +102,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               size="lg"
               icon={<FileImage size={18} />}
               onClick={() => {
-                onExportImage(format, quality);
+                onExportImage(format, quality, trimPadding);
                 onClose();
               }}
             >
@@ -86,7 +114,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               variant="gray"
               icon={<Copy size={18} />}
               onClick={() => {
-                if (onCopyImage) onCopyImage(quality);
+                if (onCopyImage) onCopyImage(quality, trimPadding);
                 onClose();
               }}
             >

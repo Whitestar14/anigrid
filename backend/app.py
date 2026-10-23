@@ -19,15 +19,9 @@ image_cache = {}
 CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cache')
 os.makedirs(CACHE_DIR, exist_ok=True)
 
-# ── AniList passthrough ───────────────────────────────────────────────────────
-# AniList is a free service on donated infrastructure and regularly degrades,
-# so the app must never be the reason it is hit harder. Requests are serialised
-# behind a lock with a minimum gap between outbound calls, identical queries are
-# cached on disk, and AniList's own Retry-After is honoured.
-#
-# This also removes the CORS failures the browser hit when talking to
-# graphql.anilist.co directly, and gives AniList the same server-side guards
-# the MyAnimeList path already had.
+# To avoid hammering the already hammered free-service on donated infrastructure
+# requests are serialised behind a lock with a minimum gap between outbound calls snd identical queries are
+# cached on disk.
 ANILIST_ENDPOINT = 'https://graphql.anilist.co'
 ANILIST_MIN_INTERVAL = 1.5  # seconds between outbound calls
 _anilist_lock = threading.Lock()
@@ -109,8 +103,6 @@ def proxy_anilist():
     except ValueError:
         return jsonify({'error': 'AniList returned a non-JSON response'}), 502
 
-    # Cache successful lookups only: caching a failure for the whole TTL would
-    # keep the app degraded long after AniList recovered.
     if response.status_code == 200 and not data.get('errors'):
         _write_json_cache(cache_file, data)
 
@@ -130,9 +122,6 @@ def proxy_image():
     allowed_domains = [
         'myanimelist.net',
         's4.anilist.co',
-        # AniList serves character art and some covers from these hosts, not
-        # only s4 — without them those images were refused with a 403 and the
-        # dock showed empty tiles.
         'anilist.co',
         'anilistcdn.com',
         'cdn.myanimelist.net',

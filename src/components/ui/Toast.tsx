@@ -1,7 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Check, Info, AlertCircle } from "lucide-react";
-import { useStore } from "@/store/useStore";
+import { PixelIcon, type PixelIconName } from "@/components/pixel/PixelIcon";
 import { motion as motionPreset } from "@/lib/motion";
 
 export type ToastType = "success" | "info" | "error";
@@ -19,75 +18,91 @@ interface ToastProps {
   onRemove: (id: string) => void;
 }
 
-export const ToastContainer: React.FC<ToastProps> = ({ toasts, onRemove }) => {
-  return (
-    <div className="fixed inset-x-0 top-16 z-toast flex flex-col items-center gap-2 px-4 pointer-events-none">
-      <AnimatePresence mode="popLayout">
-        {toasts.map((toast) => (
-          <Toast key={toast.id} toast={toast} onRemove={onRemove} />
-        ))}
-      </AnimatePresence>
-    </div>
-  );
+const TOAST_LIFE = 3400;
+
+const TONES: Record<ToastType, { icon: PixelIconName; color: string }> = {
+  success: { icon: "check", color: "var(--color-accent-green)" },
+  error: { icon: "alert", color: "var(--color-destructive)" },
+  info: { icon: "info", color: "var(--color-primary)" },
 };
+
+export const ToastContainer: React.FC<ToastProps> = ({ toasts, onRemove }) => (
+  <div
+    aria-live="polite"
+    aria-atomic="false"
+    className="fixed inset-x-0 z-toast flex flex-col items-center gap-1.5 px-4 pointer-events-none"
+    style={{ top: "calc(4rem + env(safe-area-inset-top, 0px))" }}
+  >
+    <AnimatePresence mode="popLayout" initial={false}>
+      {toasts.map((toast) => (
+        <Toast key={toast.id} toast={toast} onRemove={onRemove} />
+      ))}
+    </AnimatePresence>
+  </div>
+);
 
 const Toast: React.FC<{
   toast: ToastMessage;
   onRemove: (id: string) => void;
 }> = ({ toast, onRemove }) => {
-  const reduceGlass = useStore(
-    (s) => s.preferences.reduceGlassEffects ?? false,
-  );
+  const tone = TONES[toast.type];
+  const timer = useRef<number | undefined>(undefined);
+
+  const dismiss = useCallback(() => onRemove(toast.id), [onRemove, toast.id]);
+
+  const startTimer = useCallback(() => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(dismiss, TOAST_LIFE);
+  }, [dismiss]);
+
+  const pauseTimer = useCallback(() => {
+    window.clearTimeout(timer.current);
+  }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onRemove(toast.id);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [toast.id, onRemove]);
-
-  const icons = {
-    success: (
-      <div className="bg-accent-green rounded-full p-0.5">
-        <Check size={14} className="text-on-accent" strokeWidth={3} />
-      </div>
-    ),
-    error: (
-      <div className="bg-destructive rounded-full p-0.5">
-        <AlertCircle size={14} className="text-on-accent" strokeWidth={3} />
-      </div>
-    ),
-    info: (
-      <div className="bg-primary rounded-full p-0.5">
-        <Info size={14} className="text-on-accent" strokeWidth={3} />
-      </div>
-    ),
-  };
+    startTimer();
+    return () => window.clearTimeout(timer.current);
+  }, [startTimer]);
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: -20, scale: 0.9 }}
+      initial={{ opacity: 0, y: -8, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -20, scale: 0.9 }}
-      transition={motionPreset.enter}
-      className={`pointer-events-auto flex w-full max-w-md items-center gap-3 px-4 py-3 rounded-card ${
-        reduceGlass
-          ? "bg-surface-elevated border border-border"
-          : "material-thick squircle"
-      }`}
+      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+      transition={motionPreset.snappy}
+      onMouseEnter={pauseTimer}
+      onMouseLeave={startTimer}
+      onFocusCapture={pauseTimer}
+      onBlurCapture={startTimer}
+      className="pointer-events-auto flex max-w-[min(92vw,30rem)] items-center gap-2.5
+                 pl-2 pr-3.5 py-2 material-thick squircle rounded-full"
     >
-      {icons[toast.type]}
-      <span className="flex-1 min-w-0 text-subheadline font-medium text-text">
+      <span
+        aria-hidden
+        className="grid place-items-center w-[26px] h-[26px] shrink-0 rounded-full"
+        style={{
+          color: tone.color,
+          backgroundColor: `color-mix(in srgb, ${tone.color} 15%, transparent)`,
+        }}
+      >
+        <PixelIcon name={tone.icon} size={18} />
+      </span>
+
+      <span className="min-w-0 text-footnote font-medium text-text leading-snug">
         {toast.message}
       </span>
+
       {toast.action && toast.actionLabel && (
         <button
+          type="button"
           onClick={() => {
-            toast.action!();
-            onRemove(toast.id);
+            toast.action?.();
+            dismiss();
           }}
-          className="ml-2 text-footnote font-semibold text-primary hover:text-primary/80 transition-colors"
+          className="shrink-0 ml-0.5 px-2 h-7 rounded-full text-footnote font-semibold
+                     text-primary hover:bg-hover active:opacity-70
+                     transition-colors duration-150"
         >
           {toast.actionLabel}
         </button>

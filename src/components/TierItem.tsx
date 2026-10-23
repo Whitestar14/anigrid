@@ -50,7 +50,10 @@ export const TierItem = React.memo(function TierItem({
     setImage: (src) => handleUpdateTierItem(rowId, item.id, { imageSrc: src }),
     clear: () => handleTierItemRemove(rowId, item.id),
     returnToLibrary: () =>
-      handleItemTransfer({ type: "tier", rowId, itemId: item.id }, { type: "inbox" }),
+      handleItemTransfer(
+        { type: "tier", rowId, itemId: item.id },
+        { type: "inbox" },
+      ),
     filename: `tier-${idx + 1}.jpg`,
   });
 
@@ -65,15 +68,13 @@ export const TierItem = React.memo(function TierItem({
     disabled: tile.dragDisabled,
   });
 
-  /* Destructured so the composed callback depends on the stable function rather
-     than on the hook's result object, which is rebuilt every render. */
   const { setNodeRef: setTileNodeRef } = tile;
   const setRefs = useCallback(
     (node: HTMLDivElement | null) => {
       setTileNodeRef(node);
       setDragNodeRef(node);
     },
-    [setTileNodeRef, setDragNodeRef]
+    [setTileNodeRef, setDragNodeRef],
   );
 
   const width = widthForHeight(aspectRatio, height);
@@ -97,13 +98,14 @@ export const TierItem = React.memo(function TierItem({
       }}
       /* Draggable, so the touch sensor needs to own the gesture; without
          `touch-none` a phone treats the drag as a scroll. */
-      className={`relative shrink-0 group/tile outline-none touch-none ${
-        isDragging ? "opacity-25" : ""
-      }`}
+      className={`item-enter relative shrink-0 group/tile outline-none touch-none
+                  transition-[width,height,opacity] duration-240 ease-emphasized ${
+                    isDragging ? "opacity-25" : ""
+                  }`}
       style={{ width, height }}
     >
       <div
-        className="relative w-full h-full overflow-hidden squircle"
+        className="relative w-full h-full overflow-hidden squircle transition-[border-radius] duration-240 ease-emphasized"
         style={{
           borderRadius: radius,
           boxShadow: tileStateShadow({
@@ -198,15 +200,22 @@ export const TierItem = React.memo(function TierItem({
 export const TierRail: React.FC<{
   rowId: string;
   height: number;
-  /** Gap between items, and inset on every side. 0 sits flush. */
   gap: number;
-  /** Radius every item in this row draws with, including the empty slot. */
   itemRadius: number;
   isEmpty?: boolean;
   aspectRatio: string;
   children: React.ReactNode;
   justify?: "left" | "center" | "right";
-}> = ({ rowId, height, gap, itemRadius, isEmpty, aspectRatio, children, justify }) => {
+}> = ({
+  rowId,
+  height,
+  gap,
+  itemRadius,
+  isEmpty,
+  aspectRatio,
+  children,
+  justify,
+}) => {
   const { isOver, setNodeRef } = useDroppable({
     id: `tier-row-body-${rowId}`,
     data: { type: "tier-cell", rowId, index: -1 },
@@ -229,9 +238,10 @@ export const TierRail: React.FC<{
   return (
     <div
       ref={setNodeRef}
-      onClick={(e) => handleInteraction(e.clientX, e.clientY, e.target as HTMLElement)}
-      className={`relative flex-1 min-w-0 flex flex-wrap content-start items-start
-                  transition-colors duration-150 ${justifyClass}`}
+      onClick={(e) =>
+        handleInteraction(e.clientX, e.clientY, e.target as HTMLElement)
+      }
+      className={`relative flex-1 min-w-0 flex flex-wrap content-start items-start ${justifyClass}`}
       style={{
         gap,
         padding: gap,
@@ -239,19 +249,12 @@ export const TierRail: React.FC<{
         backgroundColor: isOver
           ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
           : undefined,
+        transition:
+          "gap 240ms var(--ease-emphasized), padding 240ms var(--ease-emphasized), min-height 240ms var(--ease-emphasized), background-color 150ms var(--ease-standard)",
       }}
     >
       {children}
 
-      {/* An empty tier is empty: nothing is drawn at rest. A row of dashed
-          "Empty" boxes is a column of the same word repeated six times, which
-          is louder than any artwork the board is actually about — and in tight
-          mode, where every cell meets its neighbour, they read as debris.
-
-          What is left is the one moment the hint is useful: something is in
-          flight and the row is telling you it can take it. The box is then a
-          preview of an item at the size it would land, and it disappears the
-          instant the drag ends. */}
       {isEmpty && isDraggingAny && (
         <span
           aria-hidden
@@ -262,9 +265,6 @@ export const TierRail: React.FC<{
           style={{
             width: widthForHeight(aspectRatio, height),
             height,
-            /* Same box language as a real item: square when the row is tight,
-               rounded when it is spaced. The placeholder is a preview of an
-               item, so it may not keep a shape the items themselves lost. */
             borderRadius: itemRadius,
           }}
         >

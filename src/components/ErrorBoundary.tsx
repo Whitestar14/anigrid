@@ -70,7 +70,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-subheadline text-muted mt-2 leading-relaxed">
               {isConfirmingReset
                 ? "This deletes every project, collection and preference stored in this browser. It cannot be undone."
-                : "The app hit an unexpected error. Your projects and library are saved locally, so trying again costs nothing."}
+                : "The app hit an unexpected error. Your projects and library are safe."}
             </p>
 
             {error?.message && !isConfirmingReset && (

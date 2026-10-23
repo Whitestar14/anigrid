@@ -1,7 +1,6 @@
 import React from "react";
 import { Slider } from "@/components/ui/Slider";
 
-/** Section header — label with a hairline rule extending to the rail edge. */
 export const SectionHeader: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => (
@@ -19,10 +18,10 @@ export const SectionHeader: React.FC<{ children: React.ReactNode }> = ({
   </div>
 );
 
-/** The one card surface every group of settings sits on. */
 export const settingsCardStyle: React.CSSProperties = {
   backgroundColor: "var(--color-surface-elevated)",
-  boxShadow: "inset 0 0 0 0.5px var(--material-hairline)",
+  backgroundImage: "var(--material-grain)",
+  boxShadow: `inset 0 0 0 0.5px var(--material-hairline), var(--material-card-shadow)`,
 };
 
 export const SettingsCard: React.FC<{
@@ -77,8 +76,6 @@ export const NumberedSlider: React.FC<{
         {suffix}
       </span>
     </div>
-    {/* The visible label above is not a `<label>` and has no `htmlFor`, so the
-        slider needs its own accessible name or it announces as "slider". */}
     <Slider
       aria-label={label}
       min={min}

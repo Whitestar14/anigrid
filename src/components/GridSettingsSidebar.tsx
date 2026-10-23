@@ -61,7 +61,6 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
 
   return (
     <>
-      {/* Scrim: mobile only */}
       <div
         aria-hidden={!isOpen || undefined}
         className={`fixed inset-0 bg-overlay z-rail-panel md:hidden transition-opacity duration-200 ${
@@ -73,26 +72,26 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
       <aside
         inert={!isOpen || undefined}
         aria-label="Project settings"
-        className="
+        className={`
           shrink-0 overflow-hidden
-          border-r border-hairline
           z-rail-panel
           fixed top-14 bottom-0 left-0 md:static md:top-auto
           rounded-r-panel md:rounded-none
-          shadow-[var(--material-shadow-high)] md:shadow-none
           transition-[width,opacity] duration-240 ease-emphasized
-        "
+          ${isOpen ? "rail-elevation" : ""}
+        `}
         style={{
-          /* On a phone a fixed 20rem rail can consume the whole viewport and
-             leave nowhere to tap to dismiss it. It caps at 86vw so the board —
-             and the scrim that closes it — stay visible. */
           width: isOpen ? "min(var(--rail-width), 86vw)" : "0rem",
           opacity: isOpen ? 1 : 0,
-          backgroundColor: "var(--color-surface)",
+          backgroundColor: "var(--color-rail)",
+          borderRight: isOpen
+            ? "0.5px solid var(--material-hairline)"
+            : "0.5px solid transparent",
+          pointerEvents: isOpen ? undefined : "none",
         }}
       >
         <div className="w-full max-w-80 h-full flex flex-col">
-          <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-hairline bg-surface">
+          <div className="flex items-center gap-3 px-5 h-14 shrink-0 border-b border-hairline bg-[var(--color-rail)]">
             <span
               className="grid place-items-center w-9 h-9 rounded-[10px] squircle shrink-0"
               style={{
@@ -103,7 +102,6 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
               <TypeIcon size={18} strokeWidth={2} />
             </span>
 
-            {/* Text — type caption above, board title below */}
             <span className="flex flex-col min-w-0 flex-1">
               <span
                 className="text-caption-2 font-semibold text-muted"
@@ -137,7 +135,6 @@ export const GridSettingsSidebar: React.FC<GridSettingsSidebarProps> = ({
             </button>
           </div>
 
-          {/* ── Scrollable content ───────────────────────────────────────── */}
           <motion.div
             className="flex-1 overflow-y-auto scrollbar-ios overflow-x-hidden overscroll-contain"
             initial={false}

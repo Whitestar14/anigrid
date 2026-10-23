@@ -29,7 +29,6 @@ export interface InboxCollection {
 export type GridStyle = "seamless" | "card";
 export type ProjectType = "ranking" | "list" | "tierlist";
 
-/** The boolean board options a switch can flip. */
 export type VisualToggleKey =
   | "showNumbers"
   | "showTitle"
@@ -61,13 +60,7 @@ export interface Rank {
   borderless?: boolean;
   aspectRatio?: "1:1" | "3:4" | "4:3" | "16:9" | "9:16";
   cellWidth?: number;
-  /** Item rail height of a tier row, in px. */
   tierRowHeight?: number;
-  /**
-   * How a tier row's items sit: `spaced` floats rounded artwork in a gutter,
-   * `tight` meets it flush at square edges. Two presets, never a free number —
-   * the gutter and the corner radius must agree.
-   */
   tierSpacing?: "spaced" | "tight";
   borderRadius?: number;
   gap: number;
@@ -86,10 +79,6 @@ export interface GlobalTheme {
   isDark: boolean;
 }
 
-/**
- * Where poster search looks first. "auto" is MyAnimeList with AniList behind
- * it; the named values promote one and keep the other as the fallback.
- */
 export type ImageSourcePreference = "auto" | "myanimelist" | "anilist";
 
 export interface GlobalState {
@@ -105,10 +94,9 @@ export interface GlobalState {
   };
   preferences: {
     skipDuplicateWarning: boolean;
-    /** Disables backdrop-blur across the app (better on low-end GPUs). */
     reduceGlassEffects: boolean;
-    /** When true, dock collapses on drag start on desktop too (not only mobile). */
     autoCloseDockOnDragDesktop: boolean;
+    exportTrimmed?: boolean;
     imageSource?: ImageSourcePreference;
   };
 }

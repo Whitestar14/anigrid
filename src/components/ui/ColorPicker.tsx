@@ -10,8 +10,61 @@ import { motion, AnimatePresence } from "motion/react";
 import { motion as motionPreset } from "@/lib/motion";
 import { cn } from "@/utils";
 import { TIER_COLORS } from "@/constants/tierColors";
+import { PixelInput } from "@/components/pixel/PixelInput";
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+const isHex = (value: string) =>
+  /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim());
+
+/** `abc` / `#abc` → `#aabbcc`. The field accepts 3-digit; the model wants 6. */
+const normalizeHex = (value: string) => {
+  const trimmed = value.trim().toLowerCase().replace("#", "");
+  const expanded =
+    trimmed.length === 3
+      ? trimmed
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : trimmed;
+  return `#${expanded}`;
+};
+
+const toCanonicalHex = (value: string) =>
+  isHex(value) ? normalizeHex(value) : value;
+
+export const COLOR_WHEEL =
+  "conic-gradient(from 180deg, #ff6b6b, #ffd43b, #69db7c, #4dabf7, #9775fa, #ff6b6b)";
+
+export const ColorWheelSwatch: React.FC<{
+  value?: string;
+  size?: number;
+  active?: boolean;
+  className?: string;
+}> = ({ value, size = 28, active = false, className = "" }) => (
+  <span
+    aria-hidden
+    className={`relative grid place-items-center rounded-full ${className}`}
+    style={{
+      width: size,
+      height: size,
+      backgroundImage: COLOR_WHEEL,
+      boxShadow: active
+        ? "0 0 0 2px var(--color-background), 0 0 0 3.5px var(--color-primary)"
+        : "inset 0 0 0 0.5px var(--material-hairline)",
+    }}
+  >
+    <span
+      className="block rounded-full"
+      style={{
+        width: size - 7,
+        height: size - 7,
+        backgroundColor: value ?? "var(--color-surface-secondary)",
+        boxShadow: "inset 0 0 0 0.5px rgba(0,0,0,0.14)",
+      }}
+    />
+  </span>
+);
 
 export const hexToHsv = (hex: string): { h: number; s: number; v: number } => {
   const value = /^#?[0-9a-f]{6}$/i.test(hex) ? hex.replace("#", "") : "000000";
@@ -60,18 +113,11 @@ export const hsvToHex = (h: number, s: number, v: number): string => {
   );
 };
 
-const isHex = (value: string) =>
-  /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim());
-
 export interface ColorPickerProps {
   value: string;
   onChange: (value: string) => void;
-  /**
-   * The visible swatch. It is wrapped in a real button, so it must not be
-   * interactive itself. Omit for a standard well.
-   */
+  /** Visible swatch. Wrapped in a real button, so it must not be interactive itself. */
   trigger?: React.ReactNode;
-  /** Extra classes for the trigger button (sizing, radius). */
   className?: string;
   label?: string;
   disabled?: boolean;
@@ -88,94 +134,156 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   disabled = false,
   presets = TIER_COLORS,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const svRef = useRef<HTMLDivElement>(null);
-  const hueRef = useRef<HTMLDivElement>(null);
+  // Accept 3- or 6-digit hex from the consumer; use 6-digit internally.
+  const normalizedValue = toCanonicalHex(value);
 
-  const [draft, setDraft] = useState(value);
-  const [hsv, setHsv] = useState(() => hexToHsv(value));
+  const [isOpen, setIsOpen] = useState(false);
+  const [draft, setDraft] = useState(normalizedValue);
+  const [hsv, setHsv] = useState(() => hexToHsv(normalizedValue));
   const [coords, setCoords] = useState<{
     x: number;
     y: number;
     above: boolean;
   } | null>(null);
 
-  /* Re-sync when the value changes from outside (a preset, an undo, another
-     panel). Compared as hex so dragging inside this panel — which writes the
-     same value straight back — cannot fight the pointer. */
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const svRef = useRef<HTMLDivElement>(null);
+  const hueRef = useRef<HTMLDivElement>(null);
+
+  /* rAF-throttle onChange so a drag doesn't hammer the consumer. Local
+     visual state (hsv / draft) still updates synchronously every event. */
+  const changeRafRef = useRef<number | null>(null);
+  const pendingHexRef = useRef<string | null>(null);
+
+  const scheduleChange = useCallback(
+    (hex: string) => {
+      pendingHexRef.current = hex;
+      if (changeRafRef.current != null) return;
+      changeRafRef.current = requestAnimationFrame(() => {
+        changeRafRef.current = null;
+        const pending = pendingHexRef.current;
+        pendingHexRef.current = null;
+        if (pending != null) onChange(pending);
+      });
+    },
+    [onChange],
+  );
+
+  useEffect(
+    () => () => {
+      if (changeRafRef.current != null) {
+        cancelAnimationFrame(changeRafRef.current);
+        changeRafRef.current = null;
+      }
+    },
+    [],
+  );
+
+  /* Re-sync when the value changes from outside. */
   useEffect(() => {
-    setDraft(value);
+    setDraft(normalizedValue);
     setHsv((prev) =>
-      hsvToHex(prev.h, prev.s, prev.v) === value.toLowerCase()
+      hsvToHex(prev.h, prev.s, prev.v) === normalizedValue.toLowerCase()
         ? prev
-        : hexToHsv(value),
+        : hexToHsv(normalizedValue),
     );
-  }, [value]);
+  }, [normalizedValue]);
+
+  /* Close when the trigger becomes disabled while open. */
+  useEffect(() => {
+    if (disabled) setIsOpen(false);
+  }, [disabled]);
 
   const commit = useCallback(
     (next: { h: number; s: number; v: number }) => {
       setHsv(next);
       const hex = hsvToHex(next.h, next.s, next.v);
       setDraft(hex);
-      onChange(hex);
+      scheduleChange(hex);
     },
-    [onChange],
+    [scheduleChange],
   );
 
+  /* Placement. `offsetWidth/Height` ignore the entrance scale transform,
+     so measurements are accurate on the first frame. */
   useLayoutEffect(() => {
     if (!isOpen) return;
+    const triggerEl = triggerRef.current;
+    const panelEl = panelRef.current;
+    if (!triggerEl || !panelEl) return;
 
     const place = () => {
-      const trigger = triggerRef.current;
-      const panel = panelRef.current;
-      if (!trigger || !panel) return;
-
-      const anchor = trigger.getBoundingClientRect();
-      const size = panel.getBoundingClientRect();
+      const anchor = triggerEl.getBoundingClientRect();
+      const width = panelEl.offsetWidth;
+      const height = panelEl.offsetHeight;
       const padding = 10;
       const gap = 8;
       const viewportHeight =
         window.visualViewport?.height ?? window.innerHeight;
       const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
 
+      // Trigger scrolled fully out of view — close instead of chasing it.
+      if (anchor.bottom < 0 || anchor.top > viewportHeight) {
+        setIsOpen(false);
+        return;
+      }
+
       const above =
-        anchor.bottom + gap + size.height > viewportHeight - padding &&
-        anchor.top - gap - size.height > padding;
+        anchor.bottom + gap + height > viewportHeight - padding &&
+        anchor.top - gap - height > padding;
       const x = Math.min(
-        Math.max(padding, anchor.left + anchor.width / 2 - size.width / 2),
-        viewportWidth - size.width - padding,
+        Math.max(padding, anchor.left + anchor.width / 2 - width / 2),
+        viewportWidth - width - padding,
       );
-      const rawY = above ? anchor.top - gap - size.height : anchor.bottom + gap;
+      const rawY = above ? anchor.top - gap - height : anchor.bottom + gap;
       const y = Math.max(
         padding,
-        Math.min(rawY, viewportHeight - size.height - padding),
+        Math.min(rawY, viewportHeight - height - padding),
       );
 
       setCoords((prev) =>
-        prev && prev.x === x && prev.y === y ? prev : { x, y, above },
+        prev && prev.x === x && prev.y === y && prev.above === above
+          ? prev
+          : { x, y, above },
       );
     };
 
+    // Synchronous first measure — runs before paint, no flash.
     place();
-    const raf = requestAnimationFrame(place);
-    const observer = new ResizeObserver(place);
-    if (panelRef.current) observer.observe(panelRef.current);
+
+    let frame = 0;
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        place();
+      });
+    };
+
+    const observer = new ResizeObserver(schedule);
+    observer.observe(panelEl);
+    observer.observe(triggerEl);
+
     const viewport = window.visualViewport;
-    viewport?.addEventListener("resize", place);
+    viewport?.addEventListener("resize", schedule);
+    viewport?.addEventListener("scroll", schedule);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("scroll", schedule, true);
+
     return () => {
-      cancelAnimationFrame(raf);
+      if (frame) cancelAnimationFrame(frame);
       observer.disconnect();
-      viewport?.removeEventListener("resize", place);
+      viewport?.removeEventListener("resize", schedule);
+      viewport?.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, true);
     };
   }, [isOpen]);
 
+  /* Outside click + Escape. */
   useEffect(() => {
-    if (!isOpen) {
-      setCoords(null);
-      return;
-    }
+    if (!isOpen) return;
     const onPointerDown = (e: PointerEvent) => {
       if (panelRef.current?.contains(e.target as Node)) return;
       if (triggerRef.current?.contains(e.target as Node)) return;
@@ -184,14 +292,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setIsOpen(false);
     };
-    const onResize = () => setIsOpen(false);
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("keydown", onKeyDown);
-    window.addEventListener("resize", onResize);
     return () => {
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("resize", onResize);
     };
   }, [isOpen]);
 
@@ -222,41 +327,51 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
     );
   };
 
+  const hueFromPointer = (
+    element: HTMLElement | null,
+    pointer: PointerEvent,
+  ) => {
+    if (!element) return null;
+    const rect = element.getBoundingClientRect();
+    const dx = pointer.clientX - (rect.left + rect.width / 2);
+    const dy = pointer.clientY - (rect.top + rect.height / 2);
+    return (Math.atan2(dx, -dy) * 180) / Math.PI;
+  };
+
   const onHuePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag(hueRef.current, e.nativeEvent, (sx) =>
-      commit({ h: sx * 359.999, s: hsv.s, v: hsv.v }),
-    );
+    const h = hueFromPointer(hueRef.current, e.nativeEvent);
+    if (h !== null) commit({ h: ((h % 360) + 360) % 360, s: hsv.s, v: hsv.v });
   };
 
   const onHuePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-    drag(hueRef.current, e.nativeEvent, (sx) =>
-      commit({ h: sx * 359.999, s: hsv.s, v: hsv.v }),
-    );
+    const h = hueFromPointer(hueRef.current, e.nativeEvent);
+    if (h !== null) commit({ h: ((h % 360) + 360) % 360, s: hsv.s, v: hsv.v });
   };
 
   const hueColor = hsvToHex(hsv.h, 1, 1);
   const hex = hsvToHex(hsv.h, hsv.s, hsv.v);
 
   const panel = (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={() => setCoords(null)}>
       {isOpen && (
         <motion.div
+          key="panel"
           ref={panelRef}
           role="dialog"
           aria-label={`${label} picker`}
           initial={{ opacity: 0, scale: 0.94, y: 4 }}
-          animate={{ opacity: coords ? 1 : 0, scale: 1, y: 0 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.97 }}
           transition={motionPreset.sheet}
           style={{
             position: "fixed",
             left: coords?.x ?? 0,
             top: coords?.y ?? 0,
-            opacity: coords ? 1 : 0,
-            pointerEvents: coords ? "auto" : "none",
+            pointerEvents: isOpen ? "auto" : "none",
             zIndex: 160,
+            transformOrigin: coords?.above ? "bottom center" : "top center",
           }}
           className="w-[248px] max-h-[calc(100dvh-20px)] overflow-y-auto scrollbar-ios
                      p-3.5 material-thick squircle rounded-card
@@ -266,8 +381,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             ref={svRef}
             role="slider"
             aria-label="Saturation and brightness"
-            aria-valuetext={`Saturation ${Math.round(hsv.s * 100)}%, brightness ${Math.round(hsv.v * 100)}%`}
+            aria-valuemin={0}
+            aria-valuemax={100}
             aria-valuenow={Math.round(hsv.s * 100)}
+            aria-valuetext={`Saturation ${Math.round(hsv.s * 100)}%, brightness ${Math.round(hsv.v * 100)}%`}
             tabIndex={0}
             onPointerDown={onSvPointerDown}
             onPointerMove={onSvPointerMove}
@@ -309,42 +426,91 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
             />
           </div>
 
-          <div
-            ref={hueRef}
-            role="slider"
-            aria-label="Hue"
-            aria-valuemin={0}
-            aria-valuemax={360}
-            aria-valuenow={Math.round(hsv.h)}
-            tabIndex={0}
-            onPointerDown={onHuePointerDown}
-            onPointerMove={onHuePointerMove}
-            onKeyDown={(e) => {
-              if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-              e.preventDefault();
-              const delta = e.key === "ArrowRight" ? 4 : -4;
-              commit({
-                h: (hsv.h + delta + 360) % 360,
-                s: hsv.s,
-                v: hsv.v,
-              });
-            }}
-            className="relative h-3 rounded-full touch-none cursor-pointer outline-none
-                       focus-visible:focus-ring"
-            style={{
-              backgroundImage:
-                "linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
-            }}
-          >
-            <span
-              aria-hidden
-              className="absolute top-1/2 w-4 h-4 -mt-2 -ml-2 rounded-full border-2 border-white pointer-events-none"
-              style={{
-                left: `${(hsv.h / 360) * 100}%`,
-                backgroundColor: hueColor,
-                boxShadow:
-                  "0 0 0 1px rgba(0,0,0,0.35), 0 2px 5px rgba(0,0,0,0.3)",
+          <div className="flex items-center gap-3">
+            <div
+              ref={hueRef}
+              role="slider"
+              aria-label="Hue"
+              aria-valuemin={0}
+              aria-valuemax={360}
+              aria-valuenow={Math.round(hsv.h)}
+              aria-valuetext={`${Math.round(hsv.h)}°`}
+              tabIndex={0}
+              onPointerDown={onHuePointerDown}
+              onPointerMove={onHuePointerMove}
+              onKeyDown={(e) => {
+                const step = e.shiftKey ? 10 : 4;
+                const delta =
+                  e.key === "ArrowRight" || e.key === "ArrowUp"
+                    ? step
+                    : e.key === "ArrowLeft" || e.key === "ArrowDown"
+                      ? -step
+                      : 0;
+                if (!delta) return;
+                e.preventDefault();
+                commit({
+                  h: (hsv.h + delta + 360) % 360,
+                  s: hsv.s,
+                  v: hsv.v,
+                });
               }}
+              className="relative w-11 h-11 shrink-0 rounded-full touch-none cursor-crosshair
+                         outline-none focus-visible:focus-ring"
+            >
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-full pointer-events-none"
+                style={{
+                  backgroundImage:
+                    "conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+                  maskImage:
+                    "radial-gradient(circle, transparent 15.5px, #000 16.5px)",
+                  WebkitMaskImage:
+                    "radial-gradient(circle, transparent 15.5px, #000 16.5px)",
+                }}
+              />
+              <span
+                aria-hidden
+                className="absolute left-1/2 top-1/2 w-[18px] h-[18px] -ml-[9px] -mt-[9px]
+                           rounded-full pointer-events-none"
+                style={{
+                  backgroundColor: hex,
+                  boxShadow:
+                    "inset 0 0 0 0.5px rgba(0,0,0,0.18), 0 1px 2px rgba(0,0,0,0.12)",
+                }}
+              />
+              <span
+                aria-hidden
+                className="absolute left-1/2 top-1/2 w-[7px] h-[7px] -ml-[3.5px] -mt-[3.5px]
+                           rounded-full bg-white pointer-events-none"
+                style={{
+                  transform: `rotate(${hsv.h}deg) translateY(-19px)`,
+                  boxShadow: "0 0 0 1.5px rgba(0,0,0,0.4)",
+                }}
+              />
+            </div>
+
+            <PixelInput
+              value={draft}
+              label="Hex colour"
+              height={14}
+              onChange={setDraft}
+              onBlur={() => {
+                if (isHex(draft)) {
+                  const normalized = normalizeHex(draft);
+                  setDraft(normalized);
+                  commit(hexToHsv(normalized));
+                } else {
+                  setDraft(hex);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
+              className="min-w-0 flex-1"
             />
           </div>
 
@@ -371,42 +537,6 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
               })}
             </div>
           )}
-
-          <div className="flex items-center gap-2">
-            <span
-              aria-hidden
-              className="w-7 h-7 shrink-0 rounded-chip"
-              style={{
-                backgroundColor: hex,
-                boxShadow: "inset 0 0 0 0.5px var(--material-hairline)",
-              }}
-            />
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={() => {
-                if (isHex(draft)) {
-                  const normalized = normalizeHex(draft);
-                  setDraft(normalized);
-                  commit(hexToHsv(normalized));
-                } else {
-                  setDraft(hex);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  (e.target as HTMLInputElement).blur();
-                }
-              }}
-              spellCheck={false}
-              autoComplete="off"
-              aria-label="Hex colour"
-              className="h-8 min-w-0 flex-1 rounded-chip px-2.5 bg-surface-secondary text-footnote
-                         text-text font-mono uppercase tracking-wide tabular-nums
-                         outline-none border border-transparent focus:border-border"
-            />
-          </div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -434,7 +564,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
           <span
             className="block w-7 h-7 rounded-chip"
             style={{
-              backgroundColor: value,
+              backgroundColor: normalizedValue,
               boxShadow: "inset 0 0 0 0.5px var(--material-hairline)",
             }}
           />
@@ -443,17 +573,4 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
       {createPortal(panel, document.body)}
     </>
   );
-};
-
-/** `abc` / `#abc` are accepted by the field; the model wants six digits. */
-const normalizeHex = (value: string) => {
-  const trimmed = value.trim().toLowerCase().replace("#", "");
-  const expanded =
-    trimmed.length === 3
-      ? trimmed
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : trimmed;
-  return `#${expanded}`;
 };

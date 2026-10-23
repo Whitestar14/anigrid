@@ -17,7 +17,11 @@ export function useAppTheme(isLoaded: boolean) {
     root.classList.toggle("dark", isDark);
     root.classList.toggle("light", !isDark);
 
-    // Saved state can name a palette that no longer exists.
+    try {
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    } catch {
+    }
+
     const paletteId = isKnownPalette(theme.paletteId)
       ? theme.paletteId
       : isDark
@@ -30,6 +34,12 @@ export function useAppTheme(isLoaded: boolean) {
       "--color-on-accent",
       accentForeground(theme.accentColor)
     );
+
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const pageColor = getComputedStyle(root)
+      .getPropertyValue("--color-background")
+      .trim();
+    if (meta && pageColor) meta.setAttribute("content", pageColor);
   }, [theme, isLoaded]);
 
   useLayoutEffect(() => {

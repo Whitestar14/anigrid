@@ -14,7 +14,7 @@ const PANE =
 export const SearchLoadingPane: React.FC = () => (
   <div className={`${PANE} text-muted`}>
     <PixelSpinner cell={5} label="Searching" />
-    <span className="text-footnote">Searching the catalogues…</span>
+    <span className="text-footnote">Searching…</span>
   </div>
 );
 

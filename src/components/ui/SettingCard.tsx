@@ -1,18 +1,21 @@
 import React from "react";
 
-export const SettingButtonGroup: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({
-  children,
-  className = "",
-  style,
-}) => {
+export const SettingButtonGroup: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}> = ({ children, className = "", style }) => {
   const childrenArray = React.Children.toArray(children).filter(Boolean);
   return (
-    <div className={`flex flex-col flex-shrink-0 ${className}`} style={style}>
+    <div className={`flex flex-col shrink-0 ${className}`} style={style}>
       {childrenArray.map((child, idx) => (
         <React.Fragment key={idx}>
           {child}
           {idx < childrenArray.length - 1 && (
-            <div className="h-[0.5px] bg-border" />
+            <div
+              className="h-[0.5px]"
+              style={{ backgroundColor: "var(--color-divider)" }}
+            />
           )}
         </React.Fragment>
       ))}
@@ -57,22 +60,30 @@ export const SettingRow: React.FC<{
       onClick={onClick}
       role={!isBtn && (onClick || Component === "a") ? "button" : undefined}
       tabIndex={!isBtn && (onClick || Component === "a") ? 0 : undefined}
-      className={`relative flex items-center gap-3.5 px-4 py-2 min-h-[56px] w-full text-left transition-colors ${
-        isClickable ? "hover:bg-hover active:bg-black/5 dark:active:bg-white/5 cursor-pointer" : ""
+      className={`relative flex items-center gap-3.5 px-4 py-2 min-h-14 w-full text-left transition-colors ${
+        isClickable
+          ? "hover:bg-hover active:bg-black/5 dark:active:bg-white/5 cursor-pointer"
+          : ""
       } ${destructive ? "text-red-500" : "text-text"} ${className}`}
       {...rest}
     >
       {icon && (
-        <div className={`w-7 h-7 rounded-chip flex items-center justify-center shrink-0 ${iconBg} shadow-sm`}>
+        <div
+          className={`w-7 h-7 rounded-chip flex items-center justify-center shrink-0 ${iconBg} shadow-sm`}
+        >
           {icon}
         </div>
       )}
       <div className="flex-1 min-w-0 pr-2">
-        <div className={`text-subheadline font-medium truncate ${destructive ? "text-red-500" : ""}`}>
+        <div
+          className={`text-subheadline font-medium truncate ${destructive ? "text-red-500" : ""}`}
+        >
           {label}
         </div>
         {sublabel && (
-          <div className={`text-footnote leading-snug mt-0.5 hidden sm:block ${destructive ? "text-red-500/60" : "text-muted"}`}>
+          <div
+            className={`text-footnote leading-snug mt-0.5 hidden sm:block ${destructive ? "text-red-500/60" : "text-muted"}`}
+          >
             {sublabel}
           </div>
         )}

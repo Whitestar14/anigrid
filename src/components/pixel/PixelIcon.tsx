@@ -94,6 +94,51 @@ const ICONS = {
     "#..#####.",
     ".........",
   ],
+  tiers: [
+    "##..###..",
+    "##..###..",
+    "##..###..",
+    "#########",
+    "##..###..",
+    "##..###..",
+    "#########",
+    "##..###..",
+    "##..###..",
+  ],
+  /** Status glyphs. */
+  check: [
+    ".........",
+    ".........",
+    ".......#.",
+    "......#..",
+    "#....#...",
+    ".#..#....",
+    "..##.....",
+    ".........",
+    ".........",
+  ],
+  alert: [
+    "....#....",
+    "...###...",
+    "...###...",
+    "...###...",
+    "...###...",
+    ".........",
+    "...###...",
+    ".........",
+    ".........",
+  ],
+  info: [
+    "....#....",
+    ".........",
+    "...##....",
+    "....#....",
+    "....#....",
+    "....#....",
+    "...###...",
+    ".........",
+    ".........",
+  ],
   /** An image frame with a stroke through it: the universal "no preview". */
   broken: [
     ".........",
@@ -105,17 +150,6 @@ const ICONS = {
     "#..#....#",
     "#########",
     ".........",
-  ],
-  tiers: [
-    "##..###..",
-    "##..###..",
-    "##..###..",
-    "#########",
-    "##..###..",
-    "##..###..",
-    "#########",
-    "##..###..",
-    "##..###..",
   ],
 } as const;
 
@@ -147,10 +181,6 @@ interface PixelIconProps {
 
 /**
  * An icon registry entry as a ready-made component.
- *
- * Data tables like `PROJECT_TYPES` store components, not render calls, and they
- * pass size/className through — this adapter lets a pixel icon slot into those
- * tables without a bespoke wrapper per icon.
  */
 export const pixelIcon = (
   name: PixelIconName,
